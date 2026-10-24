@@ -25,7 +25,9 @@ const redirectUrl = Astro.url.searchParams.get('redirect') || '';
         <a href="/" class="inline-block">
           <img src="/brand/logo-light.svg" alt="GoShipping" class="h-10 w-auto mx-auto" />
         </a>
-        <h1 class="text-xl font-bold tracking-tight text-slate-900">Sign in to GoShipping Gateway</h1>
+        <h1 class="text-xl font-bold tracking-tight text-slate-900 font-['Manrope',sans-serif]">
+          Sign in to GoShipping Gateway
+        </h1>
         <p class="text-xs text-slate-500">Access your customer shipments, quotations, and customs reports</p>
       </div>
 
@@ -39,7 +41,7 @@ const redirectUrl = Astro.url.searchParams.get('redirect') || '';
             id="email"
             type="email"
             required
-            value="client@apextextiles.com"
+            value="admin@goshipping.com"
             class="w-full h-11 px-3.5 rounded-lg border border-slate-300 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] text-sm"
           />
         </div>
@@ -70,37 +72,37 @@ const redirectUrl = Astro.url.searchParams.get('redirect') || '';
       <!-- Quick Role Fill Demo Strip -->
       <div class="pt-4 border-t border-slate-100 space-y-2">
         <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-          One-Click Demo Roles:
+          One-Click Instant Login Roles:
         </span>
         <div class="grid grid-cols-2 gap-2 text-[11px]">
           <button
             type="button"
-            onclick="document.getElementById('email').value='client@apextextiles.com'; document.getElementById('login-form').requestSubmit();"
-            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+            id="btn-customer"
+            class="p-2 text-left rounded-lg border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
           >
             <strong class="block text-slate-900">Customer Client</strong>
             <span class="text-slate-400">Apex Textiles Ltd</span>
           </button>
           <button
             type="button"
-            onclick="document.getElementById('email').value='admin@goshipping.com'; document.getElementById('login-form').requestSubmit();"
-            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+            id="btn-admin"
+            class="p-2 text-left rounded-lg border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
           >
             <strong class="block text-slate-900">Super Admin</strong>
             <span class="text-slate-400">All Operations</span>
           </button>
           <button
             type="button"
-            onclick="document.getElementById('email').value='ops@goshipping.com'; document.getElementById('login-form').requestSubmit();"
-            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+            id="btn-ops"
+            class="p-2 text-left rounded-lg border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
           >
             <strong class="block text-slate-900">Ops Manager</strong>
             <span class="text-slate-400">Kamal Hossain</span>
           </button>
           <button
             type="button"
-            onclick="document.getElementById('email').value='sales@goshipping.com'; document.getElementById('login-form').requestSubmit();"
-            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+            id="btn-sales"
+            class="p-2 text-left rounded-lg border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
           >
             <strong class="block text-slate-900">Sales & Pricing</strong>
             <span class="text-slate-400">Nafis Chowdhury</span>
@@ -118,14 +120,10 @@ const redirectUrl = Astro.url.searchParams.get('redirect') || '';
       const errorBox = document.getElementById('error-box');
       const submitBtn = document.getElementById('submit-btn');
 
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+      async function executeLogin(email, password) {
         errorBox.classList.add('hidden');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Authenticating...';
-
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
 
         try {
           const res = await fetch('/api/auth/login', {
@@ -139,12 +137,23 @@ const redirectUrl = Astro.url.searchParams.get('redirect') || '';
             throw new Error(data.error || 'Authentication failed');
           }
 
+          submitBtn.textContent = 'Redirecting...';
+
+          const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(data.user?.role);
+
           if (redirectUrl) {
-            window.location.href = redirectUrl;
-          } else if (data.user?.role === 'customer') {
-            window.location.href = '/dashboard';
+            // If user is a customer, but redirect was pointing to /admin, send them safely to /dashboard
+            if (!isStaff && redirectUrl.startsWith('/admin')) {
+              window.location.replace('/dashboard');
+            } else if (isStaff && redirectUrl.startsWith('/dashboard')) {
+              window.location.replace('/admin');
+            } else {
+              window.location.replace(redirectUrl);
+            }
+          } else if (!isStaff) {
+            window.location.replace('/dashboard');
           } else {
-            window.location.href = '/admin';
+            window.location.replace('/admin');
           }
         } catch (err) {
           errorBox.textContent = err.message || 'Login failed';
@@ -152,6 +161,37 @@ const redirectUrl = Astro.url.searchParams.get('redirect') || '';
           submitBtn.disabled = false;
           submitBtn.textContent = 'Sign In to Portal →';
         }
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        executeLogin(email, password);
+      });
+
+      document.getElementById('btn-customer')?.addEventListener('click', () => {
+        document.getElementById('email').value = 'client@apextextiles.com';
+        document.getElementById('password').value = 'password';
+        executeLogin('client@apextextiles.com', 'password');
+      });
+
+      document.getElementById('btn-admin')?.addEventListener('click', () => {
+        document.getElementById('email').value = 'admin@goshipping.com';
+        document.getElementById('password').value = 'password';
+        executeLogin('admin@goshipping.com', 'password');
+      });
+
+      document.getElementById('btn-ops')?.addEventListener('click', () => {
+        document.getElementById('email').value = 'ops@goshipping.com';
+        document.getElementById('password').value = 'password';
+        executeLogin('ops@goshipping.com', 'password');
+      });
+
+      document.getElementById('btn-sales')?.addEventListener('click', () => {
+        document.getElementById('email').value = 'sales@goshipping.com';
+        document.getElementById('password').value = 'password';
+        executeLogin('sales@goshipping.com', 'password');
       });
     </script>
   </body>

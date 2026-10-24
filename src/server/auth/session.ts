@@ -24,8 +24,14 @@ export interface SessionData {
   expiresAt: Date;
 }
 
-// In-memory session fallback store for ultra-fast session lookup or offline mode
-const memorySessions = new Map<string, SessionData>();
+// Global session store attached to globalThis so Astro dev and SSR bundles share the exact same state
+declare global {
+  var __goshipping_sessions: Map<string, SessionData> | undefined;
+}
+
+const memorySessions: Map<string, SessionData> =
+  globalThis.__goshipping_sessions || new Map<string, SessionData>();
+globalThis.__goshipping_sessions = memorySessions;
 
 /**
  * Generate a cryptographically secure session token
