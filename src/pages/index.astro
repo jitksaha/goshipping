@@ -6,97 +6,90 @@ import QuoteCalculatorIsland from '../components/marketing/QuoteCalculatorIsland
 export const prerender = true;
 ---
 
-<PublicLayout title="GoShipping | High-Velocity Air & Ocean Freight Forwarding" currentPath="/">
-  <!-- Above-the-fold Hero Section -->
-  <section class="relative bg-slate-900 text-white overflow-hidden py-16 lg:py-24 border-b border-slate-800">
-    <!-- Subtle technical grid background -->
-    <div class="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
-
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        <!-- Hero Copy -->
-        <div class="lg:col-span-7 space-y-6">
-          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/90 border border-slate-700 text-xs font-semibold text-slate-300">
-            <span class="w-2 h-2 rounded-full bg-[#EA1D2C]"></span>
-            Licensed IATA & Chittagong Customs Clearing Agent #182
-          </div>
-
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.15]">
-            Global Freight Forwarding Engineered for Export Velocity.
+<PublicLayout title="GoShipping — Let's Move Your Business Forward" currentPath="/">
+  <!-- HERO SECTION -->
+  <section class="relative bg-white pt-12 pb-16 lg:pt-20 lg:pb-24 overflow-hidden border-b border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Hero Top Grid: Heading + Paragraph & CTA -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-12 lg:mb-16">
+        <div class="lg:col-span-7">
+          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#11181E] tracking-tight leading-[1.08] font-['Manrope',sans-serif]">
+            Let's Move Your<br />Business Forward
           </h1>
-
-          <p class="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl">
-            GoShipping accelerates international supply chains with dedicated air cargo allocations, consolidated ocean freight, bonded customs clearance, and verified checkpoint telemetry.
-          </p>
-
-          <!-- Core Action Triggers -->
-          <div class="flex flex-wrap items-center gap-4 pt-2">
-            <a
-              href="#live-tracking"
-              class="px-6 py-3.5 rounded-lg bg-[#EA1D2C] text-white font-bold text-sm tracking-wide hover:bg-[#D41523] active:bg-[#B7101C] transition-colors-fast shadow-md"
-            >
-              Track Live Consignment →
-            </a>
-            <a
-              href="#quote-calculator"
-              class="px-6 py-3.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-sm transition-colors-fast"
-            >
-              Calculate Freight Rate
-            </a>
-          </div>
-
-          <!-- Trust Badges -->
-          <div class="pt-6 border-t border-slate-800/80 grid grid-cols-3 gap-4 text-xs text-slate-400">
-            <div>
-              <p class="text-white font-extrabold text-lg sm:text-xl font-mono tabular-nums">48-72h</p>
-              <p class="mt-0.5">Express Air Transit Europe & North America</p>
-            </div>
-            <div>
-              <p class="text-white font-extrabold text-lg sm:text-xl font-mono tabular-nums">12,500+</p>
-              <p class="mt-0.5">TEU Annual Ocean Volume Handled</p>
-            </div>
-            <div>
-              <p class="text-white font-extrabold text-lg sm:text-xl font-mono tabular-nums">100%</p>
-              <p class="mt-0.5">Verified Customs Compliance</p>
-            </div>
-          </div>
         </div>
 
-        <!-- Hero Interactive Quick Search Panel -->
-        <div class="lg:col-span-5">
-          <div class="p-6 sm:p-8 rounded-2xl bg-white text-slate-900 shadow-2xl border border-slate-200">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-[#EA1D2C] block mb-1">
-              Active Milestone Search
-            </span>
-            <h2 class="text-xl font-bold tracking-tight text-slate-900 mb-4">
-              Real-Time Waypoint Tracking
-            </h2>
-            <form action="/tracking" method="GET" class="space-y-4">
-              <div>
-                <label for="tracking-input" class="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Master Airway Bill (MAWB) or Ocean B/L
-                </label>
-                <input
-                  id="tracking-input"
-                  name="code"
-                  type="text"
-                  defaultValue="GOSH-2026-9812"
-                  placeholder="e.g. GOSH-2026-9812"
-                  class="w-full h-11 px-3.5 rounded-lg border border-slate-300 font-mono text-sm uppercase focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                class="w-full h-11 rounded-lg bg-[#EA1D2C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#D41523] active:bg-[#B7101C] transition-colors-fast"
-              >
-                Inspect Consignment Status →
-              </button>
-            </form>
+        <div class="lg:col-span-5 lg:pl-6 space-y-5">
+          <p class="text-sm sm:text-base text-slate-600 leading-relaxed max-w-md font-medium">
+            We provide reliable shipping wherever you need it. With us, you get precision, speed, and confidence at every step.
+          </p>
+          <div class="flex items-center gap-3">
+            <a
+              href="#quote-section"
+              class="inline-flex items-center justify-center px-6 py-3 rounded-full bg-[#11181E] text-white text-xs font-bold hover:bg-slate-800 transition-colors-fast"
+            >
+              Learn More
+            </a>
+            <a
+              href="#tracking-section"
+              class="inline-flex items-center justify-center px-6 py-3 rounded-full border border-slate-300 bg-white text-slate-800 text-xs font-bold hover:border-slate-400 hover:bg-slate-50 transition-colors-fast"
+            >
+              Track Shipment
+            </a>
+          </div>
+        </div>
+      </div>
 
-            <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <span class="font-medium">Active Network:</span>
-              <span class="text-slate-700 font-semibold">DAC · CTG · DXB · FRA · GZ</span>
+      <!-- Hero Visual: Large Architectural Shipping Containers -->
+      <div class="relative rounded-3xl overflow-hidden bg-[#243528] shadow-2xl border border-slate-200">
+        <!-- Realistic Container Photo Background with CSS Gradient Overlay -->
+        <div class="relative aspect-[16/8] sm:aspect-[21/9] w-full overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=2000&q=85"
+            alt="GoShipping Stacked Industrial Containers"
+            class="w-full h-full object-cover object-center filter contrast-105"
+          />
+          <div class="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/40"></div>
+
+          <!-- Stencil Markings overlay matching the mockup -->
+          <div class="absolute top-6 left-8 sm:top-10 sm:left-12 space-y-1 text-white/90 font-mono">
+            <span class="text-[10px] sm:text-xs tracking-widest uppercase block text-white/70">
+              Cargo container no. 029387162853
+            </span>
+            <div class="text-3xl sm:text-5xl font-black tracking-tighter font-['Manrope',sans-serif] text-white">
+              /GOSHIPPING
+            </div>
+          </div>
+
+          <!-- Recycle & Specs stencil symbol -->
+          <div class="absolute bottom-8 left-8 sm:bottom-12 sm:left-12 text-white/80 font-mono text-xs flex items-center gap-4">
+            <div class="border border-white/60 rounded px-2 py-1 text-[11px] font-bold">
+              MAX GROSS 32,500 KG
+            </div>
+            <span class="hidden sm:inline text-white/60">BAFFA · IATA CARGO · CHITTAGONG CFS</span>
+          </div>
+
+          <!-- Live Fast-Track Floating Pill -->
+          <div class="absolute bottom-6 right-6 sm:bottom-10 sm:right-10 max-w-sm w-full hidden md:block">
+            <div class="p-4 rounded-2xl bg-white/95 backdrop-blur-md shadow-lg border border-white/40 space-y-2">
+              <div class="flex items-center justify-between text-[11px] font-bold text-slate-700">
+                <span>Direct Checkpoint Telemetry</span>
+                <span class="text-[#EA1D2C]">Live 24/7</span>
+              </div>
+              <form action="/tracking" method="GET" class="flex gap-2">
+                <input
+                  type="text"
+                  name="code"
+                  defaultValue="GOSH-2026-9812"
+                  placeholder="Tracking Number"
+                  class="flex-1 h-9 px-3 rounded-lg border border-slate-300 font-mono text-xs uppercase"
+                />
+                <button
+                  type="submit"
+                  class="h-9 px-4 rounded-lg bg-[#EA1D2C] text-white font-bold text-xs hover:bg-[#D41523] transition-colors-fast"
+                >
+                  Track
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -104,114 +97,350 @@ export const prerender = true;
     </div>
   </section>
 
-  <!-- Live Tracking Interactive Section -->
-  <section id="live-tracking" class="py-16 bg-slate-50 border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-      <div class="max-w-2xl">
-        <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">
-          Verified Checkpoint Telemetry
-        </span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#11181E] tracking-tight mt-1">
-          Near-Real-Time Milestone Verification
-        </h2>
-        <p class="text-sm text-slate-600 mt-2">
-          Tracking milestones are authenticated directly from airport cargo handlers, port berths, and bonded warehouses.
+  <!-- SECTION: /WHY CHOOSE US -->
+  <section id="why-choose-us" class="py-20 lg:py-28 bg-white border-b border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Section Label -->
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono block mb-4">
+        /WHY CHOOSE US
+      </span>
+
+      <!-- Two-column Section Header -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
+        <div class="lg:col-span-7">
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#11181E] tracking-tight leading-[1.12] font-['Manrope',sans-serif]">
+            We specialize in providing reliable and efficient solutions
+          </h2>
+        </div>
+        <div class="lg:col-span-5 lg:pl-6">
+          <p class="text-sm text-slate-600 leading-relaxed font-medium">
+            Whether you need to streamline your supply chain, improve delivery times, or expand your reach globally, we're here to help you achieve your goals with precision and speed.
+          </p>
+        </div>
+      </div>
+
+      <!-- 4-Column Features Grid matching reference -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 pt-4">
+        <!-- Feature 1: Global Reach -->
+        <div class="space-y-3">
+          <div class="w-8 h-8 flex items-center justify-center text-slate-900">
+            <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+              <path d="M2 12h20" />
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">Global Reach</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            With a network, we ensure that your business can reach new markets effortlessly across Europe, North America, Middle East, and Asia.
+          </p>
+        </div>
+
+        <!-- Feature 2: Custom Solutions -->
+        <div class="space-y-3">
+          <div class="w-8 h-8 flex items-center justify-center text-slate-900">
+            <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">Custom Solutions</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            We don't believe in one-size-fits-all. We design logistics strategies tailored to your specific commercial requirements and peak shipment cycles.
+          </p>
+        </div>
+
+        <!-- Feature 3: Technology-Driven -->
+        <div class="space-y-3">
+          <div class="w-8 h-8 flex items-center justify-center text-slate-900">
+            <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="4" y1="21" x2="4" y2="14" />
+              <line x1="4" y1="10" x2="4" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12" y2="3" />
+              <line x1="20" y1="21" x2="20" y2="16" />
+              <line x1="20" y1="12" x2="20" y2="3" />
+              <line x1="1" y1="14" x2="7" y2="14" />
+              <line x1="9" y1="8" x2="15" y2="8" />
+              <line x1="17" y1="16" x2="23" y2="16" />
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">Technology-Driven</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Our cutting-edge technology enables real-time tracking, data analytics, and seamless coordination directly via adaptive polling and verified waypoints.
+          </p>
+        </div>
+
+        <!-- Feature 4: Proven Expertise -->
+        <div class="space-y-3">
+          <div class="w-8 h-8 flex items-center justify-center text-slate-900">
+            <svg class="w-6 h-6 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+              <path d="M6 6h10" />
+              <path d="M6 10h10" />
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">Proven Expertise</h3>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            With over 10 years in the logistics industry, we've perfected the art of moving goods efficiently, securely, and reliably through global customs corridors.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: INTEGRATED LOGISTICS SOLUTIONS -->
+  <section id="services" class="py-20 lg:py-28 bg-[#FAFAFA] border-b border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono block mb-2">
+            /OUR SERVICES
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-[#11181E] tracking-tight font-['Manrope',sans-serif]">
+            Integrated Logistics Solutions
+          </h2>
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          <p class="text-xs text-slate-500 max-w-xs">
+            We offer a comprehensive range of services designed to meet the diverse needs of businesses.
+          </p>
+          <a
+            href="/services"
+            class="inline-flex items-center justify-center px-6 py-2.5 rounded-full bg-[#11181E] text-white text-xs font-bold hover:bg-slate-800 transition-colors-fast whitespace-nowrap self-start sm:self-auto"
+          >
+            See All
+          </a>
+        </div>
+      </div>
+
+      <!-- Services Visual Bento Grid matching reference layout -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <!-- Card 1: Ocean Freight (Wide Card) -->
+        <div class="md:col-span-7 group relative rounded-2xl overflow-hidden bg-slate-900 min-h-[300px] flex flex-col justify-end p-8 text-white shadow-sm border border-slate-200">
+          <img
+            src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=1200&q=80"
+            alt="Ocean Container Logistics"
+            class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+          <div class="relative space-y-2 max-w-md">
+            <span class="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-white">
+              Ocean Freight
+            </span>
+            <h3 class="text-xl sm:text-2xl font-bold font-['Manrope',sans-serif]">FCL & LCL Container Consolidation</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Cost-effective maritime transport with weekly sailings from Chittagong and Mongla to Europe and the Americas.
+            </p>
+          </div>
+        </div>
+
+        <!-- Card 2: Warehousing & Distribution -->
+        <div class="md:col-span-5 group relative rounded-2xl overflow-hidden bg-slate-900 min-h-[300px] flex flex-col justify-end p-8 text-white shadow-sm border border-slate-200">
+          <img
+            src="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80"
+            alt="Warehousing and Distribution"
+            class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+          <div class="relative space-y-2">
+            <span class="px-2.5 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-white">
+              Warehousing & CFS
+            </span>
+            <h3 class="text-xl font-bold font-['Manrope',sans-serif]">Strategic Warehouse Storage</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              200,000+ sq. ft. of secure bonded and dry inventory facilities across Dhaka, Chittagong, Dubai, and Guangzhou.
+            </p>
+          </div>
+        </div>
+
+        <!-- Card 3: Freight Transport Fleet -->
+        <div class="md:col-span-4 group relative rounded-2xl overflow-hidden bg-slate-900 min-h-[260px] flex flex-col justify-end p-6 text-white shadow-sm border border-slate-200">
+          <img
+            src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=1000&q=80"
+            alt="Highway transport fleet"
+            class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+          <div class="relative space-y-1.5">
+            <h3 class="text-base font-bold font-['Manrope',sans-serif]">Road & Feeder Transport</h3>
+            <p class="text-xs text-slate-300">Bonded truck fleets connecting factories to ports.</p>
+          </div>
+        </div>
+
+        <!-- Card 4: Supply Chain Optimization -->
+        <div class="md:col-span-4 group relative rounded-2xl overflow-hidden bg-slate-900 min-h-[260px] flex flex-col justify-end p-6 text-white shadow-sm border border-slate-200">
+          <img
+            src="https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=1000&q=80"
+            alt="Air Cargo Freight Tarmac"
+            class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+          <div class="relative space-y-1.5">
+            <h3 class="text-base font-bold font-['Manrope',sans-serif]">Air Cargo & Speed Freight</h3>
+            <p class="text-xs text-slate-300">Blocked space allocations with Emirates, Qatar, Saudia.</p>
+          </div>
+        </div>
+
+        <!-- Card 5: Customs Clearance -->
+        <div class="md:col-span-4 group relative rounded-2xl overflow-hidden bg-slate-900 min-h-[260px] flex flex-col justify-end p-6 text-white shadow-sm border border-slate-200">
+          <img
+            src="https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1000&q=80"
+            alt="Customs clearance and compliance"
+            class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-500"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+          <div class="relative space-y-1.5">
+            <h3 class="text-base font-bold font-['Manrope',sans-serif]">Customs Clearance #182</h3>
+            <p class="text-xs text-slate-300">Licensed brokerage at HSIA Airport & Chittagong Point.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION: TAILORED LOGISTICS FOR EVERY BUSINESS (INDUSTRIES) -->
+  <section class="py-20 lg:py-28 bg-white border-b border-slate-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono block mb-2">
+            /INDUSTRIES WE SERVE
+          </span>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-[#11181E] tracking-tight font-['Manrope',sans-serif]">
+            Tailored Logistics for Every Business
+          </h2>
+        </div>
+        <p class="text-xs text-slate-500 max-w-sm">
+          At GoShipping, we understand that every industry has unique logistics challenges. That's why we offer customized solutions for a wide range of sectors.
         </p>
       </div>
 
-      <!-- React Live Tracking Island -->
+      <!-- Industry Cards Grid matching reference -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Industry 1: Manufacturing & Garments -->
+        <div class="p-8 rounded-2xl bg-[#2A2E33] text-white flex flex-col justify-between min-h-[220px] shadow-sm">
+          <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white mb-6">
+            <svg class="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M3 21h18" />
+              <path d="M5 21V7l8-4v18" />
+              <path d="M19 21V11l-6-4" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-['Manrope',sans-serif] text-white mb-2">Manufacturing & RMG</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              Optimize your supply chain, from raw materials to finished export garments, with guaranteed seasonal vessel space and GOH capabilities.
+            </p>
+          </div>
+        </div>
+
+        <!-- Industry 2: Healthcare & Pharmacy -->
+        <div class="p-8 rounded-2xl bg-white border border-slate-200 text-slate-900 flex flex-col justify-between min-h-[220px] shadow-sm">
+          <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-800 mb-6">
+            <svg class="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="m19 14 1.5-1.5a4.95 4.95 0 0 0 0-7c-1.9-1.9-5-1.9-7 0L12 7l-1.5-1.5a4.95 4.95 0 0 0-7 0c-1.9 1.9-1.9 5 0 7L5 14" />
+              <path d="M12 7v14" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-['Manrope',sans-serif] text-slate-900 mb-2">Healthcare & Pharmacy</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Ensure the safe, timely delivery of temperature-sensitive active pharmaceutical ingredients (API) and critical medical equipment.
+            </p>
+          </div>
+        </div>
+
+        <!-- Industry 3: Technology & Electronics -->
+        <div class="p-8 rounded-2xl bg-white border border-slate-200 text-slate-900 flex flex-col justify-between min-h-[220px] shadow-sm">
+          <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-800 mb-6">
+            <svg class="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-['Manrope',sans-serif] text-slate-900 mb-2">Technology & Electronics</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Handle high-value, sensitive components with strict security escorts, temperature controls, and accelerated direct routing.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DARK HERO BANNER: "Your Logistics — Expertise" matching top-right mockup -->
+  <section class="py-20 bg-[#191D22] text-white overflow-hidden relative border-y border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div class="lg:col-span-7 space-y-4">
+          <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">
+            /VELOCITY & RELIABILITY
+          </span>
+          <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-['Manrope',sans-serif] leading-tight">
+            Your Logistics —<br />Expertise in Motion
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-400 max-w-lg leading-relaxed">
+            From customs clearance at Chittagong Port to high-velocity air cargo via Dubai and Frankfurt. Streamline your enterprise freight with live tracking and guaranteed allocations.
+          </p>
+          <div class="pt-4 flex flex-wrap gap-4">
+            <a
+              href="#quote-section"
+              class="px-6 py-3 rounded-full bg-[#EA1D2C] text-white text-xs font-bold hover:bg-[#D41523] transition-colors-fast"
+            >
+              Get Started Now →
+            </a>
+            <a
+              href="/tracking"
+              class="px-6 py-3 rounded-full border border-slate-700 bg-slate-800 text-white text-xs font-bold hover:bg-slate-700 transition-colors-fast"
+            >
+              Track Waypoint Telemetry
+            </a>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 flex justify-center lg:justify-end">
+          <!-- Stenciled Crane Graphic from reference -->
+          <div class="p-8 rounded-2xl bg-[#23272D] border border-slate-700/60 max-w-sm w-full text-center space-y-3 font-mono">
+            <div class="w-12 h-1 bg-[#EA1D2C] mx-auto mb-2"></div>
+            <div class="text-2xl font-black text-white font-['Manrope',sans-serif]">/GOSHIPPING</div>
+            <p class="text-[11px] text-slate-400">CONTAINER LOGISTICS NO. 029387162853</p>
+            <div class="pt-3 border-t border-slate-700/80 flex justify-between text-[11px] text-slate-400">
+              <span>EST. TRANSIT: 48H</span>
+              <span class="text-emerald-400">ACTIVE ON-SCHEDULE</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE TRACKING SECTION -->
+  <section id="tracking-section" class="py-20 bg-slate-50 border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <div class="max-w-2xl">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono block mb-1">
+          /AUTHENTICATED TELEMETRY
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#11181E] tracking-tight font-['Manrope',sans-serif]">
+          Live Consignment Tracking
+        </h2>
+        <p class="text-xs text-slate-600 mt-1">
+          Near-real-time checkpoint milestone verification with conditional 304 caching and tab pause.
+        </p>
+      </div>
+
       <LiveTrackingIsland client:load initialTrackingNumber="GOSH-2026-9812" pollIntervalMs={25000} />
     </div>
   </section>
 
-  <!-- Core Freight Services Grid -->
-  <section class="py-20 bg-white border-b border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="max-w-2xl mb-12">
-        <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Enterprise Logistics</span>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#11181E] tracking-tight mt-1">
-          Multi-Modal Cargo Infrastructure
-        </h2>
-        <p class="text-sm text-slate-600 mt-2">
-          Purpose-built freight lanes connecting industrial manufacturing facilities in Bangladesh with global consumer destinations.
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <!-- Service 1: Air Cargo -->
-        <div class="p-8 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors-fast flex flex-col justify-between">
-          <div class="space-y-4">
-            <div class="w-12 h-12 rounded-lg bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-xl">
-              ✈
-            </div>
-            <h3 class="text-lg font-bold text-slate-900">Scheduled & Charter Air Freight</h3>
-            <p class="text-xs text-slate-600 leading-relaxed">
-              Direct allocations with Tier-1 airlines (Emirates SkyCargo, Qatar Cargo, Saudia, Turkish Cargo) operating from Dhaka HSIA with expedited European and US transit.
-            </p>
-            <ul class="text-xs text-slate-500 space-y-1.5 pt-2">
-              <li>✓ Guaranteed space during export peak seasons</li>
-              <li>✓ GOH (Garment on Hanger) specialized handling</li>
-              <li>✓ High-value & temperature-monitored shipments</li>
-            </ul>
-          </div>
-          <div class="pt-6 mt-6 border-t border-slate-200">
-            <a href="/services" class="text-xs font-bold text-[#EA1D2C] hover:underline">
-              Explore Air Services →
-            </a>
-          </div>
-        </div>
-
-        <!-- Service 2: Ocean Freight -->
-        <div class="p-8 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors-fast flex flex-col justify-between">
-          <div class="space-y-4">
-            <div class="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xl">
-              🚢
-            </div>
-            <h3 class="text-lg font-bold text-slate-900">Ocean Freight (FCL / LCL Consolidation)</h3>
-            <p class="text-xs text-slate-600 leading-relaxed">
-              Comprehensive container shipping via Chittagong Port and Mongla Port. Weekly consolidation boxes to Singapore, Colombo, Rotterdam, Hamburg, and US West/East Coast.
-            </p>
-            <ul class="text-xs text-slate-500 space-y-1.5 pt-2">
-              <li>✓ Full Container Load (20ft, 40ft HC, Reefer)</li>
-              <li>✓ Weekly buyer's consolidation at our CFS</li>
-              <li>✓ Direct carrier contracts with Maersk, MSC, CMA CGM</li>
-            </ul>
-          </div>
-          <div class="pt-6 mt-6 border-t border-slate-200">
-            <a href="/services" class="text-xs font-bold text-[#EA1D2C] hover:underline">
-              Explore Ocean Cargo →
-            </a>
-          </div>
-        </div>
-
-        <!-- Service 3: Customs & Bonded CFS -->
-        <div class="p-8 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors-fast flex flex-col justify-between">
-          <div class="space-y-4">
-            <div class="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-xl">
-              ⚖
-            </div>
-            <h3 class="text-lg font-bold text-slate-900">Licensed Customs Brokerage</h3>
-            <p class="text-xs text-slate-600 leading-relaxed">
-              In-house licensed customs clearing at Dhaka Airport, Chittagong Custom House, and Benapole Land Port. ASYCUDA World electronic declaration integration.
-            </p>
-            <ul class="text-xs text-slate-500 space-y-1.5 pt-2">
-              <li>✓ Duty calculation & HS Code verification</li>
-              <li>✓ Bonded warehouse transfers & transit permits</li>
-              <li>✓ Certificate of Origin, GSP, and export documentation</li>
-            </ul>
-          </div>
-          <div class="pt-6 mt-6 border-t border-slate-200">
-            <a href="/services" class="text-xs font-bold text-[#EA1D2C] hover:underline">
-              Explore Customs Brokerage →
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Interactive Quotation Section -->
-  <section class="py-20 bg-slate-50">
+  <!-- INTERACTIVE QUOTE CALCULATOR SECTION -->
+  <section id="quote-section" class="py-20 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <QuoteCalculatorIsland client:visible />
     </div>

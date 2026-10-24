@@ -8,12 +8,12 @@ interface Props {
 }
 
 const {
-  title = 'GoShipping | Global Freight Forwarding, Customs & Logistics Supply Chain',
-  description = 'GoShipping provides end-to-end international freight forwarding, express customs clearance, sea & air cargo consolidation, and live status tracking.',
+  title = "GoShipping — Let's Move Your Business Forward",
+  description = 'We provide reliable shipping wherever you need it. High-velocity air & ocean freight forwarding, licensed customs clearance, and live tracking telemetry.',
   currentPath = '/'
 } = Astro.props;
 
-const user = Astro.locals.user;
+const user = Astro.locals?.user;
 ---
 
 <!doctype html>
@@ -22,11 +22,10 @@ const user = Astro.locals.user;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
-    <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
 
-    <!-- Google Fonts for Typography Hierarchy: Manrope & Inter & Noto Sans Bengali -->
+    <!-- Google Fonts: Manrope & Inter & Noto Sans Bengali -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -34,175 +33,116 @@ const user = Astro.locals.user;
       rel="stylesheet"
     />
   </head>
-  <body class="bg-white text-[#11181E] flex flex-col min-h-screen selection:bg-[#F8E9EB] selection:text-[#EA1D2C]">
-    <!-- Top Announcement Bar with Bengali & English hotline -->
-    <header class="border-b border-slate-200 bg-slate-900 text-slate-300 text-xs py-2 px-4">
-      <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
-        <div class="flex items-center gap-4">
-          <span class="flex items-center gap-1.5 font-medium text-white">
-            <span class="inline-block w-2 h-2 rounded-full bg-[#10B981]"></span>
-            Air & Sea Cargo Hubs Active 24/7
-          </span>
-          <span class="hidden sm:inline text-slate-400">|</span>
-          <span class="hidden sm:inline font-bengali text-slate-300">
-            আন্তর্জাতিক শিপিং ও কাস্টমস সহায়তা: +৮৮০ ৯৬৩৮-০০৫৫৪৪
-          </span>
-        </div>
-        <div class="flex items-center gap-4">
-          <a href="/tracking" class="hover:text-white transition-colors-fast text-slate-300">Quick Tracking</a>
-          <span class="text-slate-600">|</span>
-          <a href="/contact" class="hover:text-white transition-colors-fast text-slate-300">Dhaka · CTG · Dubai · Guangzhou</a>
-        </div>
-      </div>
-    </header>
-
-    <!-- Main Navigation Bar -->
-    <nav class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+  <body class="bg-[#FAFAFA] text-[#11181E] flex flex-col min-h-screen selection:bg-[#EA1D2C] selection:text-white font-['Inter',sans-serif]">
+    <!-- Minimalist Top Navigation -->
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        <!-- Logo -->
-        <a href="/" class="flex items-center gap-3 group" aria-label="GoShipping Home">
-          <img src="/brand/logo-light.svg" alt="GoShipping" class="h-10 w-auto" />
+        <!-- Brand Logo / Wordmark in editorial slash format -->
+        <a href="/" class="flex items-center gap-2 group" aria-label="GoShipping">
+          <span class="text-xl font-extrabold tracking-tighter font-['Manrope',sans-serif] text-slate-900 group-hover:text-[#EA1D2C] transition-colors-fast">
+            <span class="text-[#EA1D2C]">/</span>GOSHIPPING
+          </span>
         </a>
 
-        <!-- Desktop Navigation Links -->
-        <div class="hidden md:flex items-center space-x-1 lg:space-x-2 text-sm font-semibold">
-          <a
-            href="/"
-            class={`px-3 py-2 rounded-md transition-colors-fast ${
-              currentPath === '/' ? 'text-[#EA1D2C] bg-[#F8E9EB]' : 'text-slate-700 hover:text-[#EA1D2C] hover:bg-slate-50'
-            }`}
-          >
-            Home
-          </a>
-          <a
-            href="/services"
-            class={`px-3 py-2 rounded-md transition-colors-fast ${
-              currentPath.startsWith('/services') ? 'text-[#EA1D2C] bg-[#F8E9EB]' : 'text-slate-700 hover:text-[#EA1D2C] hover:bg-slate-50'
-            }`}
-          >
-            Freight Services
-          </a>
-          <a
-            href="/tracking"
-            class={`px-3 py-2 rounded-md transition-colors-fast ${
-              currentPath.startsWith('/tracking') ? 'text-[#EA1D2C] bg-[#F8E9EB]' : 'text-slate-700 hover:text-[#EA1D2C] hover:bg-slate-50'
-            }`}
-          >
-            Live Tracking
-          </a>
-          <a
-            href="/about"
-            class={`px-3 py-2 rounded-md transition-colors-fast ${
-              currentPath.startsWith('/about') ? 'text-[#EA1D2C] bg-[#F8E9EB]' : 'text-slate-700 hover:text-[#EA1D2C] hover:bg-slate-50'
-            }`}
-          >
-            Network & Fleet
-          </a>
+        <!-- Center Menu Links -->
+        <nav class="hidden md:flex items-center space-x-8 text-xs font-semibold text-slate-600">
+          <a href="/about" class="hover:text-slate-900 transition-colors-fast">About us</a>
+          <a href="/services" class="hover:text-slate-900 transition-colors-fast">Services</a>
+          <a href="/services#approach" class="hover:text-slate-900 transition-colors-fast">Our Approach</a>
+          <a href="/#technology" class="hover:text-slate-900 transition-colors-fast">Technology</a>
+          <a href="/tracking" class="hover:text-[#EA1D2C] transition-colors-fast">Tracking</a>
+        </nav>
+
+        <!-- Right Action Buttons -->
+        <div class="flex items-center gap-3">
           <a
             href="/contact"
-            class={`px-3 py-2 rounded-md transition-colors-fast ${
-              currentPath.startsWith('/contact') ? 'text-[#EA1D2C] bg-[#F8E9EB]' : 'text-slate-700 hover:text-[#EA1D2C] hover:bg-slate-50'
-            }`}
+            class="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#11181E] text-white text-xs font-bold hover:bg-slate-800 transition-colors-fast"
           >
-            Contact
+            Contact Us
           </a>
-        </div>
 
-        <!-- Right Side CTAs & Portal Auth -->
-        <div class="flex items-center gap-3">
           {user ? (
             <a
               href={user.role === 'customer' ? '/dashboard' : '/admin'}
-              class="inline-flex items-center px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md bg-slate-900 text-white hover:bg-slate-800 transition-colors-fast"
+              class="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-slate-300 bg-white text-slate-900 text-xs font-bold hover:border-slate-400 hover:bg-slate-50 transition-colors-fast"
             >
               Portal ({user.fullName.split(' ')[0]})
             </a>
           ) : (
             <a
               href="/login"
-              class="hidden sm:inline-flex items-center px-3.5 py-2 text-sm font-semibold rounded-md text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors-fast"
+              class="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-slate-300 bg-white text-slate-900 text-xs font-bold hover:border-slate-400 hover:bg-slate-50 transition-colors-fast"
             >
               Sign In
             </a>
           )}
-
-          <a
-            href="/tracking#quote-calculator"
-            class="inline-flex items-center px-4 py-2.5 text-sm font-bold rounded-md bg-[#EA1D2C] text-white hover:bg-[#D41523] active:bg-[#B7101C] transition-colors-fast shadow-sm"
-          >
-            Request Quotation
-          </a>
         </div>
       </div>
-    </nav>
+    </header>
 
-    <!-- Main Content Area -->
+    <!-- Page Content -->
     <main class="flex-grow">
       <slot />
     </main>
 
-    <!-- Footer: Midnight Ink #11181E -->
-    <footer class="bg-[#11181E] text-slate-300 border-t border-slate-800 pt-16 pb-12">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-800">
-          <!-- Brand & Credentials -->
-          <div class="lg:col-span-2 space-y-4">
-            <img src="/brand/logo-dark.svg" alt="GoShipping" class="h-9 w-auto" />
-            <p class="text-sm text-slate-400 max-w-sm leading-relaxed">
-              Global multi-modal freight forwarder and licensed customs brokerage. Connecting Bangladesh manufacturing hubs with North America, Europe, the Middle East, and Asia.
+    <!-- Editorial Minimalist Footer -->
+    <footer class="bg-[#11181E] text-slate-300 pt-20 pb-12 border-t border-slate-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
+          <!-- Col 1: Brand & Tagline -->
+          <div class="md:col-span-5 space-y-4">
+            <span class="text-2xl font-extrabold tracking-tighter font-['Manrope',sans-serif] text-white">
+              <span class="text-[#EA1D2C]">/</span>GOSHIPPING
+            </span>
+            <p class="text-xs text-slate-400 max-w-sm leading-relaxed">
+              We specialize in providing reliable and efficient logistics solutions. High-velocity air & ocean freight forwarding, licensed customs clearance, and authenticated waypoint telemetry.
             </p>
-            <div class="pt-2 text-xs text-slate-400 space-y-1">
-              <p class="font-semibold text-white">Licensed Member:</p>
-              <p>BAFFA · FIATA · IATA Cargo Agent · Chittagong Customs Clearing Agent Reg. 182/2014</p>
+            <div class="pt-2 text-[11px] text-slate-500 font-mono">
+              BAFFA · IATA CARGO AGENT · FIATA · CHITTAGONG CUSTOMS #182
             </div>
           </div>
 
-          <!-- Services Directory -->
-          <div>
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Freight Solutions</h3>
-            <ul class="space-y-2.5 text-sm text-slate-400">
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Air Cargo Charter</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Ocean Freight (FCL / LCL)</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Cross-Border Customs</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Warehousing & CFS</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Cold Chain Logistics</a></li>
+          <!-- Col 2: Services -->
+          <div class="md:col-span-2 space-y-3">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Services</h4>
+            <ul class="text-xs space-y-2 text-slate-400">
+              <li><a href="/services" class="hover:text-white transition-colors-fast">Ocean Freight</a></li>
+              <li><a href="/services" class="hover:text-white transition-colors-fast">Air Cargo</a></li>
+              <li><a href="/services" class="hover:text-white transition-colors-fast">Warehousing</a></li>
+              <li><a href="/services" class="hover:text-white transition-colors-fast">Customs Clearance</a></li>
+              <li><a href="/services" class="hover:text-white transition-colors-fast">Supply Chain</a></li>
             </ul>
           </div>
 
-          <!-- Portals & Operations -->
-          <div>
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Operations & Tracking</h3>
-            <ul class="space-y-2.5 text-sm text-slate-400">
-              <li><a href="/tracking" class="hover:text-white transition-colors-fast">Live Container & AWB Track</a></li>
-              <li><a href="/login" class="hover:text-white transition-colors-fast">Customer Portal</a></li>
-              <li><a href="/login?role=ops" class="hover:text-white transition-colors-fast">Staff Operations Gateway</a></li>
-              <li><a href="/contact" class="hover:text-white transition-colors-fast">Global Warehouse Hubs</a></li>
-              <li><a href="/api/health" class="hover:text-white transition-colors-fast">API Status</a></li>
+          <!-- Col 3: Company -->
+          <div class="md:col-span-2 space-y-3">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Company</h4>
+            <ul class="text-xs space-y-2 text-slate-400">
+              <li><a href="/about" class="hover:text-white transition-colors-fast">About Us</a></li>
+              <li><a href="/#why-choose-us" class="hover:text-white transition-colors-fast">Why Choose Us</a></li>
+              <li><a href="/contact" class="hover:text-white transition-colors-fast">Global Hubs</a></li>
+              <li><a href="/tracking" class="hover:text-white transition-colors-fast">Live Tracking</a></li>
+              <li><a href="/login" class="hover:text-white transition-colors-fast">Sign In</a></li>
             </ul>
           </div>
 
-          <!-- Head Office & Regional Contact -->
-          <div>
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider mb-4">Corporate HQ</h3>
-            <div class="space-y-3 text-sm text-slate-400">
-              <p>
-                <strong class="text-white">GoShipping Tower</strong><br />
-                Plot 14, Sector 3, Uttara Export Zone, Dhaka 1230, Bangladesh
-              </p>
-              <p>
-                <span class="text-slate-500">Phone:</span> +880 2 890 1200<br />
-                <span class="text-slate-500">Email:</span> ops@goshipping.com
-              </p>
-            </div>
+          <!-- Col 4: Regional Hubs -->
+          <div class="md:col-span-3 space-y-3 text-xs text-slate-400">
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Operations Desk</h4>
+            <p><strong class="text-slate-200">Dhaka HQ:</strong> Plot 14, Sector 3, Uttara Export Zone</p>
+            <p><strong class="text-slate-200">Port CFS:</strong> Chittagong Maritime Point</p>
+            <p><strong class="text-slate-200">Direct Hotline:</strong> +880 2 890 1200 / +880 9638-005544</p>
+            <p><strong class="text-slate-200">Email:</strong> ops@goshipping.com</p>
           </div>
         </div>
 
-        <div class="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
+        <div class="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-4">
           <p>© {new Date().getFullYear()} GoShipping Logistics Ltd. All rights reserved.</p>
           <div class="flex items-center space-x-6">
-            <span class="text-slate-400">Hostinger Enterprise Cloud · Astro · Node.js</span>
+            <span>Astro + React + Kumo UI + Hono</span>
             <a href="/about" class="hover:text-slate-300">Privacy Notice</a>
-            <a href="/about" class="hover:text-slate-300">Standard Trading Conditions</a>
+            <a href="/about" class="hover:text-slate-300">Terms of Service</a>
           </div>
         </div>
       </div>

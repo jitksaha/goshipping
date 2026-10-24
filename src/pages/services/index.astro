@@ -5,99 +5,116 @@ import QuoteCalculatorIsland from '../../components/marketing/QuoteCalculatorIsl
 export const prerender = true;
 ---
 
-<PublicLayout title="Freight & Supply Chain Services | GoShipping" currentPath="/services">
-  <div class="bg-slate-900 text-white py-16 border-b border-slate-800">
+<PublicLayout title="Services — Integrated Logistics Solutions | GoShipping" currentPath="/services">
+  <!-- Services Header -->
+  <div class="bg-white py-16 lg:py-24 border-b border-slate-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Enterprise Logistics Portfolio</span>
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
-        Comprehensive International Freight Solutions
+      <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono block mb-3">
+        /OUR COMPREHENSIVE SERVICES
+      </span>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#11181E] font-['Manrope',sans-serif]">
+        Integrated Logistics Solutions
       </h1>
-      <p class="text-slate-300 text-sm max-w-2xl mt-3 leading-relaxed">
-        From single consolidated LCL pallets to scheduled air cargo charters, GoShipping manages end-to-end global trade routes with full regulatory compliance.
+      <p class="text-slate-600 text-sm max-w-2xl mt-4 leading-relaxed font-medium">
+        We offer a comprehensive range of freight and customs services engineered to meet the high-velocity demands of global commerce.
       </p>
     </div>
   </div>
 
-  <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
-    <!-- Air Freight Detail -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-      <div class="space-y-4">
-        <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Mode 01</span>
-        <h2 class="text-2xl font-bold text-slate-900">International Air Freight Solutions</h2>
-        <p class="text-xs text-slate-600 leading-relaxed">
-          When speed to market is paramount, our air cargo network delivers expedited routing through direct blocked space agreements (BSA) and charter flight operations.
+  <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
+    <!-- Service 01: Ocean Freight -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <div class="lg:col-span-6 space-y-4">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/01 — MARITIME</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
+          Ocean Freight (FCL & LCL)
+        </h2>
+        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+          Direct allocations with global container lines including Maersk, MSC, and CMA CGM. Weekly buyer consolidation at our dedicated Chittagong CFS container freight station.
         </p>
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">Airport-to-Airport (A2A)</h4>
-            <p class="text-slate-500 mt-1">High-capacity main deck and belly cargo allocations.</p>
+        <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Full Container Load (FCL)</h4>
+            <p class="text-slate-500 mt-1">20ft, 40ft GP, High-Cube & temperature-controlled reefers.</p>
           </div>
-          <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">Door-to-Door DDP/DAP</h4>
-            <p class="text-slate-500 mt-1">Last-mile dispatch to European & North American buyer warehouses.</p>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">LCL Buyer's Box</h4>
+            <p class="text-slate-500 mt-1">Multi-vendor consolidation into a single export manifest.</p>
           </div>
         </div>
       </div>
-      <div class="p-8 rounded-xl bg-slate-100 border border-slate-200 space-y-4">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800">Air Freight Key Metrics</h3>
-        <div class="space-y-3 text-xs">
-          <div class="flex justify-between py-2 border-b border-slate-200">
-            <span class="text-slate-600">Transit Time (Europe Hubs):</span>
-            <span class="font-bold text-slate-900 font-mono">48 - 72 Hours</span>
+      <div class="lg:col-span-6 rounded-2xl overflow-hidden shadow-sm border border-slate-200 aspect-[16/10]">
+        <img
+          src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=1200&q=80"
+          alt="Ocean shipping container logistics"
+          class="w-full h-full object-cover"
+        />
+      </div>
+    </div>
+
+    <!-- Service 02: Air Cargo -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8 border-t border-slate-100">
+      <div class="lg:col-span-6 rounded-2xl overflow-hidden shadow-sm border border-slate-200 aspect-[16/10] order-2 lg:order-1">
+        <img
+          src="https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=1200&q=80"
+          alt="Air cargo tarmac loading"
+          class="w-full h-full object-cover"
+        />
+      </div>
+      <div class="lg:col-span-6 space-y-4 order-1 lg:order-2">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/02 — AVIATION</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
+          Scheduled & Charter Air Freight
+        </h2>
+        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+          When time-to-market is non-negotiable, our blocked space agreements with Tier-1 carriers out of Dhaka HSIA provide 48–72 hour transatlantic and European turnaround.
+        </p>
+        <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Garment-On-Hanger (GOH)</h4>
+            <p class="text-slate-500 mt-1">Specialized airline container rigs for wrinkle-free retail delivery.</p>
           </div>
-          <div class="flex justify-between py-2 border-b border-slate-200">
-            <span class="text-slate-600">Transit Time (US East/West Coast):</span>
-            <span class="font-bold text-slate-900 font-mono">72 - 96 Hours</span>
-          </div>
-          <div class="flex justify-between py-2 border-b border-slate-200">
-            <span class="text-slate-600">Direct Airport Gateways:</span>
-            <span class="font-bold text-slate-900">DAC · DXB · FRA · LHR · JFK</span>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Priority Charters</h4>
+            <p class="text-slate-500 mt-1">Dedicated freighter flights for critical volume deadlines.</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Ocean Freight Detail -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center pt-8 border-t border-slate-200">
-      <div class="p-8 rounded-xl bg-slate-100 border border-slate-200 space-y-4 order-2 lg:order-1">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800">Ocean Freight Key Metrics</h3>
-        <div class="space-y-3 text-xs">
-          <div class="flex justify-between py-2 border-b border-slate-200">
-            <span class="text-slate-600">Container Sizes:</span>
-            <span class="font-bold text-slate-900">20ft GP · 40ft GP · 40ft High Cube · 45ft</span>
+    <!-- Service 03: Warehousing & Customs -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8 border-t border-slate-100">
+      <div class="lg:col-span-6 space-y-4">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/03 — CONTRACT LOGISTICS</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
+          Warehousing & Licensed Customs Brokerage
+        </h2>
+        <p class="text-xs text-slate-600 leading-relaxed font-medium">
+          Operating under Chittagong Customs Clearing Agent License #182 with direct ASYCUDA electronic filing, bonded transshipments, and climate-controlled storage.
+        </p>
+        <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Bonded CFS Depots</h4>
+            <p class="text-slate-500 mt-1">200,000+ sq. ft. of barcode-tracked capacity.</p>
           </div>
-          <div class="flex justify-between py-2 border-b border-slate-200">
-            <span class="text-slate-600">Weekly Buyer Consolidation:</span>
-            <span class="font-bold text-slate-900">Chittagong CFS (60,000 sqft facility)</span>
-          </div>
-          <div class="flex justify-between py-2 border-b border-slate-200">
-            <span class="text-slate-600">Transshipment Hubs:</span>
-            <span class="font-bold text-slate-900">Singapore · Colombo · Tanjung Pelepas</span>
+          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Fast Customs Release</h4>
+            <p class="text-slate-500 mt-1">HS code validation, Duty assessments & GSP certificates.</p>
           </div>
         </div>
       </div>
-      <div class="space-y-4 order-1 lg:order-2">
-        <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Mode 02</span>
-        <h2 class="text-2xl font-bold text-slate-900">Ocean Container Cargo (FCL & LCL)</h2>
-        <p class="text-xs text-slate-600 leading-relaxed">
-          Cost-optimized maritime logistics engineered for massive raw material intake and bulk finished product export. Full visibility from terminal gate-in to destination discharge.
-        </p>
-        <div class="grid grid-cols-2 gap-3 text-xs">
-          <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">FCL Full Container</h4>
-            <p class="text-slate-500 mt-1">Direct equipment supply and ocean carrier booking.</p>
-          </div>
-          <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">LCL Buyer's Box</h4>
-            <p class="text-slate-500 mt-1">Multiple vendor consolidation into single customs entry.</p>
-          </div>
-        </div>
+      <div class="lg:col-span-6 rounded-2xl overflow-hidden shadow-sm border border-slate-200 aspect-[16/10]">
+        <img
+          src="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80"
+          alt="Modern logistics warehouse storage"
+          class="w-full h-full object-cover"
+        />
       </div>
     </div>
   </section>
 
   <!-- Quote Section -->
-  <section class="py-16 bg-slate-50 border-t border-slate-200">
+  <section class="py-20 bg-slate-50 border-t border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <QuoteCalculatorIsland client:visible />
     </div>
