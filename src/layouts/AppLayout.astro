@@ -9,9 +9,9 @@ interface Props {
 }
 
 const {
-  title = 'GoShipping Workspace',
-  portalType = 'customer',
-  activeTab = 'overview'
+  title = 'Warehouse operations',
+  portalType = 'admin',
+  activeTab = 'warehouses'
 } = Astro.props;
 
 const user = Astro.locals.user as AuthUser;
@@ -31,198 +31,255 @@ const user = Astro.locals.user as AuthUser;
       rel="stylesheet"
     />
   </head>
-  <body class="bg-[#F8FAFC] text-[#11181E] flex h-screen overflow-hidden font-['Inter',sans-serif]">
-    <!-- Left Navigation Sidebar -->
-    <aside class="w-64 bg-[#11181E] text-slate-300 flex flex-col flex-shrink-0 border-r border-slate-800">
+  <body class="bg-[#F4F5F7] text-[#11181E] flex h-screen overflow-hidden font-['Inter',sans-serif] antialiased">
+    <!-- Left Navigation Sidebar matching reference design -->
+    <aside class="w-64 bg-white border-r border-slate-200/90 flex flex-col flex-shrink-0 z-20">
       <!-- App Brand Header -->
-      <div class="h-16 flex items-center justify-between px-5 border-b border-slate-800">
-        <a href="/" class="flex items-center gap-2">
-          <img src="/brand/logo-dark.svg" alt="GoShipping" class="h-7 w-auto" />
-        </a>
-        <span class={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${
-          portalType === 'admin' ? 'bg-[#EA1D2C] text-white' : 'bg-slate-800 text-slate-300'
-        }`}>
-          {portalType === 'admin' ? 'Ops Control' : 'Client Hub'}
-        </span>
-      </div>
-
-      <!-- Navigation Links -->
-      <div class="flex-1 overflow-y-auto py-4 px-3 space-y-1 text-xs">
-        {portalType === 'customer' ? (
-          <>
-            <div class="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Shipment & Orders</div>
-            <a
-              href="/dashboard?tab=overview"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'overview' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Overview</span>
-            </a>
-            <a
-              href="/dashboard?tab=shipments"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'shipments' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>My Shipments</span>
-            </a>
-            <a
-              href="/dashboard?tab=tracking"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'tracking' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Live Tracking</span>
-            </a>
-
-            <div class="pt-4 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Quotations & Pricing</div>
-            <a
-              href="/dashboard?tab=request-quote"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'request-quote' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Request Quote</span>
-            </a>
-            <a
-              href="/dashboard?tab=quotes"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'quotes' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>My Quotations</span>
-            </a>
-
-            <div class="pt-4 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Account & Docs</div>
-            <a
-              href="/dashboard?tab=documents"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'documents' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Documents & Invoices</span>
-            </a>
-            <a
-              href="/dashboard?tab=settings"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'settings' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Profile & Settings</span>
-            </a>
-          </>
-        ) : (
-          <>
-            <div class="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Operations Control</div>
-            <a
-              href="/admin?tab=overview"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'overview' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Overview & KPIs</span>
-            </a>
-            <a
-              href="/admin?tab=shipments"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'shipments' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Shipment Management</span>
-            </a>
-            <a
-              href="/admin?tab=events"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'events' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Log Tracking Event</span>
-            </a>
-            <a
-              href="/admin?tab=quotes"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'quotes' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Quote Management</span>
-            </a>
-            <a
-              href="/admin?tab=warehouses"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'warehouses' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Warehouse Operations</span>
-            </a>
-
-            <div class="pt-4 px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Governance & System</div>
-            <a
-              href="/admin?tab=audit"
-              class={`flex items-center gap-3 px-3 py-2 rounded-md font-medium transition-colors-fast ${
-                activeTab === 'audit' ? 'bg-[#EA1D2C] text-white' : 'hover:bg-slate-800/60 hover:text-white'
-              }`}
-            >
-              <span>Audit Logs & Security</span>
-            </a>
-            <a
-              href="/dashboard"
-              class="flex items-center gap-3 px-3 py-2 rounded-md font-medium text-slate-400 hover:bg-slate-800/60 hover:text-white"
-            >
-              <span>Switch to Customer View</span>
-            </a>
-          </>
-        )}
-      </div>
-
-      <!-- User Info & Logout Footer -->
-      <div class="p-4 border-t border-slate-800 bg-[#0B1015]">
-        <div class="flex items-center justify-between mb-3">
-          <div class="truncate">
-            <p class="text-xs font-semibold text-white truncate">{user?.fullName || 'Authorized User'}</p>
-            <p class="text-[10px] text-slate-400 font-mono capitalize">{user?.role?.replace('_', ' ') || 'Guest'}</p>
+      <div class="h-16 flex items-center justify-between px-6 border-b border-slate-100">
+        <a href="/" class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#10B981] flex items-center justify-center text-white font-black text-base shadow-sm">
+            H
           </div>
-          <span class="w-2.5 h-2.5 rounded-full bg-[#10B981] flex-shrink-0" title="Connected"></span>
+          <span class="font-bold text-base font-['Manrope',sans-serif] text-slate-900 tracking-tight">
+            Go<span class="text-slate-500">Shipping</span>
+          </span>
+        </a>
+        <button type="button" class="text-slate-400 hover:text-slate-600 transition-colors-fast" aria-label="Toggle sidebar">
+          <svg class="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Quick Search Bar with ⌘ F badge -->
+      <div class="px-5 pt-4 pb-2">
+        <div class="relative flex items-center">
+          <svg class="w-3.5 h-3.5 absolute left-3 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search..."
+            class="w-full h-8 pl-8 pr-8 text-xs rounded-lg border border-slate-200 bg-slate-50/50 text-slate-700 placeholder-slate-400 focus:bg-white focus:border-slate-300 focus:ring-0 transition-colors-fast"
+          />
+          <span class="absolute right-2 px-1 py-0.5 rounded text-[9px] font-mono font-medium bg-slate-200/70 text-slate-500 border border-slate-300/60">
+            ⌘ F
+          </span>
         </div>
+      </div>
+
+      <!-- Navigation Menus -->
+      <div class="flex-1 overflow-y-auto px-4 py-2 space-y-6 text-xs">
+        <!-- MAIN MENU -->
+        <div class="space-y-1">
+          <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            MAIN MENU
+          </span>
+
+          <a
+            href={portalType === 'admin' ? '/admin?tab=overview' : '/dashboard?tab=overview'}
+            class={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors-fast ${
+              activeTab === 'overview'
+                ? 'bg-slate-100 text-slate-900 font-semibold'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span>Dashboard</span>
+          </a>
+
+          <!-- Fleet Management with sub-items -->
+          <div class="space-y-1">
+            <a
+              href="/admin?tab=fleet"
+              class={`flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors-fast ${
+                activeTab === 'fleet'
+                  ? 'bg-slate-100 text-slate-900 font-semibold'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              <div class="flex items-center gap-3">
+                <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+                  <path d="M15 18H9" />
+                  <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+                  <circle cx="17" cy="18" r="2" />
+                  <circle cx="7" cy="18" r="2" />
+                </svg>
+                <span>Fleet Management</span>
+              </div>
+              <svg class="w-3.5 h-3.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </a>
+
+            <!-- Submenu Items -->
+            <div class="pl-7 pr-2 space-y-0.5 border-l border-slate-100 ml-5 text-[11px]">
+              <a href="/admin?tab=fleet" class="block py-1 text-slate-600 hover:text-slate-900">All Vehicles</a>
+              <a href="/admin?tab=fleet" class="block py-1 text-slate-600 hover:text-slate-900">Active Trucks</a>
+              <div class="flex items-center justify-between py-1">
+                <a href="/admin?tab=fleet" class="text-slate-600 hover:text-slate-900">Maintenance & Repairs</a>
+                <span class="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px] font-bold">2</span>
+              </div>
+              <a href="/admin?tab=fleet" class="block py-1 text-slate-600 hover:text-slate-900">Fuel & Telematics</a>
+              <a href="/admin?tab=fleet" class="block py-1 text-slate-600 hover:text-slate-900">Drivers Directory</a>
+            </div>
+          </div>
+
+          <!-- Shipments & Deliveries -->
+          <a
+            href={portalType === 'admin' ? '/admin?tab=shipments' : '/dashboard?tab=shipments'}
+            class={`flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors-fast ${
+              activeTab === 'shipments'
+                ? 'bg-slate-100 text-slate-900 font-semibold'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <div class="flex items-center gap-3">
+              <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m7.5 4.27 9 5.15" />
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                <path d="m3.3 7 8.7 5 8.7-5" />
+                <path d="M12 22V12" />
+              </svg>
+              <span>Shipments & Deliveries</span>
+            </div>
+            <svg class="w-3.5 h-3.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </a>
+
+          <!-- Warehouse Operations (High visibility active tab) -->
+          <a
+            href="/admin?tab=warehouses"
+            class={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors-fast ${
+              activeTab === 'warehouses'
+                ? 'bg-emerald-50 text-emerald-800 font-bold border border-emerald-200/60'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <svg class="w-4 h-4 stroke-[1.8] text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M3 21h18" />
+              <path d="M5 21V7l8-4v18" />
+              <path d="M19 21V11l-6-4" />
+              <path d="M9 9v.01" />
+              <path d="M9 12v.01" />
+              <path d="M9 15v.01" />
+              <path d="M9 18v.01" />
+            </svg>
+            <span>Warehouse Operations</span>
+          </a>
+
+          <!-- Route Planning -->
+          <a
+            href="/admin?tab=events"
+            class={`flex items-center justify-between px-3 py-2 rounded-lg font-medium transition-colors-fast ${
+              activeTab === 'events'
+                ? 'bg-slate-100 text-slate-900 font-semibold'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <div class="flex items-center gap-3">
+              <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="6" cy="19" r="3" />
+                <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+                <circle cx="18" cy="5" r="3" />
+              </svg>
+              <span>Route Planning</span>
+            </div>
+            <span class="w-4 h-4 rounded-full bg-slate-900 text-white flex items-center justify-center text-[9px] font-bold">3</span>
+          </a>
+
+          <!-- Analytics & Reports -->
+          <a
+            href="/admin?tab=quotes"
+            class={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors-fast ${
+              activeTab === 'quotes'
+                ? 'bg-slate-100 text-slate-900 font-semibold'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="18" y1="20" x2="18" y2="10" />
+              <line x1="12" y1="20" x2="12" y2="4" />
+              <line x1="6" y1="20" x2="6" y2="14" />
+            </svg>
+            <span>Quote & Tariff Analytics</span>
+          </a>
+        </div>
+
+        <!-- SUPPORT -->
+        <div class="space-y-1 pt-2">
+          <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+            SUPPORT
+          </span>
+          <a href="/admin?tab=customers" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span>Customers</span>
+          </a>
+          <a href="/admin?tab=audit" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+            </svg>
+            <span>Team & Audit Logs</span>
+          </a>
+          <a href="/contact" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <span>Help & support</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Bottom Card: Enterprise Plan Banner -->
+      <div class="p-4 m-3 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100/60 border border-emerald-200/60 space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
+            💎
+          </div>
+          <span class="text-xs font-bold text-slate-900">Premium plan</span>
+        </div>
+        <p class="text-[11px] text-slate-500 leading-tight">Sending more now is not a concern</p>
+        <button
+          type="button"
+          class="w-full py-1.5 px-3 rounded-lg bg-white border border-slate-200 text-slate-800 text-[11px] font-bold shadow-xs hover:bg-slate-50 transition-colors-fast flex items-center justify-center gap-1.5"
+        >
+          <span>⚡</span> Upgrade plan
+        </button>
+      </div>
+
+      <!-- Bottom Utilities -->
+      <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
         <button
           onclick="fetch('/api/auth/logout', { method: 'POST' }).then(() => window.location.href = '/')"
-          class="w-full text-left text-xs font-medium text-slate-400 hover:text-white transition-colors-fast py-1"
+          class="flex items-center gap-2 hover:text-slate-900 transition-colors-fast"
         >
-          ← Sign Out
+          <svg class="w-4 h-4 stroke-[1.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+          <span>Sign Out</span>
         </button>
+        <span class="text-[10px] text-slate-400 font-mono">v1.0.0</span>
       </div>
     </aside>
 
-    <!-- Main Workspace -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <!-- Top Bar -->
-      <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0">
-        <div class="flex items-center gap-3">
-          <h1 class="text-base font-bold text-slate-900 tracking-tight">{title}</h1>
-          <span class="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
-            Node.js SSR · MySQL Active
-          </span>
-        </div>
-
-        <div class="flex items-center gap-4">
-          <a
-            href="/"
-            class="text-xs font-medium text-slate-500 hover:text-[#EA1D2C] transition-colors-fast"
-            target="_blank"
-          >
-            Public Site ↗
-          </a>
-          <div class="h-4 w-px bg-slate-200"></div>
-          <div class="text-xs text-slate-500 font-medium">
-            Role: <span class="text-slate-900 font-semibold uppercase">{user?.role?.replace('_', ' ') || 'User'}</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- Scrollable Application Body -->
-      <main class="flex-1 overflow-y-auto p-6 md:p-8 bg-[#F8FAFC]">
-        <slot />
-      </main>
+    <!-- Main Content Workspace -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#F4F5F7]">
+      <slot />
     </div>
   </body>
 </html>
