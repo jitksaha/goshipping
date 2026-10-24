@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+@layer base {
+  html, body {
+    overflow-x: clip;
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-text-primary);
+    font-family: var(--font-manrope);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus visible accessibility requirement */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+  }
+
+  /* Display and section headers */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-manrope);
+    overflow-wrap: break-word;
+    min-width: 0;
+    color: var(--color-text-primary);
+    letter-spacing: -0.025em;
+  }
+
+  /* Tabular numbers for tracking, codes, currencies, measurements */
+  .tabular-numbers, .tracking-code, .metric-value, table td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Bengali typography class */
+  .font-bengali {
+    font-family: var(--font-bengali);
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Specific transitions - never transition all */
+.transition-colors-fast {
+  transition-property: color, background-color, border-color;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-opacity-fast {
+  transition-property: opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-transform-fast {
+  transition-property: transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}

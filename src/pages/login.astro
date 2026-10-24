@@ -1,0 +1,158 @@
+---
+import '../styles/global.css';
+
+const redirectUrl = Astro.url.searchParams.get('redirect') || '';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+    <title>Sign In | GoShipping Enterprise Gateway</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[#11181E] text-slate-100 flex items-center justify-center min-h-screen p-4 font-['Inter',sans-serif]">
+    <div class="w-full max-w-md bg-white text-slate-900 rounded-2xl shadow-2xl border border-slate-200 p-8 space-y-6">
+      <!-- Brand Header -->
+      <div class="text-center space-y-2">
+        <a href="/" class="inline-block">
+          <img src="/brand/logo-light.svg" alt="GoShipping" class="h-10 w-auto mx-auto" />
+        </a>
+        <h1 class="text-xl font-bold tracking-tight text-slate-900">Sign in to GoShipping Gateway</h1>
+        <p class="text-xs text-slate-500">Access your customer shipments, quotations, and customs reports</p>
+      </div>
+
+      <div id="error-box" class="hidden p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium"></div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="space-y-4 text-xs">
+        <div>
+          <label for="email" class="block font-semibold text-slate-700 mb-1">Official Email Address</label>
+          <input
+            id="email"
+            type="email"
+            required
+            value="client@apextextiles.com"
+            class="w-full h-11 px-3.5 rounded-lg border border-slate-300 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] text-sm"
+          />
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label for="password" class="block font-semibold text-slate-700">Password</label>
+            <span class="text-[11px] text-slate-400">Default: password</span>
+          </div>
+          <input
+            id="password"
+            type="password"
+            required
+            value="password"
+            class="w-full h-11 px-3.5 rounded-lg border border-slate-300 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] text-sm"
+          />
+        </div>
+
+        <button
+          type="submit"
+          id="submit-btn"
+          class="w-full h-11 rounded-lg bg-[#EA1D2C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#D41523] active:bg-[#B7101C] transition-colors-fast shadow-sm disabled:opacity-50"
+        >
+          Sign In to Portal →
+        </button>
+      </form>
+
+      <!-- Quick Role Fill Demo Strip -->
+      <div class="pt-4 border-t border-slate-100 space-y-2">
+        <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+          One-Click Demo Roles:
+        </span>
+        <div class="grid grid-cols-2 gap-2 text-[11px]">
+          <button
+            type="button"
+            onclick="document.getElementById('email').value='client@apextextiles.com'; document.getElementById('login-form').requestSubmit();"
+            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+          >
+            <strong class="block text-slate-900">Customer Client</strong>
+            <span class="text-slate-400">Apex Textiles Ltd</span>
+          </button>
+          <button
+            type="button"
+            onclick="document.getElementById('email').value='admin@goshipping.com'; document.getElementById('login-form').requestSubmit();"
+            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+          >
+            <strong class="block text-slate-900">Super Admin</strong>
+            <span class="text-slate-400">All Operations</span>
+          </button>
+          <button
+            type="button"
+            onclick="document.getElementById('email').value='ops@goshipping.com'; document.getElementById('login-form').requestSubmit();"
+            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+          >
+            <strong class="block text-slate-900">Ops Manager</strong>
+            <span class="text-slate-400">Kamal Hossain</span>
+          </button>
+          <button
+            type="button"
+            onclick="document.getElementById('email').value='sales@goshipping.com'; document.getElementById('login-form').requestSubmit();"
+            class="p-2 text-left rounded border border-slate-200 hover:border-[#EA1D2C] hover:bg-[#F8E9EB]/50 transition-colors-fast"
+          >
+            <strong class="block text-slate-900">Sales & Pricing</strong>
+            <span class="text-slate-400">Nafis Chowdhury</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="text-center text-xs text-slate-400 pt-2">
+        <a href="/" class="hover:text-slate-600">← Return to Public Website</a>
+      </div>
+    </div>
+
+    <script define:vars={{ redirectUrl }}>
+      const form = document.getElementById('login-form');
+      const errorBox = document.getElementById('error-box');
+      const submitBtn = document.getElementById('submit-btn');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorBox.classList.add('hidden');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Authenticating...';
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || 'Authentication failed');
+          }
+
+          if (redirectUrl) {
+            window.location.href = redirectUrl;
+          } else if (data.user?.role === 'customer') {
+            window.location.href = '/dashboard';
+          } else {
+            window.location.href = '/admin';
+          }
+        } catch (err) {
+          errorBox.textContent = err.message || 'Login failed';
+          errorBox.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign In to Portal →';
+        }
+      });
+    </script>
+  </body>
+</html>

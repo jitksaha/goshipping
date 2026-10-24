@@ -1,0 +1,11 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import AdminOperationsIsland from '../../components/admin/AdminOperationsIsland';
+
+const user = Astro.locals.user;
+const initialTab = Astro.url.searchParams.get('tab') || 'overview';
+---
+
+<AppLayout title="Operations Control & Warehouse Dispatch" portalType="admin" activeTab={initialTab}>
+  <AdminOperationsIsland client:load initialTab={initialTab} />
+</AppLayout>

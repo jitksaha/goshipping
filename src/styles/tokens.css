@@ -1,0 +1,82 @@
+:root {
+  /* Brand Core Tokens */
+  --color-brand-primary: #EA1D2C;
+  --color-brand-primary-hover: #D41523;
+  --color-brand-primary-active: #B7101C;
+  --color-brand-primary-subtle: #F8E9EB;
+  --color-brand-primary-border: #F3CAD0;
+
+  /* Neutrals & Structural */
+  --color-midnight: #11181E;
+  --color-midnight-surface: #19232B;
+  --color-midnight-border: #2A3641;
+  --color-canvas: #FFFFFF;
+  --color-surface-subtle: #F8FAFC;
+  --color-surface-muted: #F1F5F9;
+  --color-border-subtle: #E2E8F0;
+  --color-border-medium: #CBD5E1;
+
+  /* Typography Colors */
+  --color-text-primary: #11181E;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #64748B;
+  --color-text-inverse: #FFFFFF;
+
+  /* Semantic Feedback */
+  --color-success: #10B981;
+  --color-success-subtle: #ECFDF5;
+  --color-success-border: #A7F3D0;
+  --color-warning: #F59E0B;
+  --color-warning-subtle: #FFFBEB;
+  --color-warning-border: #FDE68A;
+  --color-error: #EA1D2C;
+  --color-error-subtle: #FEF2F2;
+  --color-error-border: #FECACA;
+  --color-info: #0284C7;
+  --color-info-subtle: #F0F9FF;
+
+  /* Typography Families */
+  --font-manrope: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-bengali: 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Radius & Spacing */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Interactive States */
+  --focus-ring: 0 0 0 3px rgba(234, 29, 44, 0.35);
+
+  /* Kumo UI & System Semantic Overrides */
+  --kumo-accent: var(--color-brand-primary);
+  --kumo-accent-hover: var(--color-brand-primary-hover);
+  --kumo-accent-surface: var(--color-brand-primary-subtle);
+  --kumo-accent-border: var(--color-brand-primary-border);
+  --kumo-bg: var(--color-canvas);
+  --kumo-card: #FFFFFF;
+  --kumo-text: var(--color-text-primary);
+}
+
+/* Dark Theme Overrides */
+[data-theme="dark"] {
+  --color-canvas: #0B1015;
+  --color-surface-subtle: #11181E;
+  --color-surface-muted: #19232B;
+  --color-border-subtle: #24303B;
+  --color-border-medium: #334155;
+
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-tertiary: #64748B;
+  --color-text-inverse: #0B1015;
+
+  --color-brand-primary-subtle: #2C1316;
+  --color-brand-primary-border: #4D1A20;
+
+  --kumo-bg: #0B1015;
+  --kumo-card: #11181E;
+  --kumo-text: #F8FAFC;
+}

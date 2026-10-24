@@ -1,0 +1,71 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+
+export const prerender = true;
+---
+
+<PublicLayout title="About GoShipping | Global Network, Fleet & Credentials" currentPath="/about">
+  <div class="bg-slate-900 text-white py-16 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Corporate Profile</span>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
+        Engineering Reliable Global Supply Chains Since 2014
+      </h1>
+      <p class="text-slate-300 text-sm max-w-2xl mt-3 leading-relaxed">
+        GoShipping connects South Asia's powerhouse manufacturing centers to global markets with authenticated operational integrity, transparent pricing, and digital tracking.
+      </p>
+    </div>
+  </div>
+
+  <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <!-- Corporate Mission & Numbers -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
+        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">200K+</span>
+        <h3 class="font-bold text-slate-900 text-sm mt-2">Sq. Ft. Warehouse Network</h3>
+        <p class="text-xs text-slate-500 mt-1">Modern secure bonded and non-bonded facilities across Dhaka, Chittagong, Dubai and Guangzhou.</p>
+      </div>
+
+      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
+        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">12,500</span>
+        <h3 class="font-bold text-slate-900 text-sm mt-2">Annual TEU Ocean Volume</h3>
+        <p class="text-xs text-slate-500 mt-1">Reliable weekly departures via mainline and feeder maritime carriers.</p>
+      </div>
+
+      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
+        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">8,500</span>
+        <h3 class="font-bold text-slate-900 text-sm mt-2">Tons Air Cargo Shipped</h3>
+        <p class="text-xs text-slate-500 mt-1">Scheduled allocations on Emirates, Qatar, Saudia, and Turkish airlines.</p>
+      </div>
+
+      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
+        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">120+</span>
+        <h3 class="font-bold text-slate-900 text-sm mt-2">Certified Logistics Staff</h3>
+        <p class="text-xs text-slate-500 mt-1">Licensed customs agents, dangerous goods specialists, and operations managers.</p>
+      </div>
+    </div>
+
+    <!-- Credentials & Memberships -->
+    <div class="p-8 rounded-xl bg-white border border-slate-200 shadow-sm space-y-6">
+      <h2 class="text-xl font-bold text-slate-900">Accreditations & Industry Governance</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
+          <p class="font-bold text-slate-900">BAFFA Member</p>
+          <p class="text-slate-500 mt-0.5">Bangladesh Freight Forwarders Association</p>
+        </div>
+        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
+          <p class="font-bold text-slate-900">IATA Cargo Agent</p>
+          <p class="text-slate-500 mt-0.5">Direct Airway Bill issuing authority</p>
+        </div>
+        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
+          <p class="font-bold text-slate-900">FIATA Affiliated</p>
+          <p class="text-slate-500 mt-0.5">International Federation of Freight Forwarders</p>
+        </div>
+        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
+          <p class="font-bold text-slate-900">Customs Broker License</p>
+          <p class="text-slate-500 mt-0.5">Chittagong & Dhaka Customs Reg. #182</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

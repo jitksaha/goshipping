@@ -1,0 +1,85 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { WarehouseService } from '../server/services/warehouse.service';
+
+const warehouses = await WarehouseService.listWarehouses();
+---
+
+<PublicLayout title="Contact GoShipping | Global Hubs & Customs Operations" currentPath="/contact">
+  <div class="bg-slate-900 text-white py-16 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Global Operations Hubs</span>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
+        Direct Communications with Regional Dispatch Centers
+      </h1>
+      <p class="text-slate-300 text-sm max-w-2xl mt-3 leading-relaxed">
+        Speak directly with licensed customs agents, cargo operations coordinators, and commercial sales managers across our global network.
+      </p>
+    </div>
+  </div>
+
+  <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <!-- Hub Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {warehouses.map((wh) => (
+        <div class="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+          <div>
+            <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+              {wh.code}
+            </span>
+            <h3 class="font-bold text-slate-900 text-base mt-2">{wh.name}</h3>
+            <p class="text-xs text-slate-500 font-semibold">{wh.city}, {wh.country}</p>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">{wh.address}</p>
+          </div>
+          <div class="pt-4 border-t border-slate-100 text-xs space-y-1 text-slate-600">
+            <p><strong class="text-slate-900">Head:</strong> {wh.contactPerson}</p>
+            <p><strong class="text-slate-900">Direct:</strong> {wh.phone}</p>
+            <p><strong class="text-slate-900">Dispatch:</strong> {wh.email}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Direct Inquiry Form -->
+    <div class="p-8 rounded-xl bg-slate-50 border border-slate-200 max-w-2xl mx-auto space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">Send Commercial or Customs Inquiry</h2>
+        <p class="text-xs text-slate-500 mt-1">
+          Our round-the-clock desk will direct your inquiry to the appropriate port or airport station manager.
+        </p>
+      </div>
+
+      <form class="space-y-4 text-xs" onsubmit="event.preventDefault(); alert('Message dispatched to GoShipping Central Desk!');">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Your Full Name</label>
+            <input type="text" required class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Company Email</label>
+            <input type="email" required class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white" />
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Inquiry Category</label>
+          <select class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white">
+            <option>Air Cargo Space Booking / Charter</option>
+            <option>Ocean Container FCL / LCL Booking</option>
+            <option>Customs Clearance & HS Code Tariff Advice</option>
+            <option>Carrier Partnership / Billing Query</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Message Details</label>
+          <textarea rows={4} required class="w-full p-3 rounded-lg border border-slate-300 bg-white"></textarea>
+        </div>
+        <button
+          type="submit"
+          class="w-full h-11 rounded-lg bg-[#EA1D2C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#D41523] transition-colors-fast"
+        >
+          Send Message to Operations Desk →
+        </button>
+      </form>
+    </div>
+  </section>
+</PublicLayout>

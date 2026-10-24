@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 50" fill="none">
+  <!-- Red Go Mark -->
+  <g transform="translate(4, 5)">
+    <rect width="40" height="40" rx="9" fill="#EA1D2C"/>
+    <path d="M9 20C9 14.2 13.7 9.5 19.5 9.5C23.5 9.5 26.8 11.6 28.5 14.8L24 17.2C23 15.5 21.3 14.4 19.5 14.4C16.4 14.4 13.9 16.9 13.9 20C13.9 23.1 16.4 25.6 19.5 25.6C21.5 25.6 23.2 24.5 24.2 22.7H19.5V18.3H29.2V20.7C28.2 25.9 24.3 29.5 19.5 29.5C13.7 29.5 9 24.8 9 20Z" fill="#FFFFFF"/>
+    <path d="M25 11.2L31 11.2L31 17.2" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M23.5 18.7L31 11.2" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Lettering: "GoShipping" in White #FFFFFF with Red Accent -->
+  <text x="56" y="32" font-family="'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="24" fill="#FFFFFF" letter-spacing="-0.5">Go<tspan fill="#EA1D2C">Shipping</tspan></text>
+</svg>

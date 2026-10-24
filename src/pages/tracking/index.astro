@@ -1,0 +1,31 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import LiveTrackingIsland from '../../components/marketing/LiveTrackingIsland';
+import QuoteCalculatorIsland from '../../components/marketing/QuoteCalculatorIsland';
+
+const queryCode = Astro.url.searchParams.get('code') || 'GOSH-2026-9812';
+---
+
+<PublicLayout title="Live Consignment Tracking | GoShipping" currentPath="/tracking">
+  <div class="bg-slate-900 text-white py-14 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Live Waypoint Telemetry</span>
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
+        Authenticated Consignment Tracking
+      </h1>
+      <p class="text-slate-300 text-sm max-w-2xl mt-2 leading-relaxed">
+        Real-time visibility into verified milestones from carrier flight departures, maritime berths, bonded customs clearance, and terminal handovers.
+      </p>
+    </div>
+  </div>
+
+  <section class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <!-- Live Tracking React Island -->
+    <LiveTrackingIsland client:load initialTrackingNumber={queryCode} pollIntervalMs={25000} />
+
+    <!-- Quotation Hook -->
+    <div class="pt-8">
+      <QuoteCalculatorIsland client:visible />
+    </div>
+  </section>
+</PublicLayout>

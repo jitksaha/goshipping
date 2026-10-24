@@ -1,0 +1,11 @@
+---
+import AppLayout from '../../layouts/AppLayout.astro';
+import CustomerDashboardIsland from '../../components/dashboard/CustomerDashboardIsland';
+
+const user = Astro.locals.user;
+const initialTab = Astro.url.searchParams.get('tab') || 'overview';
+---
+
+<AppLayout title="Customer Shipping & Quotations Portal" portalType="customer" activeTab={initialTab}>
+  <CustomerDashboardIsland client:load initialTab={initialTab} userEmail={user?.email || ''} />
+</AppLayout>
