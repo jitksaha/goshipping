@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function LiveTrackingIsland({
-  initialTrackingNumber = 'GOSH-2026-9812',
+  initialTrackingNumber = '',
   pollIntervalMs = 12000
 }: Props) {
   const [query, setQuery] = useState(initialTrackingNumber);
@@ -40,13 +40,6 @@ export default function LiveTrackingIsland({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastDetails, setToastDetails] = useState<{ statusLabel?: string; trackingNumber?: string } | null>(null);
   const [recentlyUpdatedEventId, setRecentlyUpdatedEventId] = useState<string | null>(null);
-
-  // Available sample consignments for quick switcher
-  const sampleCodes = [
-    { code: 'GOSH-2026-9812', label: 'Air Express (Guangzhou → Dhaka)' },
-    { code: 'GOSH-2026-4411', label: 'Sea Freight FCL (Shenzhen → Chittagong)' },
-    { code: 'GOSH-2026-7733', label: 'Priority Linehaul (Yiwu → Dhaka)' }
-  ];
 
   const lastHashRef = useRef<string | null>(null);
   const lastVersionRef = useRef<number>(1);
@@ -149,11 +142,13 @@ export default function LiveTrackingIsland({
     }
   };
 
-  // 3. Initial load & tracking code change
+  // 3. Initial load & tracking code change (Only if explicitly provided)
   useEffect(() => {
-    if (initialTrackingNumber) {
-      setQuery(initialTrackingNumber);
-      fetchTracking(initialTrackingNumber);
+    if (initialTrackingNumber && initialTrackingNumber.trim()) {
+      setQuery(initialTrackingNumber.trim());
+      fetchTracking(initialTrackingNumber.trim());
+    } else {
+      setTrackingData(null);
     }
   }, [initialTrackingNumber]);
 
@@ -302,7 +297,7 @@ export default function LiveTrackingIsland({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter GoShipping Tracking Code (e.g. GOSH-2026-9812)..."
+              placeholder="Enter your GoShipping Tracking Code or AWB (e.g. GOSH-XXXX-XXXX)..."
               className="w-full h-10 pl-10 pr-4 text-xs font-mono font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]/20 transition-none outline-none"
             />
           </div>
@@ -356,27 +351,12 @@ export default function LiveTrackingIsland({
           </div>
         </form>
 
-        {/* Quick Sample Consignments Switcher */}
+        {/* Verification indicator & tracking guidance */}
         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-slate-400 font-medium mr-1">Sample Consignments:</span>
-            {sampleCodes.map((s) => (
-              <button
-                key={s.code}
-                type="button"
-                onClick={() => {
-                  setQuery(s.code);
-                  fetchTracking(s.code);
-                }}
-                className={`px-2.5 py-1 rounded text-[11px] font-mono font-semibold border transition-none cursor-pointer ${
-                  trackingData?.trackingNumber === s.code
-                    ? 'bg-[#F8E9EB] dark:bg-[#EA1D2C]/20 text-[#EA1D2C] border-[#EA1D2C]/30'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                {s.code}
-              </button>
-            ))}
+          <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
+            <span>🔒 Direct carrier synchronization</span>
+            <span className="hidden sm:inline">·</span>
+            <span className="hidden sm:inline">Real-time customs clearance &amp; flight/vessel waypoints</span>
           </div>
 
           {/* Sync indicator */}
@@ -417,7 +397,44 @@ export default function LiveTrackingIsland({
       )}
 
       {/* ========================================================================= */}
-      {/* 02. REDESIGNED TRACKING HEADER (Section 5.A)                              */}
+      {/* 02. EMPTY STATE (WAITING FOR USER'S TRACKING CODE)                        */}
+      {/* ========================================================================= */}
+      {!trackingData && !loading && !error && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center shadow-2xs space-y-4">
+          <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-950/40 text-[#EA1D2C] mx-auto flex items-center justify-center ring-8 ring-red-50/50 dark:ring-red-950/20">
+            <svg className="w-7 h-7 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+              <line x1="12" y1="22.08" x2="12" y2="12" />
+            </svg>
+          </div>
+          <div className="max-w-md mx-auto space-y-1.5">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
+              Track Your Consignment
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+              Please enter your unique GoShipping tracking code, Air Waybill (AWB), or Bill of Lading (B/L) number in the search box above to view real-time cargo status and milestones.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Live Carrier Milestones
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              Customs Clearance Updates
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              Final Destination Handover
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 03. REDESIGNED TRACKING HEADER (Section 5.A)                              */}
       {/* ========================================================================= */}
       {trackingData && (
         <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">

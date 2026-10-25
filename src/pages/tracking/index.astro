@@ -4,7 +4,7 @@ import LiveTrackingIsland from '../../components/marketing/LiveTrackingIsland';
 import QuoteCalculatorIsland from '../../components/marketing/QuoteCalculatorIsland';
 import { getSiteOrigin } from '../../server/utils/domain';
 
-const queryCode = Astro.url.searchParams.get('code') || 'GOSH-2026-9812';
+const queryCode = Astro.url.searchParams.get('code') || '';
 const siteOrigin = getSiteOrigin(Astro.request);
 const canonicalUrl = `${siteOrigin}/tracking`;
 

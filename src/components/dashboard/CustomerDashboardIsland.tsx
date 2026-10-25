@@ -27,7 +27,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   const [shipments, setShipments] = useState<ShipmentRecord[]>([]);
   const [quotes, setQuotes] = useState<QuoteRecord[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<QuoteRecord | null>(null);
-  const [selectedTrackingCode, setSelectedTrackingCode] = useState<string>('GOSH-2026-9812');
+  const [selectedTrackingCode, setSelectedTrackingCode] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
   // Search & Filter for My Shipments

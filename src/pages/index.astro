@@ -146,8 +146,7 @@ import { IndustrialScrollShowcase } from '../components/marketing/IndustrialScro
                 <input
                   type="text"
                   name="code"
-                  defaultValue="GOSH-2026-9812"
-                  placeholder="Enter Tracking ID or code"
+                  placeholder="Enter Tracking ID or AWB code"
                   class="flex-1 h-10 px-3.5 rounded-md border border-slate-300 text-xs uppercase focus:outline-none focus:ring-2 focus:ring-[#EA1D2C]"
                   required
                 />
@@ -600,7 +599,7 @@ import { IndustrialScrollShowcase } from '../components/marketing/IndustrialScro
       </div>
 
       {/* Live Interactive Tracking Island */}
-      <LiveTrackingIsland client:load initialTrackingNumber="GOSH-2026-9812" pollIntervalMs={25000} />
+      <LiveTrackingIsland client:load initialTrackingNumber="" pollIntervalMs={25000} />
     </div>
   </section>
 
