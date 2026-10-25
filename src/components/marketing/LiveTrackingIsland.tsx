@@ -363,7 +363,7 @@ export default function LiveTrackingIsland({
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               )}
-              <span>Track Consignment</span>
+              <span>Track Shipment</span>
             </button>
 
             <button
@@ -441,7 +441,7 @@ export default function LiveTrackingIsland({
             </svg>
           </div>
           <h3 className="font-bold text-sm text-red-900 dark:text-red-200 font-['Manrope',sans-serif]">
-            Consignment Not Found
+            Shipment Not Found
           </h3>
           <p className="text-xs text-red-700 dark:text-red-300 mt-1 max-w-md mx-auto">{error}</p>
         </div>
@@ -460,17 +460,17 @@ export default function LiveTrackingIsland({
             </svg>
           </div>
           <div className="max-w-md mx-auto space-y-1.5">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
-              Track Your Consignment
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:white font-['Manrope',sans-serif]">
+              Track Your Shipment
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Please enter your unique GoShipping tracking code, Air Waybill (AWB), or Bill of Lading (B/L) number in the search box above to view real-time cargo status and milestones.
+              Please enter your tracking code or shipping number in the search box above to view real-time cargo status and location updates.
             </p>
           </div>
           <div className="pt-2 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Live Carrier Milestones
+              Live Location Updates
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
@@ -629,7 +629,7 @@ export default function LiveTrackingIsland({
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 font-medium">
-                  <span className="text-slate-500 dark:text-slate-400">Physical Movement Progress:</span>
+                  <span className="text-slate-500 dark:text-slate-400">Shipping Progress:</span>
                   <span className="font-bold text-[#EA1D2C] font-mono">
                     {progress.percentage}% Completed
                   </span>
@@ -639,7 +639,7 @@ export default function LiveTrackingIsland({
                     <span>Swipe stages</span> <span>→</span>
                   </span>
                   <div className="text-[11px] text-slate-400 hidden sm:block">
-                    Current Waypoint: <span className="font-medium text-slate-700 dark:text-slate-300">{trackingData.currentLocation}</span>
+                    Current Location: <span className="font-medium text-slate-700 dark:text-slate-300">{trackingData.currentLocation}</span>
                   </div>
                 </div>
               </div>
@@ -806,7 +806,7 @@ export default function LiveTrackingIsland({
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
-              <span>Timeline & Milestones ({trackingData.events.length})</span>
+              <span>Tracking History ({trackingData.events.length})</span>
             </button>
 
             <button
@@ -821,7 +821,7 @@ export default function LiveTrackingIsland({
               <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
               </svg>
-              <span>Cargo Packages & Items ({trackingData.items.length})</span>
+              <span>Package Details ({trackingData.items.length})</span>
             </button>
 
             <button
@@ -836,7 +836,7 @@ export default function LiveTrackingIsland({
               <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
               </svg>
-              <span>Carrier & Linehaul</span>
+              <span>Carrier & Flight Info</span>
             </button>
 
             <button
@@ -852,7 +852,7 @@ export default function LiveTrackingIsland({
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
-              <span>Consignee & Destination</span>
+              <span>Receiver & Address</span>
             </button>
 
             {trackingData.hasLiveGps && (
@@ -870,7 +870,7 @@ export default function LiveTrackingIsland({
                   <line x1="8" y1="2" x2="8" y2="18" />
                   <line x1="16" y1="6" x2="16" y2="22" />
                 </svg>
-                <span>Live Corridor Telemetry</span>
+                <span>Live Map</span>
               </button>
             )}
           </div>
@@ -883,7 +883,7 @@ export default function LiveTrackingIsland({
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white font-['Manrope',sans-serif]">
-                    Verified Milestone History & Telemetry
+                    Shipment History & Updates
                   </h3>
                   <span className="text-[11px] text-slate-400 font-mono">
                     All times in Bangladesh Standard Time (BST)
@@ -944,7 +944,7 @@ export default function LiveTrackingIsland({
                               </h4>
                               {isLatest && !isPayment && (
                                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-red-100 text-[#EA1D2C] dark:bg-red-950 dark:text-red-300 uppercase">
-                                  Current Stage
+                                  Current Status
                                 </span>
                               )}
                               {isPayment && (
@@ -992,7 +992,7 @@ export default function LiveTrackingIsland({
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-sm text-slate-900 dark:text-white font-['Manrope',sans-serif]">
-                    Cargo Manifest & Package Specifications
+                    Package Details & Contents
                   </h3>
                   <span className="text-xs font-mono text-slate-500">
                     Total: {trackingData.totalWeightKg} KG · {trackingData.totalCbm} CBM
@@ -1051,7 +1051,7 @@ export default function LiveTrackingIsland({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 space-y-3">
                   <h4 className="font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
-                    International Linehaul Carrier
+                    Shipping Carrier & Route Details
                   </h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
@@ -1135,7 +1135,7 @@ export default function LiveTrackingIsland({
                   <span className="font-semibold text-slate-900 dark:text-white">
                     Verified Coordinates: {trackingData.currentLat?.toFixed(4)}, {trackingData.currentLng?.toFixed(4)}
                   </span>
-                  <span className="font-mono text-emerald-600 font-semibold">● Active GPS Telemetry Feed</span>
+                  <span className="font-mono text-emerald-600 font-semibold">● Live GPS Tracking</span>
                 </div>
                 <div className="w-full h-64 sm:h-80 rounded-lg bg-slate-900 border border-slate-800 relative overflow-hidden flex items-center justify-center">
                   <div className="text-center space-y-2 p-6 z-10">

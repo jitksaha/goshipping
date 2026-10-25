@@ -256,43 +256,43 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
       case 'overview':
         return {
           title: 'Overview',
-          subtitle: 'Consignments, tracking & billing summary'
+          subtitle: 'Your shipments, tracking, and billing summary'
         };
       case 'shipments':
         return {
           title: 'My Shipments',
-          subtitle: `Active and historical consignments (${shipments.length})`
+          subtitle: `All your current and past shipments (${shipments.length})`
         };
       case 'tracking':
         return {
-          title: 'Live Cargo Tracker',
-          subtitle: 'Real-time waypoint telemetry & customs milestones'
+          title: 'Live Tracking',
+          subtitle: 'Real-time location and delivery progress'
         };
       case 'quotes':
         return {
-          title: 'My Rate Quotes',
-          subtitle: `Itemized commercial quotations (${quotes.length})`
+          title: 'My Quotes',
+          subtitle: `Price estimates and shipping quotes (${quotes.length})`
         };
       case 'request-quote':
       case 'calculator':
         return {
-          title: 'Ship for Me — Cargo Booking',
-          subtitle: 'Commercial cargo details for China warehouse intake & tariff quotation'
+          title: 'Get a Shipping Quote',
+          subtitle: 'Enter package details to get an instant price quote'
         };
       case 'documents':
         return {
-          title: 'Documents & Invoices',
-          subtitle: 'Airway bills, bills of lading & tax invoices'
+          title: 'Invoices & Documents',
+          subtitle: 'Download invoices and shipping documents'
         };
       case 'settings':
         return {
-          title: 'Company & Importer Profile',
-          subtitle: 'Corporate credentials and contact settings'
+          title: 'Account Settings',
+          subtitle: 'Manage your profile and delivery address'
         };
       default:
         return {
           title: 'Overview',
-          subtitle: 'Consignments, tracking & billing summary'
+          subtitle: 'Your shipments, tracking, and billing summary'
         };
     }
   };
@@ -504,14 +504,14 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
           {/* Header & New Booking Button */}
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-4">
             <div>
-              <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">Consignment Registry</h3>
-              <p className="text-xs text-slate-500">Complete record of historical and live freight consignments</p>
+              <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">All Shipments</h3>
+              <p className="text-xs text-slate-500">Complete record of your shipments and delivery history</p>
             </div>
             <button
               onClick={() => switchTab('request-quote')}
               className="px-4 py-2 rounded-lg bg-[#EA1D2C] text-white text-xs font-bold hover:bg-[#D41523] transition-colors shadow-xs"
             >
-              + Request Freight Quote
+              + Get a Quote
             </button>
           </div>
 
@@ -563,10 +563,10 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               <thead className="bg-slate-50 text-slate-500 uppercase font-bold border-b border-slate-200 text-[10px] tracking-wider">
                 <tr>
                   <th className="py-3 px-4">Tracking Code</th>
-                  <th className="py-3 px-4">Consignment Route</th>
-                  <th className="py-3 px-4">Mode & Service</th>
-                  <th className="py-3 px-4">Weight & Volume</th>
-                  <th className="py-3 px-4">Current Waypoint</th>
+                  <th className="py-3 px-4">Route</th>
+                  <th className="py-3 px-4">Mode &amp; Service</th>
+                  <th className="py-3 px-4">Weight &amp; Volume</th>
+                  <th className="py-3 px-4">Current Location</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right pr-5">Action</th>
                 </tr>
@@ -643,7 +643,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
           {/* Quick Consignment Picker */}
           {shipments.length > 1 && (
             <div className="bg-white p-3.5 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-700">Currently Tracking Consignment:</span>
+              <span className="font-semibold text-slate-700">Select Shipment:</span>
               <div className="flex items-center gap-2">
                 <select
                   value={selectedTrackingCode}
@@ -672,15 +672,15 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 border-b border-slate-100 pb-4">
             <div>
               <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
-                Quotation Inquiries & Tariff Proposals
+                Your Shipping Quotes
               </h3>
-              <p className="text-xs text-slate-500">Track and approve formal freight quotes issued by GoShipping</p>
+              <p className="text-xs text-slate-500">Review and accept price estimates for your shipments</p>
             </div>
             <button
               onClick={() => switchTab('request-quote')}
               className="px-4 py-2 rounded-lg bg-[#EA1D2C] text-white text-xs font-bold hover:bg-[#D41523] transition-colors shadow-xs"
             >
-              + Request New Tariff
+              + Get a New Quote
             </button>
           </div>
 
@@ -924,7 +924,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                     </span>
                   </div>
                   <p className="text-slate-500 text-xs">
-                    Consignment: {s.trackingNumber} · Carrier: {s.carrierName || 'Cathay Cargo / GoShipping Air'} · {s.originCity} → {s.destCity} ({s.totalWeightKg} KG)
+                    Shipment: {s.trackingNumber} · Carrier: {s.carrierName || 'Cathay Cargo / GoShipping Air'} · {s.originCity} → {s.destCity} ({s.totalWeightKg} KG)
                   </p>
                 </div>
 

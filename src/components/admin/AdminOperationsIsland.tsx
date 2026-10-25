@@ -636,7 +636,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
   // Handler: Delete Shipment
   const handleDeleteShipment = async (id: string, trackingNumber: string) => {
-    if (!confirm(`Are you sure you want to permanently delete consignment ${trackingNumber}?`)) return;
+    if (!confirm(`Are you sure you want to permanently delete order ${trackingNumber}?`)) return;
     try {
       const res = await fetch(`/api/shipments/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
@@ -940,50 +940,50 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       case 'tracking':
       case 'orders':
         return {
-          title: 'Live Tracking & Orders Desk',
-          subtitle: 'Air, Sea & P2P freight waybills, carrier telemetry and live tracking stage management'
+          title: 'Orders & Live Tracking',
+          subtitle: 'Manage shipments, update delivery status, and view routes'
         };
       case 'quotes':
         return {
-          title: 'Commercial Rate Quotations',
-          subtitle: 'Inquiries pricing queue, tariff revisions and conversion engine'
+          title: 'Price Quotes',
+          subtitle: 'Review customer quote requests and update pricing'
         };
       case 'invoices':
       case 'invoice':
         return {
-          title: 'Commercial Invoices & Tax Desk',
-          subtitle: 'Client freight billing, customs duties, collection receipts and PDF statements'
+          title: 'Invoices & Billing',
+          subtitle: 'Manage client invoices, payment status, and tax receipts'
         };
       case 'warehouses':
         return {
-          title: 'China & Bangladesh Warehouse Hubs',
-          subtitle: 'Guangzhou, Shenzhen, Yiwu CFS and Dhaka receiving terminals'
+          title: 'Warehouse Locations',
+          subtitle: 'Addresses and contact info for China and Bangladesh warehouses'
         };
       case 'users':
         return {
-          title: 'Enterprise Users & Staff Directory',
-          subtitle: 'Access control, role privileges and Super Admin Ghost Login'
+          title: 'Users & Staff',
+          subtitle: 'Manage user accounts, roles, and admin permissions'
         };
       case 'customers':
         return {
-          title: 'Commercial Importers & Clients',
-          subtitle: 'Corporate accounts, credit limits and historical dispatch records'
+          title: 'Customers',
+          subtitle: 'Customer accounts, contact details, and order history'
         };
       case 'audit':
         return {
-          title: 'Audit Trail & Security Logs',
-          subtitle: 'Immutable record of staff actions, logins, and status transitions'
+          title: 'Activity Logs',
+          subtitle: 'History of admin actions, logins, and status updates'
         };
       case 'email':
         return {
-          title: 'Resend Email Gateway & DNS Diagnostics',
-          subtitle: 'Transactional notifications, support.goshipping.com.bd domain status, and DNS telemetry'
+          title: 'Email Service & Status',
+          subtitle: 'Email delivery status, notification logs, and settings'
         };
       case 'overview':
       default:
         return {
-          title: 'Operations & Freight Command Center',
-          subtitle: 'Global logistics KPI metrics, warehouse occupancy & fleet status'
+          title: 'Admin Dashboard',
+          subtitle: 'Overview of shipments, warehouse activity, and delivery status'
         };
     }
   };
@@ -1081,7 +1081,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               setShowConsignmentModal(true);
             }}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
-            title="Create New Tracking Order & Consignment"
+            title="Create New Order"
           >
             <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -1110,35 +1110,35 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* KPI COUNTER CARDS (Visible across all tabs for live context) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Master Consignments</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Shipments</span>
             <div className="text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums">
               {activeConsignmentsCount || shipments.length}
             </div>
-            <p className="text-xs text-slate-500">Guangzhou, Yiwu, Shenzhen ⇄ Dhaka</p>
+            <p className="text-xs text-slate-500">China ⇄ Bangladesh shipments</p>
           </div>
 
           <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">In-Transit Air Freight</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Air Freight in Transit</span>
             <div className="text-2xl font-bold text-sky-600 font-['Manrope',sans-serif] tabular-nums">
               {inTransitAirCount || 1}
             </div>
-            <p className="text-xs text-slate-500">Scheduled cargo flights with telemetry</p>
+            <p className="text-xs text-slate-500">Active flights with tracking</p>
           </div>
 
           <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Ocean Containers (FCL / LCL)</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Sea Freight in Transit</span>
             <div className="text-2xl font-bold text-indigo-600 font-['Manrope',sans-serif] tabular-nums">
               {seaContainersCount || 2}
             </div>
-            <p className="text-xs text-slate-500">Chittagong Port & Nansha berths</p>
+            <p className="text-xs text-slate-500">Cargo ships & port arrivals</p>
           </div>
 
           <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pending Rate Inquiries</span>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pending Quotes</span>
             <div className="text-2xl font-bold text-amber-600 font-['Manrope',sans-serif] tabular-nums">
               {pendingQuotesCount}
             </div>
-            <p className="text-xs text-slate-500">Awaiting tariff calculation & pricing</p>
+            <p className="text-xs text-slate-500">Waiting for price review</p>
           </div>
         </div>
 
@@ -1159,14 +1159,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                        Live Tracking &amp; Orders Control Center
+                        Quick Tracking &amp; Orders
                       </h2>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EA1D2C] text-white uppercase tracking-wider font-mono">
                         Super Admin
                       </span>
                     </div>
                     <p className="text-xs text-slate-600">
-                      Create customer tracking orders, assign tracking codes, and update physical delivery milestones in real-time.
+                      Create tracking orders, assign tracking codes, and update delivery status in real time.
                     </p>
                   </div>
                 </div>
@@ -1196,7 +1196,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div>
                     <span className="text-[10px] font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">Order Creation</span>
                     <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
-                      Add New Tracking Order
+                      Create New Order
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed mt-1">
                       Register goods from China supplier, set receiver info, and generate a tracking number (e.g. <code className="font-mono text-[#EA1D2C]">GOSH-2026-XXXX</code>).
@@ -1217,11 +1217,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 {/* Block 2: 1-Click Instant Live Status Changer */}
                 <div className="p-4 rounded-xl bg-white border border-indigo-100 shadow-2xs space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase tracking-wider">Live Status Control</span>
+                    <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase tracking-wider">Status Update</span>
                     <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
-                    Update Live Tracker Stage
+                    Update Shipment Status
                   </h3>
 
                   <div className="space-y-2">
@@ -1248,7 +1248,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Physical Stage</label>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">New Status</label>
                       <select
                         value={quickTargetStage}
                         onChange={(e) => setQuickTargetStage(e.target.value)}
@@ -1272,7 +1272,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       onClick={handleInstantOverviewStatusUpdate}
                       className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >
-                      {updatingQuickStage ? 'Updating Live Tracker…' : 'Update Stage on Live Tracker'}
+                      {updatingQuickStage ? 'Updating Status…' : 'Update Status'}
                     </button>
                   </div>
                 </div>
@@ -1282,10 +1282,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div>
                     <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Verification</span>
                     <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
-                      Verify on Public Tracker
+                      View Public Tracker
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                      Check how customers see the physical progress bar and live waypoint telemetry on the public tracking portal.
+                      Check how customers see the physical progress bar and live updates on the tracking portal.
                     </p>
                   </div>
                   <div className="space-y-1.5">
@@ -1314,7 +1314,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
                     <span>
-                      Live Tracker for <strong>{liveStatusFeedback.trackingNumber}</strong> updated to <strong>{liveStatusFeedback.statusLabel}</strong>!
+                      Tracker for <strong>{liveStatusFeedback.trackingNumber}</strong> updated to <strong>{liveStatusFeedback.statusLabel}</strong>!
                     </span>
                   </div>
                   <a
@@ -1323,7 +1323,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     rel="noopener noreferrer"
                     className="px-3 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 shrink-0 inline-flex items-center gap-1"
                   >
-                    <span>View Public Live Tracker</span>
+                    <span>View Public Tracker</span>
                     <span>↗</span>
                   </a>
                 </div>
@@ -1336,10 +1336,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
                 <div>
                   <h3 className="text-xs font-bold text-emerald-950 font-['Manrope',sans-serif]">
-                    China ⇄ Bangladesh Express Freight Corridors Operational
+                    China to Bangladesh Shipping Routes are Active
                   </h3>
                   <p className="text-[11px] text-emerald-700">
-                    Guangzhou Baiyun (CAN), Yiwu Trade City, and Shenzhen Qianhai (SZX) CFS stations are actively consolidating and dispatching.
+                    Guangzhou, Yiwu, and Shenzhen warehouses are receiving and dispatching packages normally.
                   </p>
                 </div>
               </div>
@@ -1348,7 +1348,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   onClick={() => switchTab('shipments')}
                   className="px-3 py-1.5 rounded-md bg-white border border-emerald-300 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition-colors"
                 >
-                  View All Consignments →
+                  View All Orders →
                 </button>
               </div>
             </div>
@@ -1360,9 +1360,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                      Recent Master Consignments
+                      Recent Orders
                     </h2>
-                    <p className="text-xs text-slate-500">Active air and ocean freight tracking across trade lanes</p>
+                    <p className="text-xs text-slate-500">Latest shipments and live tracking updates</p>
                   </div>
                   <button
                     onClick={() => switchTab('shipments')}
@@ -1377,9 +1377,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <thead className="bg-slate-50 text-slate-500 uppercase font-semibold border-b border-slate-200 text-[10px] tracking-wider">
                       <tr>
                         <th className="py-2.5 px-3">Tracking Code</th>
-                        <th className="py-2.5 px-3">Customer / Importer</th>
-                        <th className="py-2.5 px-3">Corridor &amp; Carrier</th>
-                        <th className="py-2.5 px-3">Status (Change to update Live Tracker)</th>
+                        <th className="py-2.5 px-3">Customer</th>
+                        <th className="py-2.5 px-3">Route &amp; Carrier</th>
+                        <th className="py-2.5 px-3">Status (Click to update)</th>
                         <th className="py-2.5 px-3 text-right">Action</th>
                       </tr>
                     </thead>
@@ -1462,9 +1462,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="flex items-center justify-between">
                     <div>
                       <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                        Rate Quotations Queue
+                        Recent Quotes
                       </h2>
-                      <p className="text-xs text-slate-500">Customer tariff requests awaiting price</p>
+                      <p className="text-xs text-slate-500">Price requests waiting for review</p>
                     </div>
                     <button
                       onClick={() => switchTab('quotes')}
@@ -1526,7 +1526,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                    China & Bangladesh Warehouse CFS Stations
+                    China &amp; Bangladesh Warehouse Locations
                   </h2>
                   <p className="text-xs text-slate-500">Storage capacity, inbound receiving, and consolidation status</p>
                 </div>
@@ -1593,18 +1593,18 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Fleet Operations Desk
+                    Orders Desk
                   </span>
                   <span className="text-slate-300">·</span>
                   <span className="text-[11px] font-mono font-medium text-slate-500">
-                    {shipments.length} Active Master Consignments
+                    {shipments.length} Active Shipments
                   </span>
                 </div>
                 <h2 className="text-lg sm:text-xl font-bold text-slate-900 font-['Manrope',sans-serif] tracking-tight">
-                  Orders & Cargo Manifests
+                  All Orders &amp; Shipments
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Real-time container tracking, waypoint telemetry, milestone updates, and customs clearance desk.
+                  Track live shipments, update delivery progress, and manage customs clearance.
                 </p>
               </div>
 
@@ -1614,7 +1614,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   onClick={loadData}
                   disabled={loading}
                   className="h-9 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-none cursor-pointer disabled:opacity-50"
-                  title="Reload live manifests"
+                  title="Reload orders"
                 >
                   <svg className={`w-3.5 h-3.5 stroke-[2] ${loading ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -1634,7 +1634,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>New Consignment</span>
+                  <span>New Order</span>
                 </button>
               </div>
             </div>
@@ -1642,35 +1642,35 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             {/* Quick KPI Overview Strip */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
-                <div className="text-[11px] font-semibold text-slate-500">Total Freight Volume</div>
+                <div className="text-[11px] font-semibold text-slate-500">Total Weight</div>
                 <div className="text-lg font-bold font-mono text-slate-900 mt-1">
                   {shipments.reduce((acc, s) => acc + (s.totalWeightKg || 0), 0).toLocaleString()} <span className="text-xs text-slate-400 font-sans">KG</span>
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">{shipments.length} Active Waybills</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{shipments.length} Active Shipments</div>
               </div>
 
               <div className="p-3.5 rounded-lg border border-blue-100 bg-blue-50/40">
-                <div className="text-[11px] font-semibold text-blue-700">In-Transit Linehaul</div>
+                <div className="text-[11px] font-semibold text-blue-700">In Transit</div>
                 <div className="text-lg font-bold font-mono text-blue-900 mt-1">
                   {shipments.filter(s => ['dispatched_from_china', 'arrived_dhaka_airport', 'in_transit'].includes(s.status)).length}
                 </div>
-                <div className="text-[10px] text-blue-600 mt-0.5">Air &amp; Ocean Cross-Border</div>
+                <div className="text-[10px] text-blue-600 mt-0.5">Air &amp; Sea Shipments</div>
               </div>
 
               <div className="p-3.5 rounded-lg border border-amber-100 bg-amber-50/40">
-                <div className="text-[11px] font-semibold text-amber-700">Customs Clearance</div>
+                <div className="text-[11px] font-semibold text-amber-700">In Customs</div>
                 <div className="text-lg font-bold font-mono text-amber-900 mt-1">
                   {shipments.filter(s => ['awaiting_customs', 'customs_clearance'].includes(s.status)).length}
                 </div>
-                <div className="text-[10px] text-amber-600 mt-0.5">Dhaka Airport &amp; Chittagong Port</div>
+                <div className="text-[10px] text-amber-600 mt-0.5">Dhaka &amp; Chittagong Customs</div>
               </div>
 
               <div className="p-3.5 rounded-lg border border-emerald-100 bg-emerald-50/40">
-                <div className="text-[11px] font-semibold text-emerald-700">Delivery &amp; Handover</div>
+                <div className="text-[11px] font-semibold text-emerald-700">Delivered</div>
                 <div className="text-lg font-bold font-mono text-emerald-900 mt-1">
                   {shipments.filter(s => ['out_for_delivery', 'delivered'].includes(s.status)).length}
                 </div>
-                <div className="text-[10px] text-emerald-600 mt-0.5">Dispatched or Signed POD</div>
+                <div className="text-[10px] text-emerald-600 mt-0.5">Delivered to Customer</div>
               </div>
             </div>
 
@@ -1696,11 +1696,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   onChange={(e) => setShipmentModeFilter(e.target.value)}
                   className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer focus:border-slate-400 focus:outline-none"
                 >
-                  <option value="all">All Freight Modes</option>
+                  <option value="all">All Shipping Modes</option>
                   <option value="air">Air Priority</option>
                   <option value="sea">Ocean Freight</option>
-                  <option value="road">Road Linehaul</option>
-                  <option value="hand_carry">P2P Cargo</option>
+                  <option value="road">Road Freight</option>
+                  <option value="hand_carry">Hand Carry</option>
                 </select>
 
                 <select
@@ -1721,7 +1721,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </select>
 
                 <span className="text-[11px] font-mono font-medium text-slate-500 whitespace-nowrap px-1">
-                  {filteredShipments.length} {filteredShipments.length === 1 ? 'consignment' : 'consignments'}
+                  {filteredShipments.length} {filteredShipments.length === 1 ? 'order' : 'orders'}
                 </span>
               </div>
             </div>
@@ -1731,12 +1731,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-slate-50 text-slate-600 font-semibold text-[11px] border-b border-slate-200 tracking-wider">
                   <tr>
-                    <th className="py-2.5 px-3 w-[150px]">Tracking &amp; Waybill</th>
-                    <th className="py-2.5 px-3 w-[170px]">Client &amp; Destination</th>
-                    <th className="py-2.5 px-3 w-[150px]">Corridor &amp; Mode</th>
-                    <th className="py-2.5 px-3 w-[135px]">Cargo Specs</th>
-                    <th className="py-2.5 px-3 w-[170px]">Current Waypoint</th>
-                    <th className="py-2.5 px-3 w-[160px]">Status Control</th>
+                    <th className="py-2.5 px-3 w-[150px]">Tracking Number</th>
+                    <th className="py-2.5 px-3 w-[170px]">Customer &amp; Destination</th>
+                    <th className="py-2.5 px-3 w-[150px]">Route &amp; Mode</th>
+                    <th className="py-2.5 px-3 w-[135px]">Cargo Details</th>
+                    <th className="py-2.5 px-3 w-[170px]">Current Location</th>
+                    <th className="py-2.5 px-3 w-[160px]">Status</th>
                     <th className="py-2.5 px-3 w-[95px] text-right pr-3">Actions</th>
                   </tr>
                 </thead>
@@ -1892,8 +1892,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             type="button"
                             onClick={() => handleDeleteShipment(s.id, s.trackingNumber)}
                             className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-none cursor-pointer"
-                            title="Delete Consignment"
-                            aria-label="Delete Consignment"
+                            title="Delete Order"
+                            aria-label="Delete Order"
                           >
                             <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <path d="M3 6h18"/>
@@ -1909,7 +1909,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400">
                         <div className="space-y-1">
-                          <div className="font-semibold text-slate-600 text-sm">No consignments found</div>
+                          <div className="font-semibold text-slate-600 text-sm">No orders found</div>
                           <div className="text-xs text-slate-400">Try adjusting your search query or mode/status filters.</div>
                         </div>
                       </td>
@@ -1929,10 +1929,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                  Rate Quotations & Customer Inquiries Desk
+                  Price Quotes
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Review incoming cargo inquiries, issue formal freight pricing, and convert into consignments
+                  Review customer quote requests and update shipping pricing
                 </p>
               </div>
 
@@ -2170,10 +2170,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                    Commercial Invoices &amp; Tax Billing Desk
+                    Invoices &amp; Billing
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Manage client freight invoices, customs tax duties, collection status, and PDF tax receipts
+                    Manage customer invoices, payment status, and download tax receipts
                   </p>
                 </div>
 
@@ -2434,10 +2434,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                  China & Bangladesh Warehouse CFS Stations
+                  Warehouse Locations
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Container Freight Stations (CFS), Airport Air Cargo Hubs, and Maritime Receiving Terminals
+                  Addresses and contact details for China and Bangladesh warehouses
                 </p>
               </div>
 
@@ -2445,7 +2445,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 onClick={() => setShowConsignmentModal(true)}
                 className="px-3.5 py-1.5 rounded-lg bg-[#EA1D2C] text-white text-xs font-bold hover:bg-[#D41523] transition-colors"
               >
-                + Dispatch Consignment
+                + Create Order
               </button>
             </div>
 
@@ -2516,14 +2516,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                    Enterprise User &amp; Staff Directory
+                    Users &amp; Staff
                   </h2>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
-                    {filteredUsers.length} Registered Accounts
+                    {filteredUsers.length} Registered Users
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Manage platform users, importers, administrative staff, role privileges, and Ghost Login masquerade access.
+                  Manage user accounts, roles, and admin permissions
                 </p>
               </div>
 
@@ -2772,10 +2772,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                  System Operations & Security Audit Trail
+                  Activity &amp; Security Logs
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Immutable tamper-evident operational logs for consignment creation, milestone telemetry, and quotations
+                  History of admin actions, logins, and order updates
                 </p>
               </div>
             </div>
@@ -2838,14 +2838,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                     <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                      Resend Email Gateway &amp; Telemetry
+                      Email Service &amp; Status
                     </h2>
                     <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-[#EA1D2C] font-mono">
                       support.goshipping.com.bd
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Enterprise transactional email infrastructure powered by Resend SDK with custom branded domain authentication.
+                    Email notifications powered by Resend with verified domain authentication.
                   </p>
                 </div>
 
@@ -2914,7 +2914,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
 
                 <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="text-[10px] uppercase font-bold text-slate-500">Email Telemetry</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Email Logs &amp; Stats</span>
                   <div className="text-xs font-bold text-slate-900 mt-1">
                     5 Automated Workflows
                   </div>
@@ -3079,7 +3079,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </svg>
                     </span>
                     <div>
-                      <strong className="text-slate-900 block font-semibold">2. Consignment Booking Dispatch</strong>
+                      <strong className="text-slate-900 block font-semibold">2. Order Confirmation &amp; Dispatch</strong>
                       <span className="text-slate-600 text-[11px]">When Admin/Ops registers a shipment, customer receives waybill details with a 1-click live tracking link.</span>
                     </div>
                   </div>
@@ -3091,8 +3091,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </svg>
                     </span>
                     <div>
-                      <strong className="text-slate-900 block font-semibold">3. Live Milestone Telemetry Checkpoints</strong>
-                      <span className="text-slate-600 text-[11px]">Whenever milestone changes (e.g. Arrived Dhaka Airport, Customs Clearance), customer gets updated in BST.</span>
+                      <strong className="text-slate-900 block font-semibold">3. Live Status Updates</strong>
+                      <span className="text-slate-600 text-[11px]">Whenever status changes (e.g. Arrived Dhaka Airport, Customs Clearance), customer gets updated in BST.</span>
                     </div>
                   </div>
 
@@ -3156,7 +3156,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
             <form onSubmit={handleAddMilestone} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Target Consignment / Tracking Code</label>
+                <label className="block font-semibold text-slate-700 mb-1">Target Shipment / Tracking Code</label>
                 <select
                   value={selectedShipmentId}
                   onChange={(e) => setSelectedShipmentId(e.target.value)}
@@ -3208,7 +3208,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   >
                     <option value="admin">Operations Dispatch / Desk</option>
                     <option value="warehouse">GoShipping Receiving Hub</option>
-                    <option value="carrier_api">Carrier Telemetry API</option>
+                    <option value="carrier_api">Carrier Tracking API</option>
                     <option value="driver">Fleet Courier Driver</option>
                   </select>
                 </div>
@@ -3329,14 +3329,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2.5">
                     <h2 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                      New Consignment &amp; Order
+                      Create New Order
                     </h2>
                     <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-[#EA1D2C] ring-1 ring-red-200/60">
-                      Live Dispatch
+                      Live Order
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    Register freight consignment, assign tracking code, and link customer.
+                    Enter shipment details, assign a tracking code, and select a customer.
                   </p>
                 </div>
                 <button
@@ -3358,13 +3358,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               {/* 2. Drawer Body (Scrollable Form) */}
               <form id="drawer-consignment-form" onSubmit={handleCreateConsignment} className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs bg-slate-50/40">
                 
-                {/* A. Waybill Code & Initial Live Status Card */}
+                {/* A. Tracking Code & Initial Status Card */}
                 <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-medium text-slate-700">
-                          Waybill / Tracking Code
+                          Tracking Number
                         </label>
                         <button
                           type="button"
@@ -3390,7 +3390,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                     <div>
                       <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                        Initial Tracker Stage
+                        Current Status
                       </label>
                       <select
                         value={newInitialStatus}
@@ -3416,10 +3416,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-medium text-slate-800 block">
-                        Customer Profile
+                        Customer Information
                       </span>
                       <span className="text-[11px] text-slate-500">
-                        Link consignment to account or create new client
+                        Select an existing customer or add a new one
                       </span>
                     </div>
                     <div className="inline-flex rounded-lg border border-slate-200/90 bg-slate-100 p-0.5">
@@ -3661,12 +3661,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 {/* C. Corridor & Transport Card */}
                 <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
                   <span className="text-xs font-medium text-slate-800 block">
-                    Corridor &amp; Transit Linehaul
+                    Route &amp; Shipping Method
                   </span>
 
                   <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Origin Port</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Origin (China)</label>
                       <select
                         value={newOriginCity}
                         onChange={(e) => setNewOriginCity(e.target.value)}
@@ -3680,7 +3680,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Destination Hub</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Destination (BD)</label>
                       <select
                         value={newDestCity}
                         onChange={(e) => setNewDestCity(e.target.value)}
@@ -3692,7 +3692,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Freight Mode</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Shipping Method</label>
                       <select
                         value={newMode}
                         onChange={(e) => setNewMode(e.target.value as any)}
@@ -3700,15 +3700,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       >
                         <option value="air">Air Freight</option>
                         <option value="sea">Ocean (FCL/LCL)</option>
-                        <option value="hand_carry">P2P Hand carry</option>
-                        <option value="road">Cross-border Road</option>
+                        <option value="hand_carry">Hand Carry</option>
+                        <option value="road">Road Freight</option>
                       </select>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Carrier / Forwarder</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Carrier Name</label>
                       <input
                         type="text"
                         value={newCarrier}
@@ -3719,7 +3719,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Flight / Voyage Number</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Flight / Ship Number</label>
                       <input
                         type="text"
                         value={newVoyage}
@@ -3735,11 +3735,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 {/* D. Cargo Specifications Card (2x2 Balanced Grid) */}
                 <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
                   <span className="text-xs font-medium text-slate-800 block">
-                    Cargo Specifications &amp; Packaging
+                    Cargo Details
                   </span>
 
                   <div>
-                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Goods Description *</label>
+                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Product Description *</label>
                     <input
                       type="text"
                       value={newItemDesc}
@@ -3753,7 +3753,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   {/* Balanced 2x2 Grid for generous width */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Packaging Type</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Package Type</label>
                       <select
                         value={newItemType}
                         onChange={(e) => setNewItemType(e.target.value)}
@@ -3768,7 +3768,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Category Tag</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Product Category</label>
                       <select
                         value={newItemTag}
                         onChange={(e) => setNewItemTag(e.target.value as any)}
@@ -3783,7 +3783,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Gross Weight (KG) *</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Weight (KG) *</label>
                       <input
                         type="number"
                         value={newWeight}
@@ -3795,7 +3795,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Total Volume (CBM) *</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Volume (CBM) *</label>
                       <input
                         type="text"
                         value={newCbm}
@@ -3812,7 +3812,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-medium text-slate-800">Delivery Address in Bangladesh</label>
-                    <span className="text-[11px] text-slate-400">Destination Hub / Doorstep</span>
+                    <span className="text-[11px] text-slate-400">Full Address / Doorstep</span>
                   </div>
                   <input
                     type="text"
@@ -3857,11 +3857,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         <svg className="w-3.5 h-3.5 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                         </svg>
-                        <span>Dispatching...</span>
+                        <span>Creating Order...</span>
                       </>
                     ) : (
                       <>
-                        <span>Dispatch Consignment</span>
+                        <span>Create Order</span>
                         <span className="font-bold">→</span>
                       </>
                     )}
@@ -3891,7 +3891,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 Tracking Order Created Successfully!
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                New consignment registered and live on GoShipping tracking network.
+                New order registered and live on GoShipping tracking.
               </p>
             </div>
 
@@ -4415,7 +4415,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <span className="font-bold text-slate-500 uppercase text-[10px] block mb-1">Invoice Details:</span>
                 <p className="font-mono text-slate-800">Date: {previewInvoice.issueDate}</p>
                 <p className="font-mono text-slate-800">Due Date: {previewInvoice.dueDate}</p>
-                <p className="font-mono font-bold text-[#EA1D2C] mt-1">Consignment: {previewInvoice.trackingNumber}</p>
+                <p className="font-mono font-bold text-[#EA1D2C] mt-1">Shipment: {previewInvoice.trackingNumber}</p>
                 <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
                   <span>{previewInvoice.status === 'paid' ? 'PAID &amp; CLEARED' : 'PAYMENT PENDING'}</span>
                 </div>

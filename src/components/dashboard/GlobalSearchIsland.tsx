@@ -85,7 +85,7 @@ export default function GlobalSearchIsland({ portalType = 'customer' }: Props) {
       id: 'page-overview',
       category: 'page',
       title: 'Overview',
-      subtitle: 'Consignments, tracking & billing summary',
+      subtitle: 'Shipments, tracking & billing summary',
       badge: 'PAGE',
       tabKey: 'overview',
       href: '/dashboard?tab=overview'

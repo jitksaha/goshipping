@@ -253,7 +253,7 @@ export default function QuoteCalculatorIsland({
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif]">
-                Ship for Me: Direct Cargo Booking &amp; Consignment Request
+                Ship for Me: Book Your Shipping Order
               </h3>
               <span className="hidden md:inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-red-100 text-[#EA1D2C] font-bold border border-red-200">
                 <span>China</span>
@@ -272,7 +272,7 @@ export default function QuoteCalculatorIsland({
         <div className="flex items-center gap-2">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-red-200 text-slate-700 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>Commercial Cargo Intake Open</span>
+            <span>Accepting New Orders</span>
           </span>
         </div>
       </div>
@@ -285,7 +285,7 @@ export default function QuoteCalculatorIsland({
             </svg>
           </div>
           <h4 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Ship for Me Booking Registered
+            Your Shipping Request Has Been Received
           </h4>
           <p className="text-xs text-slate-600 dark:text-slate-400 max-w-lg mx-auto leading-relaxed">
             Your booking reference is{' '}
@@ -345,7 +345,7 @@ export default function QuoteCalculatorIsland({
               <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs shadow-2xs">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300/40 shrink-0">
-                    Procedure
+                    How it works
                   </span>
                   <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate sm:whitespace-normal leading-tight">
                     Order from 1688, Taobao, or Chinese factory. We assign your unique <strong>Shipping Mark</strong> and deliver to Bangladesh.
@@ -514,12 +514,12 @@ export default function QuoteCalculatorIsland({
                 </div>
               </div>
 
-              {/* STEP 2: FREIGHT CORRIDOR & GATEWAYS */}
+              {/* STEP 2: SHIPPING ROUTE & WAREHOUSES */}
               <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-red-100 dark:border-slate-800 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <span className="font-bold text-slate-900 dark:text-white flex items-center gap-2 font-['Manrope',sans-serif]">
                     <span className="w-5 h-5 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center text-[10px] font-bold">2</span>
-                    <span className="text-sm">Freight Corridor &amp; Gateways</span>
+                    <span className="text-sm">Shipping Route &amp; Warehouses</span>
                   </span>
                   <div className="inline-flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                     <span>{originCountry} ({originCity})</span>
@@ -540,7 +540,7 @@ export default function QuoteCalculatorIsland({
                           Origin Location (From)
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-500 font-medium">Consolidation Warehouse</span>
+                      <span className="text-[10px] text-slate-500 font-medium">China Warehouse</span>
                     </div>
 
                     <div className="space-y-3">
@@ -552,7 +552,7 @@ export default function QuoteCalculatorIsland({
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Intake Hub</label>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">China Warehouse</label>
                           <div className="h-10 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
                             Guangzhou (CAN)
                           </div>
@@ -731,12 +731,12 @@ export default function QuoteCalculatorIsland({
                 </div>
               </div>
 
-              {/* STEP 3: PRODUCT DETAILS & CARGO SPECIFICATIONS */}
+              {/* STEP 3: PRODUCT DETAILS & CARGO WEIGHT */}
               <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-red-100 dark:border-slate-800 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <span className="flex items-center gap-2 font-['Manrope',sans-serif] font-bold text-sm">
                     <span className="w-5 h-5 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center text-[10px] font-bold">3</span>
-                    <span>Product Details &amp; Cargo Specifications</span>
+                    <span>Product Details &amp; Cargo Weight</span>
                   </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     Volumetric Eq: {airVolumetricKg.toFixed(1)} KG ({numCbm} CBM × 167)
@@ -750,7 +750,7 @@ export default function QuoteCalculatorIsland({
                       <path d="m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
                       <path d="m3.3 7 8.7 5 8.7-5M12 22V12" />
                     </svg>
-                    <span>Product Identification &amp; Category</span>
+                    <span>Product Info &amp; Category</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -879,7 +879,7 @@ export default function QuoteCalculatorIsland({
                   </div>
                 </div>
 
-                {/* Sub-Section 2: Cargo Weight & Dimension Metrics */}
+                {/* Sub-Section 2: Weight & Volume Details */}
                 <div className="space-y-3 pt-1">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                     <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -887,7 +887,7 @@ export default function QuoteCalculatorIsland({
                       <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
                       <path d="M7 21h10M12 3v18M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
                     </svg>
-                    <span>Cargo Weight &amp; Dimension Metrics</span>
+                    <span>Weight &amp; Volume Details</span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -967,7 +967,7 @@ export default function QuoteCalculatorIsland({
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Additional Cargo Notes / Specifications
+                        Additional Notes / Instructions
                       </label>
                       <div className="flex items-center gap-1">
                         {['Garments', 'Fabrics', 'Electronics', 'Machinery'].map((cat) => (
@@ -997,7 +997,7 @@ export default function QuoteCalculatorIsland({
               {/* Official Recipient Details */}
               <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
                 <div className="text-xs font-semibold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                  Official Quotation Recipient Details
+                  Contact Information
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1053,7 +1053,7 @@ export default function QuoteCalculatorIsland({
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#EA1D2C]"></span>
                     <span className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif]">
-                      Consignment Overview
+                      Order Summary
                     </span>
                   </div>
                   <span className="text-[10px] px-2 py-0.5 rounded bg-red-100 text-[#EA1D2C] font-bold border border-red-200">
@@ -1064,17 +1064,17 @@ export default function QuoteCalculatorIsland({
                 <div className="p-3.5 rounded-lg bg-white border border-red-100/90 shadow-2xs space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                      Tariff &amp; Freight Rates
+                      Estimated Shipping Cost
                     </span>
                     <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                       Pre-Assessed
                     </span>
                   </div>
                   <div className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
-                    Tariff Assessed by Operations Desk
+                    Customs &amp; Taxes Included
                   </div>
                   <p className="text-[11px] text-slate-600 leading-relaxed">
-                    Official freight charges and customs duty will be assessed upon cargo intake at our China CFS based on actual measurements and HS code.
+                    Final shipping charges and customs will be verified upon package arrival at our China warehouse based on actual weight and volume.
                   </p>
                 </div>
 
@@ -1190,11 +1190,11 @@ export default function QuoteCalculatorIsland({
                         <circle cx="12" cy="12" strokeWidth="4" className="opacity-25" />
                         <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" className="opacity-75" />
                       </svg>
-                      <span>Transmitting Booking Request…</span>
+                      <span>Submitting Your Request…</span>
                     </>
                   ) : (
                     <span className="inline-flex items-center gap-1.5">
-                      <span>Submit Ship for Me Request</span>
+                      <span>Submit Shipping Request</span>
                       <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M5 12h14M12 5l7 7-7 7" />
                       </svg>
@@ -1208,25 +1208,25 @@ export default function QuoteCalculatorIsland({
                     <svg aria-hidden="true" className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <span>China Hub Mark</span>
+                    <span>China Warehouse Address</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <svg aria-hidden="true" className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <span>Zero Hidden Levies</span>
+                    <span>No Hidden Costs</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <svg aria-hidden="true" className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <span>Live Telemetry</span>
+                    <span>Live Tracking</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <svg aria-hidden="true" className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <span>Official Invoice</span>
+                    <span>Clear Invoicing</span>
                   </div>
                 </div>
               </div>
