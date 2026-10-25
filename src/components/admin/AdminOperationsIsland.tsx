@@ -45,6 +45,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [quoteSearch, setQuoteSearch] = useState('');
   const [quoteStatusFilter, setQuoteStatusFilter] = useState('all');
 
+  // Search & filter for invoices
+  const [invoiceSearch, setInvoiceSearch] = useState('');
+  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('all');
+  const [invoicePaidOverrides, setInvoicePaidOverrides] = useState<Record<string, boolean>>({});
+  const [previewInvoice, setPreviewInvoice] = useState<any | null>(null);
+
   // Modals state
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [showConsignmentModal, setShowConsignmentModal] = useState(false);
@@ -1379,9 +1385,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         )}
 
         {/* ========================================================= */}
-        {/* TAB: CONSIGNMENTS & TRACKING TELEMETRY                     */}
+        {/* TAB: ORDERS & LIVE TRACKING TELEMETRY                      */}
         {/* ========================================================= */}
-        {(activeTab === 'shipments' || activeTab === 'tracking') && (
+        {(activeTab === 'shipments' || activeTab === 'tracking' || activeTab === 'orders') && (
           <div className="bg-white rounded-lg p-6 border border-slate-200 space-y-5 shadow-xs">
             {/* Header & Filter Strip */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1574,7 +1580,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* ========================================================= */}
         {/* TAB: RATE QUOTATIONS DESK                                  */}
         {/* ========================================================= */}
-        {activeTab === 'quotes' && (
+        {(activeTab === 'quotes' || activeTab === 'quote') && (
           <div className="bg-white rounded-lg p-6 border border-slate-200 space-y-5 shadow-xs">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
@@ -1707,6 +1713,374 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             </div>
           </div>
         )}
+
+        {/* ========================================================= */}
+        {/* TAB: COMMERCIAL INVOICES & BILLING DESK                   */}
+        {/* ========================================================= */}
+        {(activeTab === 'invoices' || activeTab === 'invoice') && (() => {
+          // Compute invoices from shipments
+          const derivedInvoices = (shipments.length > 0 ? shipments : [
+            {
+              id: 'ship-mock-1',
+              trackingNumber: 'GOSH-2026-9812',
+              clientName: 'Apex Textiles Ltd',
+              originCity: 'Guangzhou',
+              originCountry: 'China',
+              destinationCity: 'Dhaka',
+              serviceType: 'air',
+              weightKg: 850.5,
+              currentStatus: 'awaiting_customs',
+              createdAt: '2026-10-24T10:00:00Z',
+            },
+            {
+              id: 'ship-mock-2',
+              trackingNumber: 'GOSH-2026-4411',
+              clientName: 'Standard Composite Mills Ltd',
+              originCity: 'Shenzhen',
+              originCountry: 'China',
+              destinationCity: 'Chittagong',
+              serviceType: 'sea',
+              weightKg: 18450,
+              currentStatus: 'dispatched_from_china',
+              createdAt: '2026-10-22T08:30:00Z',
+            },
+            {
+              id: 'ship-mock-3',
+              trackingNumber: 'GOSH-2026-7733',
+              clientName: 'Dhaka Green Energy Solutions',
+              originCity: 'Yiwu',
+              originCountry: 'China',
+              destinationCity: 'Dhaka',
+              serviceType: 'road',
+              weightKg: 4050,
+              currentStatus: 'out_for_delivery',
+              createdAt: '2026-10-20T14:15:00Z',
+            }
+          ] as any[]).map((s, idx) => {
+            const invoiceNum = `INV-2026-${(1080 + idx).toString()}`;
+            const weight = Number(s.weightKg) || 50;
+            const isAir = s.serviceType === 'air';
+            const isSea = s.serviceType === 'sea';
+            const isHandCarry = s.serviceType === 'hand_carry';
+            
+            // Tariff calculation
+            const freightRate = isAir ? 750 : isSea ? 240 : isHandCarry ? 1450 : 500;
+            const baseFreight = Math.round(weight * freightRate);
+            const customsDuty = Math.round(baseFreight * 0.05);
+            const terminalHandling = isSea ? 8500 : 2500;
+            const fuelSurcharge = isAir ? 2200 : 1500;
+            const subtotal = baseFreight + customsDuty + terminalHandling + fuelSurcharge;
+            const vatTax = Math.round(subtotal * 0.15);
+            const totalBDT = subtotal + vatTax;
+            const totalUSD = Math.round(totalBDT / 118);
+
+            const isDeliveredOrPaid = s.currentStatus === 'delivered' || s.currentStatus === 'payment_received';
+            const hasOverride = invoicePaidOverrides[invoiceNum] !== undefined;
+            const isPaid = hasOverride ? invoicePaidOverrides[invoiceNum] : isDeliveredOrPaid;
+
+            return {
+              invoiceNumber: invoiceNum,
+              shipmentId: s.id,
+              trackingNumber: s.trackingNumber,
+              customerName: s.clientName || 'Commercial Importer',
+              recipient: s.recipientName || `${s.destinationCity || 'Dhaka'} Consignee`,
+              destination: `${s.originCity || 'China'} → ${s.destinationCity || 'Dhaka, Bangladesh'}`,
+              mode: s.serviceType || 'air',
+              weightKg: weight,
+              baseFreight,
+              customsDuty,
+              terminalHandling,
+              fuelSurcharge,
+              subtotal,
+              vatTax,
+              totalBDT,
+              totalUSD,
+              status: isPaid ? 'paid' : (idx === 1 ? 'pending' : 'pending'),
+              issueDate: new Date(Date.now() - (idx + 1) * 86400000 * 2).toLocaleDateString('en-GB'),
+              dueDate: new Date(Date.now() + (7 - idx) * 86400000).toLocaleDateString('en-GB'),
+              paymentMethod: idx % 2 === 0 ? 'Bank Wire (EFT / RTGS)' : 'bKash Merchant Pay',
+            };
+          });
+
+          // Metrics
+          const totalInvoicedBDT = derivedInvoices.reduce((acc, inv) => acc + inv.totalBDT, 0);
+          const totalPaidBDT = derivedInvoices.filter(inv => inv.status === 'paid').reduce((acc, inv) => acc + inv.totalBDT, 0);
+          const totalPendingBDT = totalInvoicedBDT - totalPaidBDT;
+          const paidPercentage = totalInvoicedBDT > 0 ? Math.round((totalPaidBDT / totalInvoicedBDT) * 100) : 0;
+
+          // Filter
+          const filteredInvoices = derivedInvoices.filter(inv => {
+            const matchesSearch = !invoiceSearch || 
+              inv.invoiceNumber.toLowerCase().includes(invoiceSearch.toLowerCase()) ||
+              inv.customerName.toLowerCase().includes(invoiceSearch.toLowerCase()) ||
+              inv.trackingNumber.toLowerCase().includes(invoiceSearch.toLowerCase()) ||
+              inv.destination.toLowerCase().includes(invoiceSearch.toLowerCase());
+            
+            const matchesStatus = invoiceStatusFilter === 'all' || inv.status === invoiceStatusFilter;
+            return matchesSearch && matchesStatus;
+          });
+
+          return (
+            <div className="bg-white rounded-lg p-6 border border-slate-200 space-y-6 shadow-xs">
+              {/* Header Strip */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    Commercial Invoices &amp; Tax Billing Desk
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Manage client freight invoices, customs tax duties, collection status, and PDF tax receipts
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const csvContent = "data:text/csv;charset=utf-8," + 
+                        "Invoice,Customer,Tracking,Mode,WeightKG,TotalBDT,TotalUSD,Status\n" +
+                        derivedInvoices.map(i => `${i.invoiceNumber},"${i.customerName}",${i.trackingNumber},${i.mode},${i.weightKg},${i.totalBDT},${i.totalUSD},${i.status}`).join("\n");
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", `GoShipping_Invoices_${new Date().toISOString().slice(0,10)}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold cursor-pointer transition-none shadow-2xs"
+                  >
+                    <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Export CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* KPI Metrics */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                    Total Invoiced
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-bold font-mono text-slate-900">
+                      ৳{totalInvoicedBDT.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono">
+                      (~${Math.round(totalInvoicedBDT / 118).toLocaleString()})
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    {derivedInvoices.length} commercial invoices generated
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/40">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block mb-1">
+                    Paid &amp; Collected
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-bold font-mono text-emerald-700">
+                      ৳{totalPaidBDT.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-emerald-600 font-bold">
+                      {paidPercentage}%
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-emerald-600 mt-1 block">
+                    Settled via Bank / bKash
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/40">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 block mb-1">
+                    Outstanding Due
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-bold font-mono text-amber-700">
+                      ৳{totalPendingBDT.toLocaleString()}
+                    </span>
+                    <span className="text-xs text-amber-600 font-bold">
+                      {100 - paidPercentage}%
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-amber-600 mt-1 block">
+                    Pending customs release
+                  </span>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                    Average Tariff / KG
+                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-bold font-mono text-slate-900">
+                      ৳685/KG
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono">
+                      All-Inclusive
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Including 5% duty + 15% VAT
+                  </span>
+                </div>
+              </div>
+
+              {/* Search & Filter Strip */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                <div className="relative flex-1 max-w-md">
+                  <input
+                    type="text"
+                    value={invoiceSearch}
+                    onChange={(e) => setInvoiceSearch(e.target.value)}
+                    placeholder="Search by Invoice #, customer, tracking code..."
+                    className="w-full h-9 pl-9 pr-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300"
+                  />
+                  <svg className="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs">
+                  <label className="text-slate-500 font-medium">Status:</label>
+                  <select
+                    value={invoiceStatusFilter}
+                    onChange={(e) => setInvoiceStatusFilter(e.target.value)}
+                    className="h-9 px-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-300 font-medium"
+                  >
+                    <option value="all">All Invoices ({derivedInvoices.length})</option>
+                    <option value="paid">Paid ({derivedInvoices.filter(i => i.status === 'paid').length})</option>
+                    <option value="pending">Pending ({derivedInvoices.filter(i => i.status === 'pending').length})</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Invoices Table */}
+              <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4">Invoice #</th>
+                      <th className="py-3 px-4">Customer &amp; Recipient</th>
+                      <th className="py-3 px-4">Order Code</th>
+                      <th className="py-3 px-4">Freight &amp; Route</th>
+                      <th className="py-3 px-4">Amount (BDT / USD)</th>
+                      <th className="py-3 px-4">Payment Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-slate-700">
+                    {filteredInvoices.map((inv) => (
+                      <tr key={inv.invoiceNumber} className="hover:bg-slate-50/70 transition-none">
+                        <td className="py-3.5 px-4">
+                          <span className="font-mono font-bold text-slate-900 block text-xs">
+                            {inv.invoiceNumber}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            Issued: {inv.issueDate}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="font-semibold text-slate-900 block">
+                            {inv.customerName}
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            {inv.recipient}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <a
+                            href={`/tracking?code=${inv.trackingNumber}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-mono font-bold text-[#EA1D2C] hover:underline"
+                          >
+                            <span>{inv.trackingNumber}</span>
+                            <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                              <polyline points="15 3 21 3 21 9" />
+                              <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                          </a>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-slate-100 text-slate-700 font-mono">
+                              {inv.mode}
+                            </span>
+                            <span className="font-mono text-slate-600 font-medium">
+                              {inv.weightKg} KG
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 block truncate max-w-[160px]">
+                            {inv.destination}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-mono">
+                          <span className="font-bold text-slate-900 block text-sm">
+                            ৳{inv.totalBDT.toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            ~${inv.totalUSD.toLocaleString()} USD
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newStatus = inv.status !== 'paid';
+                              setInvoicePaidOverrides(prev => ({
+                                ...prev,
+                                [inv.invoiceNumber]: newStatus
+                              }));
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-none ${
+                              inv.status === 'paid'
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+                            }`}
+                            title="Click to toggle Paid / Pending"
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${inv.status === 'paid' ? 'bg-emerald-600' : 'bg-amber-600'}`} />
+                            <span>{inv.status === 'paid' ? 'Paid / Cleared' : 'Pending Payment'}</span>
+                          </button>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewInvoice(inv)}
+                              className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer transition-none inline-flex items-center gap-1 shadow-2xs"
+                            >
+                              <span>View Tax Invoice</span>
+                              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredInvoices.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-slate-400">
+                          No commercial invoices found matching "{invoiceSearch}"
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ========================================================= */}
         {/* TAB: CHINA & BD WAREHOUSE HUBS                             */}
@@ -3401,6 +3775,155 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: OFFICIAL COMMERCIAL TAX INVOICE PREVIEW            */}
+      {/* ========================================================= */}
+      {previewInvoice && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto font-['Inter',sans-serif]">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-slate-200 pb-4">
+              <div className="flex items-center gap-3">
+                <img src="/brand/logo-light.svg" alt="GoShipping" className="h-7 w-auto object-contain" />
+                <div className="border-l border-slate-300 pl-3">
+                  <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
+                    Commercial Freight &amp; Customs Tax Invoice
+                  </h3>
+                  <span className="font-mono text-xs text-slate-500 font-semibold">{previewInvoice.invoiceNumber}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewInvoice(null)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-md cursor-pointer transition-none"
+              >
+                <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Bill To & Metadata */}
+            <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-lg border border-slate-100">
+              <div>
+                <span className="font-bold text-slate-500 uppercase text-[10px] block mb-1">Billed To (Importer):</span>
+                <p className="font-bold text-slate-900 text-sm">{previewInvoice.customerName}</p>
+                <p className="text-slate-600 mt-0.5">{previewInvoice.destination}</p>
+                <p className="text-slate-500 font-mono mt-1">Consignee: {previewInvoice.recipient}</p>
+              </div>
+              <div className="text-right">
+                <span className="font-bold text-slate-500 uppercase text-[10px] block mb-1">Invoice Details:</span>
+                <p className="font-mono text-slate-800">Date: {previewInvoice.issueDate}</p>
+                <p className="font-mono text-slate-800">Due Date: {previewInvoice.dueDate}</p>
+                <p className="font-mono font-bold text-[#EA1D2C] mt-1">Consignment: {previewInvoice.trackingNumber}</p>
+                <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  <span>{previewInvoice.status === 'paid' ? 'PAID &amp; CLEARED' : 'PAYMENT PENDING'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Line items */}
+            <div className="border border-slate-200 rounded-lg overflow-hidden text-xs">
+              <table className="w-full text-left">
+                <thead className="bg-slate-100 text-[10px] font-bold text-slate-600 uppercase border-b border-slate-200">
+                  <tr>
+                    <th className="py-2.5 px-3">Description &amp; Customs Tariff Item</th>
+                    <th className="py-2.5 px-3 text-right">Basis</th>
+                    <th className="py-2.5 px-3 text-right">Amount (BDT)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-slate-700 font-mono">
+                  <tr>
+                    <td className="py-2.5 px-3 font-sans">
+                      <span className="font-bold text-slate-900 block">International Freight Forwarding Charge</span>
+                      <span className="text-[11px] text-slate-500">{previewInvoice.mode.toUpperCase()} Express Door-to-Door</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">{previewInvoice.weightKg} KG</td>
+                    <td className="py-2.5 px-3 text-right font-bold text-slate-900">৳{previewInvoice.baseFreight.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-3 font-sans">
+                      <span className="font-bold text-slate-900 block">Port Terminal Handling Charges (THC)</span>
+                      <span className="text-[11px] text-slate-500">Dhaka HSIA / Chittagong Port berth and unloading</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">Fixed</td>
+                    <td className="py-2.5 px-3 text-right">৳{previewInvoice.terminalHandling.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-3 font-sans">
+                      <span className="font-bold text-slate-900 block">Customs Clearance Levy &amp; Regulatory Pre-Assessment</span>
+                      <span className="text-[11px] text-slate-500">National Board of Revenue (NBR) ASYCUDA World documentation</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">5.0%</td>
+                    <td className="py-2.5 px-3 text-right">৳{previewInvoice.customsDuty.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-3 font-sans">
+                      <span className="font-bold text-slate-900 block">Fuel &amp; Security Surcharge</span>
+                      <span className="text-[11px] text-slate-500">Carrier bunker adjustment factor (BAF)</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">Standard</td>
+                    <td className="py-2.5 px-3 text-right">৳{previewInvoice.fuelSurcharge.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-3 font-sans">
+                      <span className="font-bold text-slate-900 block">Statutory Value Added Tax (VAT)</span>
+                      <span className="text-[11px] text-slate-500">Bangladesh VAT Act 2012</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">15.0%</td>
+                    <td className="py-2.5 px-3 text-right">৳{previewInvoice.vatTax.toLocaleString()}</td>
+                  </tr>
+                </tbody>
+                <tfoot className="bg-slate-50 border-t border-slate-200 font-mono">
+                  <tr>
+                    <td colSpan={2} className="py-3 px-3 text-right font-bold text-slate-900 font-sans text-xs">Total Amount Due:</td>
+                    <td className="py-3 px-3 text-right font-bold text-base text-[#EA1D2C]">
+                      ৳{previewInvoice.totalBDT.toLocaleString()}
+                      <span className="text-[10px] text-slate-500 block font-normal">(~${previewInvoice.totalUSD.toLocaleString()} USD)</span>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            {/* Bank details & footer */}
+            <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <span className="font-bold text-slate-900 block">Settlement Bank: Standard Chartered Bank Bangladesh</span>
+                <span className="font-mono text-[11px] text-slate-500">A/C: 01-1184920-01 · Routing: 195260124 · Swift: SCBLBDDX</span>
+              </div>
+              <div className="text-right">
+                <span className="font-bold text-slate-900 block">BIN: 004819273-0101</span>
+                <span className="text-[10px] text-slate-500">Mushak 6.3 Tax Compliant</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPreviewInvoice(null)}
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-xs transition-none cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold text-xs transition-none shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect width="12" height="8" x="6" y="14" />
+                </svg>
+                <span>Print / Save as PDF</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

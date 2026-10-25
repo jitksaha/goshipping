@@ -83,33 +83,37 @@ const user = Astro.locals.user as AuthUser;
       <div class="flex-1 overflow-y-auto px-3 py-2 space-y-6 text-xs">
         {portalType === 'admin' ? (
           <>
-            <!-- FREIGHT OPERATIONS -->
+            {/* CORE ADMIN NAVIGATION */}
             <div class="space-y-1">
               <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                OPERATIONS &amp; FLEET
+                MAIN MENU
               </span>
 
+              {/* 1. Overview */}
               <a
                 href="/admin?tab=overview"
                 data-tab="overview"
                 class={`dashboard-nav-link flex items-center gap-3 px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                  activeTab === 'overview'
+                  activeTab === 'overview' || activeTab === 'dashboard'
                     ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               >
                 <svg class="w-4 h-4 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <polyline points="9 22 9 12 15 12 15 22" />
+                  <rect width="7" height="9" x="3" y="3" rx="1" />
+                  <rect width="7" height="5" x="14" y="3" rx="1" />
+                  <rect width="7" height="9" x="14" y="12" rx="1" />
+                  <rect width="7" height="5" x="3" y="16" rx="1" />
                 </svg>
-                <span>Dashboard Overview</span>
+                <span>Overview</span>
               </a>
 
+              {/* 2. Orders */}
               <a
-                href="/admin?tab=shipments"
-                data-tab="shipments"
+                href="/admin?tab=orders"
+                data-tab="orders"
                 class={`dashboard-nav-link flex items-center justify-between px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                  activeTab === 'shipments' || activeTab === 'tracking'
+                  activeTab === 'orders' || activeTab === 'shipments' || activeTab === 'tracking'
                     ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
@@ -121,16 +125,17 @@ const user = Astro.locals.user as AuthUser;
                     <path d="m3.3 7 8.7 5 8.7-5" />
                     <path d="M12 22V12" />
                   </svg>
-                  <span class="truncate">Live Tracking &amp; Orders</span>
+                  <span class="truncate">Orders</span>
                 </div>
                 <span class="px-1.5 py-0.2 rounded text-[10px] bg-[#EA1D2C] text-white font-mono font-bold shrink-0">Live</span>
               </a>
 
+              {/* 3. Quote */}
               <a
                 href="/admin?tab=quotes"
                 data-tab="quotes"
                 class={`dashboard-nav-link flex items-center gap-3 px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                  activeTab === 'quotes'
+                  activeTab === 'quotes' || activeTab === 'quote'
                     ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
@@ -142,42 +147,34 @@ const user = Astro.locals.user as AuthUser;
                   <line x1="16" y1="17" x2="8" y2="17" />
                   <polyline points="10 9 9 9 8 9" />
                 </svg>
-                <span>Rate Quotations Queue</span>
+                <span>Quote</span>
               </a>
 
+              {/* 4. Invoice */}
               <a
-                href="/admin?tab=warehouses"
-                data-tab="warehouses"
+                href="/admin?tab=invoices"
+                data-tab="invoices"
                 class={`dashboard-nav-link flex items-center gap-3 px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                  activeTab === 'warehouses'
-                    ? 'bg-emerald-50 text-emerald-800 font-bold border-emerald-600'
+                  activeTab === 'invoices' || activeTab === 'invoice'
+                    ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               >
-                <svg class="w-4 h-4 stroke-[1.8] text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M3 21h18" />
-                  <path d="M5 21V7l8-4v18" />
-                  <path d="M19 21V11l-6-4" />
-                  <path d="M9 9v.01" />
-                  <path d="M9 12v.01" />
-                  <path d="M9 15v.01" />
-                  <path d="M9 18v.01" />
+                <svg class="w-4 h-4 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />
+                  <path d="M14 8H8" />
+                  <path d="M16 12H8" />
+                  <path d="M13 16H8" />
                 </svg>
-                <span>China &amp; BD Hubs</span>
+                <span>Invoice</span>
               </a>
-            </div>
 
-            <!-- MANAGEMENT & USERS -->
-            <div class="space-y-1 pt-2">
-              <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                MANAGEMENT &amp; USERS
-              </span>
-
+              {/* 5. Users */}
               <a
                 href="/admin?tab=users"
                 data-tab="users"
                 class={`dashboard-nav-link flex items-center justify-between px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                  activeTab === 'users'
+                  activeTab === 'users' || activeTab === 'customers'
                     ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
@@ -189,61 +186,67 @@ const user = Astro.locals.user as AuthUser;
                     <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
-                  <span class="truncate">Users &amp; Staff</span>
+                  <span class="truncate">Users</span>
                 </div>
                 <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-200 text-slate-700 font-mono font-bold shrink-0">Admin</span>
               </a>
+            </div>
+
+            {/* SYSTEM & UTILITIES (SECONDARY) */}
+            <div class="space-y-1 pt-3 border-t border-slate-100">
+              <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                SYSTEM &amp; LOGS
+              </span>
 
               <a
-                href="/admin?tab=customers"
-                data-tab="customers"
-                class={`dashboard-nav-link flex items-center gap-3 px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                  activeTab === 'customers'
-                    ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                href="/admin?tab=warehouses"
+                data-tab="warehouses"
+                class={`dashboard-nav-link flex items-center gap-3 px-3 py-2 rounded-r-lg font-medium transition-none border-l-4 ${
+                  activeTab === 'warehouses'
+                    ? 'bg-emerald-50 text-emerald-800 font-bold border-emerald-600'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               >
-                <svg class="w-4 h-4 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                <svg class="w-3.5 h-3.5 stroke-[1.8] text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M3 21h18" />
+                  <path d="M5 21V7l8-4v18" />
+                  <path d="M19 21V11l-6-4" />
                 </svg>
-                <span>Importers &amp; Clients</span>
+                <span>China &amp; BD Hubs</span>
               </a>
 
               <a
                 href="/admin?tab=audit"
                 data-tab="audit"
-                class={`dashboard-nav-link flex items-center gap-3 px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
+                class={`dashboard-nav-link flex items-center gap-3 px-3 py-2 rounded-r-lg font-medium transition-none border-l-4 ${
                   activeTab === 'audit'
                     ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               >
-                <svg class="w-4 h-4 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg class="w-3.5 h-3.5 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                 </svg>
-                <span>Audit &amp; Security Logs</span>
+                <span>Audit &amp; Security</span>
               </a>
 
               <a
                 href="/admin?tab=email"
                 data-tab="email"
-                class={`dashboard-nav-link flex items-center justify-between px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
+                class={`dashboard-nav-link flex items-center justify-between px-3 py-2 rounded-r-lg font-medium transition-none border-l-4 ${
                   activeTab === 'email'
                     ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border-transparent'
                 }`}
               >
                 <div class="flex items-center gap-3 min-w-0">
-                  <svg class="w-4 h-4 stroke-[1.8] shrink-0 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg class="w-3.5 h-3.5 stroke-[1.8] shrink-0 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect width="20" height="16" x="2" y="4" rx="2" />
                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                   </svg>
                   <span class="truncate">Resend &amp; Emails</span>
                 </div>
-                <span class="px-1.5 py-0.2 rounded text-[10px] bg-red-100 text-[#EA1D2C] font-mono font-bold shrink-0">Resend</span>
+                <span class="px-1.5 py-0.2 rounded text-[9px] bg-red-100 text-[#EA1D2C] font-mono font-bold shrink-0">Resend</span>
               </a>
             </div>
           </>
@@ -533,7 +536,11 @@ const user = Astro.locals.user as AuthUser;
             const isMatch = tab === targetTab || 
               (targetTab === 'calculator' && tab === 'request-quote') || 
               (targetTab === 'request-quote' && tab === 'calculator') ||
-              (targetTab === 'tracking' && tab === 'shipments');
+              ((targetTab === 'tracking' || targetTab === 'shipments' || targetTab === 'orders') && (tab === 'orders' || tab === 'shipments')) ||
+              ((targetTab === 'quotes' || targetTab === 'quote') && (tab === 'quotes' || tab === 'quote')) ||
+              ((targetTab === 'invoices' || targetTab === 'invoice') && (tab === 'invoices' || tab === 'invoice')) ||
+              ((targetTab === 'users' || targetTab === 'customers') && (tab === 'users' || tab === 'customers')) ||
+              ((targetTab === 'overview' || targetTab === 'dashboard') && (tab === 'overview'));
 
             if (isMatch) {
               link.classList.add('bg-slate-100', 'text-slate-900', 'font-semibold', 'border-[#EA1D2C]');
