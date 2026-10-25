@@ -754,12 +754,20 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                         {latestRev && q.status !== 'converted' ? (
                           <button
                             onClick={() => setSelectedQuote(q)}
-                            className="px-3 py-1.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold hover:bg-emerald-600 hover:text-white transition-colors"
+                            className="px-3 py-1.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold hover:bg-emerald-600 hover:text-white transition-colors inline-flex items-center gap-1"
                           >
-                            View Rate & Accept →
+                            <span>View Rate &amp; Accept</span>
+                            <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M5 12h14M12 5l7 7-7 7" />
+                            </svg>
                           </button>
                         ) : q.status === 'converted' ? (
-                          <span className="text-emerald-700 font-bold text-[11px]">✓ Confirmed</span>
+                          <span className="text-emerald-700 font-bold text-[11px] inline-flex items-center gap-1">
+                            <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            <span>Confirmed</span>
+                          </span>
                         ) : (
                           <span className="text-slate-400 italic text-[11px]">In Review</span>
                         )}

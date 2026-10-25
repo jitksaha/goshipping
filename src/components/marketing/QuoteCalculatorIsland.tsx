@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import SearchableLocationSelect from './SearchableLocationSelect';
+import QuoteFaqSection from './QuoteFaqSection';
 import {
   ORIGIN_COUNTRIES,
   CHINA_ORIGIN_HUB,
@@ -14,6 +15,7 @@ interface Props {
   defaultGuestEmail?: string;
   defaultGuestPhone?: string;
   initialMode?: 'air' | 'sea' | 'hand_carry';
+  showFaq?: boolean;
   onQuoteCreated?: (newQuote: any) => void;
   onViewQuotes?: () => void;
 }
@@ -23,6 +25,7 @@ export default function QuoteCalculatorIsland({
   defaultGuestEmail = '',
   defaultGuestPhone = '',
   initialMode = 'air',
+  showFaq = true,
   onQuoteCreated,
   onViewQuotes
 }: Props = {}) {
@@ -48,51 +51,12 @@ export default function QuoteCalculatorIsland({
   const [guestEmail, setGuestEmail] = useState(defaultGuestEmail);
   const [guestPhone, setGuestPhone] = useState(defaultGuestPhone);
 
-  // Dynamic linked location change handlers
-  const handleOriginCountryChange = (newCountry: string) => {
-    setOriginCountry(newCountry);
-    const hubs = getCitiesForCountry(ORIGIN_COUNTRIES, newCountry);
-    if (hubs.length > 0) {
-      setOriginCity(hubs[0].city);
-    }
-  };
-
-  const handleDestCountryChange = (newCountry: string) => {
-    setDestCountry(newCountry);
-  };
-
   const handleFulfillmentChange = (type: 'delivery' | 'pickup') => {
     setFulfillmentType(type);
     if (destCity !== 'Dhaka' && destCity !== 'Chittagong') {
       setDestCity('Dhaka');
     }
   };
-
-  // Formatted dropdown options
-  const originCountryOptions = ORIGIN_COUNTRIES.map((c) => ({
-    label: c.country,
-    value: c.country,
-    code: c.code,
-    badge: c.popular ? 'POPULAR' : undefined,
-    description: `Primary consolidation hub: ${CHINA_ORIGIN_HUB.city}`
-  }));
-
-  const originCityHubs = getCitiesForCountry(ORIGIN_COUNTRIES, originCountry);
-  const originCityOptions = originCityHubs.map((h) => ({
-    label: h.city,
-    value: h.city,
-    code: h.code,
-    badge: h.badge,
-    description: h.description
-  }));
-
-  const destCountryOptions = DEST_COUNTRIES.map((c) => ({
-    label: c.country,
-    value: c.country,
-    code: c.code,
-    badge: c.popular ? 'POPULAR' : undefined,
-    description: 'Nationwide delivery across all 64 districts & central depots'
-  }));
 
   const destDeliveryOptions = DEST_DELIVERY_HUBS.map((h) => ({
     label: h.city,
@@ -109,8 +73,6 @@ export default function QuoteCalculatorIsland({
     badge: h.badge,
     description: h.description
   }));
-
-  const destCityOptions = fulfillmentType === 'delivery' ? destDeliveryOptions : destPickupOptions;
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedQuote, setSubmittedQuote] = useState<{ quoteNumber: string; route: string } | null>(null);
@@ -133,13 +95,11 @@ export default function QuoteCalculatorIsland({
   const currentSla = mode === 'air' ? '7–14 Days' : mode === 'sea' ? '30–45 Days' : '24–48 Hours';
   const currentArrivalRange = mode === 'air' ? airDates : mode === 'sea' ? seaDates : handCarryDates;
 
-  // Fast estimate calculation based on market indicative rates in BDT
   const numWeight = parseFloat(weightKg) || 0;
   const numCbm = parseFloat(cbm) || 0;
-  // Air chargeable weight is max of gross weight vs volume weight (1 CBM = 167 kg)
   const airVolumetricKg = numCbm * 167;
   const airChargeableKg = Math.max(numWeight, airVolumetricKg);
-  // BDT Rates: Air ~৳750/KG + handling ৳2,500; Sea ~৳18,500/CBM + ৳4,500 documentation
+
   const estimatedAirCost = Math.round(airChargeableKg * 750 + 2500);
   const estimatedSeaCost = Math.round(Math.max(numCbm, 0.5) * 18500 + 4500);
 
@@ -262,7 +222,6 @@ export default function QuoteCalculatorIsland({
         onQuoteCreated(data.quote);
       }
 
-      // Dispatch Lead conversion across GTM, Meta Pixel, TikTok & LinkedIn
       if (typeof window !== 'undefined' && (window as any).goShippingTrack) {
         (window as any).goShippingTrack('Lead', {
           quote_number: data.quote.quoteNumber,
@@ -284,10 +243,8 @@ export default function QuoteCalculatorIsland({
   };
 
   return (
-    <div id="quote-calculator" className="w-full bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-      {/* ========================================================================= */}
-      {/* 01. SOFT RED BRAND HEADER BAR (REPLACED PITCH BLACK)                      */}
-      {/* ========================================================================= */}
+    <div id="quote-calculator" className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+      {/* 01. Brand Header */}
       <div className="bg-gradient-to-r from-red-50/90 via-rose-50/50 to-white text-slate-900 px-5 sm:px-6 py-4 border-b border-red-100 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[var(--color-brand-primary)] text-white flex items-center justify-center font-extrabold text-sm shrink-0 shadow-xs">
@@ -298,8 +255,12 @@ export default function QuoteCalculatorIsland({
               <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif]">
                 Ship for Me: Direct Cargo Booking &amp; Consignment Request
               </h3>
-              <span className="hidden md:inline-block text-[10px] px-2 py-0.5 rounded bg-red-100 text-[#EA1D2C] font-bold border border-red-200">
-                China ➔ Bangladesh
+              <span className="hidden md:inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-red-100 text-[#EA1D2C] font-bold border border-red-200">
+                <span>China</span>
+                <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                <span>Bangladesh</span>
               </span>
             </div>
             <p className="text-xs text-slate-600">
@@ -308,7 +269,6 @@ export default function QuoteCalculatorIsland({
           </div>
         </div>
 
-        {/* Header Right Status Pill */}
         <div className="flex items-center gap-2">
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-red-200 text-slate-700 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -377,15 +337,11 @@ export default function QuoteCalculatorIsland({
             </div>
           )}
 
-          {/* ========================================================================= */}
-          {/* 02. MASTER 2-COLUMN COMPACT LAYOUT (Form Left 8 cols, Ledger Right 4 cols) */}
-          {/* ========================================================================= */}
+          {/* Master 2-Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-            {/* --------------------------------------------------------------------- */}
-            {/* LEFT COLUMN: Concise Inputs & Route Matrix (8 cols)                   */}
-            {/* --------------------------------------------------------------------- */}
+            {/* Left Column: Form Fields */}
             <div className="lg:col-span-8 space-y-4">
-              {/* How it Works / Procedure Micro-Callout */}
+              {/* Procedure Micro-Bar */}
               <div className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs shadow-2xs">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300/40 shrink-0">
@@ -395,26 +351,50 @@ export default function QuoteCalculatorIsland({
                     Order from 1688, Taobao, or Chinese factory. We assign your unique <strong>Shipping Mark</strong> and deliver to Bangladesh.
                   </p>
                 </div>
-                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0 hidden sm:inline">
-                  ✓ Door Delivery Included
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0 hidden sm:inline-flex">
+                  <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>Door Delivery Included</span>
                 </span>
               </div>
 
-              {/* ================================================================= */}
-              {/* STEP 1: TRANSPORT MODE SELECTOR (AIR VS SEA VS HAND CARRY)        */}
-              {/* ================================================================= */}
+              {/* STEP 1: TRANSPORT MODE SELECTOR */}
               <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-100 dark:border-slate-800 shadow-2xs space-y-3">
                 <div className="flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2">
                   <span className="font-bold text-slate-900 dark:text-white flex items-center gap-2 font-['Manrope',sans-serif]">
                     <span className="w-5 h-5 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center text-[10px] font-bold">1</span>
                     <span className="text-sm">Ship by</span>
                   </span>
-                  <span className="text-[11px] font-bold text-[#EA1D2C] bg-red-50 dark:bg-red-950/40 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-900/60 font-mono">
-                    {mode === 'air'
-                      ? `✈️ Air · Est: ${airDates}`
-                      : mode === 'sea'
-                      ? `🚢 Sea · Est: ${seaDates}`
-                      : `🤝 P2P Transfer (Hand carry) · Est: ${handCarryDates}`}
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#EA1D2C] bg-red-50 dark:bg-red-950/40 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-900/60 font-mono">
+                    {mode === 'air' ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z" />
+                        </svg>
+                        <span>Air · Est: {airDates}</span>
+                      </>
+                    ) : mode === 'sea' ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+                          <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76" />
+                          <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
+                          <line x1="12" y1="1" x2="12" y2="5" />
+                        </svg>
+                        <span>Sea · Est: {seaDates}</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span>P2P Hand carry · Est: {handCarryDates}</span>
+                      </>
+                    )}
                   </span>
                 </div>
 
@@ -444,7 +424,7 @@ export default function QuoteCalculatorIsland({
                         Air
                       </span>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                        Scheduled air cargo flight from Guangzhou (CAN) to Dhaka HSIA.
+                        Scheduled air cargo flight from Guangzhou to Dhaka.
                       </p>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
@@ -481,7 +461,7 @@ export default function QuoteCalculatorIsland({
                         Sea
                       </span>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                        Economical maritime container freight to Chittagong Seaport / Dhaka.
+                        Economical ocean container freight to Chittagong / Dhaka.
                       </p>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
@@ -514,7 +494,7 @@ export default function QuoteCalculatorIsland({
                         </div>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">24–48 Hours</span>
                       </div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
                           P2P Transfer
                         </span>
@@ -523,15 +503,8 @@ export default function QuoteCalculatorIsland({
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                        Person-to-person cargo transfer through our agent network. Send and receive packages via our warehouses.
+                        Fast person-to-person transfer via verified flight couriers &amp; agent hubs.
                       </p>
-                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1">
-                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Agent network</span>
-                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Warehouse storage</span>
-                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Easy pickup</span>
-                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Secure handling</span>
-                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Real-time status</span>
-                      </div>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
                       <span className="text-slate-500 dark:text-slate-400">Est. Arrival:</span>
@@ -541,25 +514,24 @@ export default function QuoteCalculatorIsland({
                 </div>
               </div>
 
-              {/* ================================================================= */}
-              {/* STEP 2: SPACIOUS FREIGHT CORRIDOR (ORIGIN & DESTINATION)          */}
-              {/* ================================================================= */}
+              {/* STEP 2: FREIGHT CORRIDOR & GATEWAYS */}
               <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-red-100 dark:border-slate-800 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <span className="font-bold text-slate-900 dark:text-white flex items-center gap-2 font-['Manrope',sans-serif]">
                     <span className="w-5 h-5 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center text-[10px] font-bold">2</span>
                     <span className="text-sm">Freight Corridor &amp; Gateways</span>
                   </span>
-                  <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+                  <div className="inline-flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
                     <span>{originCountry} ({originCity})</span>
-                    <span className="text-[#EA1D2C]">➔</span>
+                    <svg className="w-3.5 h-3.5 text-[#EA1D2C] stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
                     <span>{destCountry} ({destCity})</span>
                   </div>
                 </div>
 
-                {/* 2 Spacious Columns for Origin & Destination */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* ORIGIN SECTION */}
+                  {/* Origin Section */}
                   <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/90 dark:border-slate-700/80 space-y-3.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -587,12 +559,16 @@ export default function QuoteCalculatorIsland({
                         </div>
                       </div>
 
-                      {/* Prominent Origin Warehouse Address */}
+                      {/* Origin Warehouse Address */}
                       <div className="p-3 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 text-xs">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <span className="font-semibold text-emerald-900 dark:text-emerald-300 block text-[11px] mb-0.5">
-                              📍 Guangzhou Warehouse Address:
+                            <span className="font-semibold text-emerald-900 dark:text-emerald-300 flex items-center gap-1.5 text-[11px] mb-0.5">
+                              <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
+                              <span>Guangzhou Warehouse Address:</span>
                             </span>
                             <p className="font-mono text-slate-800 dark:text-slate-200 text-xs leading-relaxed select-all">
                               {CHINA_ORIGIN_HUB.address}
@@ -617,7 +593,7 @@ export default function QuoteCalculatorIsland({
                     </div>
                   </div>
 
-                  {/* DESTINATION SECTION */}
+                  {/* Destination Section */}
                   <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/90 dark:border-slate-700/80 space-y-3.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -658,7 +634,10 @@ export default function QuoteCalculatorIsland({
                             }`}
                           >
                             <span className="text-xs font-bold flex items-center gap-1.5">
-                              <span>🚚</span> Doorstep Delivery
+                              <svg className="w-3.5 h-3.5 text-current stroke-[2] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M10 17h4V5H2v12h3m9 0h2l3 3v-7h-5v4ZM7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm10 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                              </svg>
+                              <span>Doorstep Delivery</span>
                             </span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">
                               Dhaka &amp; Chittagong city
@@ -675,7 +654,10 @@ export default function QuoteCalculatorIsland({
                             }`}
                           >
                             <span className="text-xs font-bold flex items-center gap-1.5">
-                              <span>🏢</span> Hub / Depot Self-Pickup
+                              <svg className="w-3.5 h-3.5 text-current stroke-[2] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M11 11h2M11 15h2M16 11h2M16 15h2M9 21v-4h6v4M3 7l9-4 9 4" />
+                              </svg>
+                              <span>Hub / Depot Self-Pickup</span>
                             </span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">
                               Airport &amp; seaport depot
@@ -684,7 +666,6 @@ export default function QuoteCalculatorIsland({
                         </div>
                       </div>
 
-                      {/* Dynamic Selector based on Delivery vs Pickup */}
                       {fulfillmentType === 'delivery' ? (
                         <div className="space-y-2.5">
                           <SearchableLocationSelect
@@ -724,16 +705,23 @@ export default function QuoteCalculatorIsland({
                             allowCustom={false}
                           />
                           <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200 block text-[11px] mb-0.5">
-                              📍 {destCity === 'Dhaka' ? 'Bangladesh Central Pickup Hub (Dhaka):' : 'Chittagong Port CFS Depot:'}
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 text-[11px] mb-0.5">
+                              <svg className="w-3.5 h-3.5 text-red-600 shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
+                              <span>{destCity === 'Dhaka' ? 'Bangladesh Central Pickup Hub (Dhaka):' : 'Chittagong Port CFS Depot:'}</span>
                             </span>
                             <p className="text-slate-900 dark:text-white font-medium text-[11.5px] leading-relaxed">
                               {destCity === 'Dhaka'
                                 ? '43/31, Sabujkanon, Dhaka- 1214, Bangladesh.'
                                 : 'GoShipping CFS Terminal, CPA Seaport Zone, Agrabad Commercial Area, Chittagong'}
                             </p>
-                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
-                              ✓ Zero local dispatch fee. Collect with your Tracking Number / B/L.
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1 flex items-center gap-1">
+                              <svg className="w-3 h-3 text-emerald-600 shrink-0 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              <span>Zero local dispatch fee. Collect with your Tracking Number / B/L.</span>
                             </p>
                           </div>
                         </div>
@@ -743,7 +731,7 @@ export default function QuoteCalculatorIsland({
                 </div>
               </div>
 
-              {/* Product Details & Cargo Specifications */}
+              {/* STEP 3: PRODUCT DETAILS & CARGO SPECIFICATIONS */}
               <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-red-100 dark:border-slate-800 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
                   <span className="flex items-center gap-2 font-['Manrope',sans-serif] font-bold text-sm">
@@ -758,12 +746,14 @@ export default function QuoteCalculatorIsland({
                 {/* Sub-Section 1: Product Identification */}
                 <div className="p-3.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-[#EA1D2C] flex items-center gap-1.5">
-                    <span>📦</span>
+                    <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="m7.5 4.27 9 5.15M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                      <path d="m3.3 7 8.7 5 8.7-5M12 22V12" />
+                    </svg>
                     <span>Product Identification &amp; Category</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Product Name */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Product Name / Item Title <span className="text-[#EA1D2C]">*</span>
@@ -778,7 +768,6 @@ export default function QuoteCalculatorIsland({
                       />
                     </div>
 
-                    {/* Product Category */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Product Category <span className="text-[#EA1D2C]">*</span>
@@ -801,7 +790,6 @@ export default function QuoteCalculatorIsland({
                       </select>
                     </div>
 
-                    {/* Product Link / 1688 / Taobao URL */}
                     <div className="sm:col-span-2">
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Product / Supplier Link (1688 / Taobao / Alibaba URL) <span className="text-slate-400 font-normal">(Optional)</span>
@@ -816,7 +804,7 @@ export default function QuoteCalculatorIsland({
                     </div>
                   </div>
 
-                  {/* Product Picture Upload Box */}
+                  {/* Product Picture Upload */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -827,7 +815,6 @@ export default function QuoteCalculatorIsland({
                       </span>
                     </div>
 
-                    {/* Drag & Drop / Click zone */}
                     <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-[#EA1D2C] dark:hover:border-[#EA1D2C] rounded-xl p-3 bg-white dark:bg-slate-900 cursor-pointer transition-none group">
                       <input
                         type="file"
@@ -852,12 +839,16 @@ export default function QuoteCalculatorIsland({
                     </label>
 
                     {imageError && (
-                      <p className="text-[11px] text-red-600 font-medium mt-1">
-                        ⚠️ {imageError}
+                      <p className="text-[11px] text-red-600 font-medium mt-1 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 text-red-600 shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="10" />
+                          <line x1="12" y1="8" x2="12" y2="12" />
+                          <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                        <span>{imageError}</span>
                       </p>
                     )}
 
-                    {/* Image Previews Strip */}
                     {productImages.length > 0 && (
                       <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-5 gap-2">
                         {productImages.map((img, idx) => (
@@ -888,15 +879,18 @@ export default function QuoteCalculatorIsland({
                   </div>
                 </div>
 
-                {/* Sub-Section 2: Cargo Weight, Volume & Packaging */}
+                {/* Sub-Section 2: Cargo Weight & Dimension Metrics */}
                 <div className="space-y-3 pt-1">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                    <span>⚖️</span>
+                    <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+                      <path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" />
+                      <path d="M7 21h10M12 3v18M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
+                    </svg>
                     <span>Cargo Weight &amp; Dimension Metrics</span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {/* Weight */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Gross Weight
@@ -916,7 +910,6 @@ export default function QuoteCalculatorIsland({
                       </div>
                     </div>
 
-                    {/* CBM */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Volume
@@ -936,7 +929,6 @@ export default function QuoteCalculatorIsland({
                       </div>
                     </div>
 
-                    {/* Quantity */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Pieces Qty
@@ -954,7 +946,6 @@ export default function QuoteCalculatorIsland({
                       </div>
                     </div>
 
-                    {/* Packaging Type */}
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Packaging
@@ -973,7 +964,6 @@ export default function QuoteCalculatorIsland({
                     </div>
                   </div>
 
-                  {/* Commodity Description & Quick Category Pills */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -1056,12 +1046,9 @@ export default function QuoteCalculatorIsland({
               </div>
             </div>
 
-            {/* --------------------------------------------------------------------- */}
-            {/* RIGHT COLUMN: Soft Red Ledger & Consignment Review Card (4 cols)       */}
-            {/* --------------------------------------------------------------------- */}
+            {/* Right Column: Ledger & Consignment Review */}
             <div className="lg:col-span-4">
               <div className="sticky top-4 bg-gradient-to-b from-[#FFF5F5] via-rose-50/40 to-white rounded-xl border border-red-200/90 shadow-xs p-5 space-y-4">
-                {/* Header Badge */}
                 <div className="flex items-center justify-between border-b border-red-100 pb-3">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#EA1D2C]"></span>
@@ -1074,7 +1061,6 @@ export default function QuoteCalculatorIsland({
                   </span>
                 </div>
 
-                {/* Tariff Assessment Notice (Replaced Estimated Dynamic Pricing) */}
                 <div className="p-3.5 rounded-lg bg-white border border-red-100/90 shadow-2xs space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
@@ -1088,11 +1074,11 @@ export default function QuoteCalculatorIsland({
                     Tariff Assessed by Operations Desk
                   </div>
                   <p className="text-[11px] text-slate-600 leading-relaxed">
-                    Official freight charges and customs duty will be assessed upon cargo intake at our China CFS (Guangzhou / Yiwu) based on actual carton measurements and HS code. An itemized invoice will be dispatched before final shipping.
+                    Official freight charges and customs duty will be assessed upon cargo intake at our China CFS based on actual measurements and HS code.
                   </p>
                 </div>
 
-                {/* Itemized Cargo Specifications */}
+                {/* Itemized Specifications */}
                 <div className="space-y-2.5 py-3 border-y border-red-100 text-xs">
                   <div className="flex justify-between text-slate-600">
                     <span>Service Mode:</span>
@@ -1122,24 +1108,6 @@ export default function QuoteCalculatorIsland({
                       Calculated from real-time dispatch date upon intake at Guangzhou hub.
                     </p>
                   </div>
-                  {mode === 'hand_carry' && (
-                    <div className="p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 text-xs space-y-1.5">
-                      <div className="font-bold text-amber-900 dark:text-amber-300 text-[11px] flex items-center justify-between">
-                        <span>🤝 P2P Transfer Specifications</span>
-                        <span className="text-[9px] uppercase tracking-wider bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-mono">Agent Network</span>
-                      </div>
-                      <p className="text-[10.5px] text-amber-800/90 dark:text-amber-300/90 leading-tight">
-                        Person-to-person cargo transfer through our agent network. Send and receive packages via our warehouses.
-                      </p>
-                      <div className="grid grid-cols-2 gap-1 text-[10px] text-amber-900 dark:text-amber-200 pt-1 border-t border-amber-200/60 dark:border-amber-900/40">
-                        <div className="flex items-center gap-1">✓ Agent network</div>
-                        <div className="flex items-center gap-1">✓ Warehouse storage</div>
-                        <div className="flex items-center gap-1">✓ Easy pickup</div>
-                        <div className="flex items-center gap-1">✓ Secure handling</div>
-                        <div className="flex items-center gap-1 col-span-2">✓ Real-time status tracking</div>
-                      </div>
-                    </div>
-                  )}
                   <div className="flex justify-between text-slate-600">
                     <span>Route Corridor:</span>
                     <span className="font-semibold text-slate-900">{originCity} → {destCity}</span>
@@ -1159,7 +1127,13 @@ export default function QuoteCalculatorIsland({
                   {productImages.length > 0 && (
                     <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
                       <div className="flex items-center justify-between text-[10.5px]">
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">📷 Product Photos:</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5 text-slate-500 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+                            <circle cx="12" cy="13" r="3" />
+                          </svg>
+                          <span>Product Photos:</span>
+                        </span>
                         <span className="text-[#EA1D2C] font-mono font-bold">{productImages.length} Attached</span>
                       </div>
                       <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
@@ -1219,7 +1193,12 @@ export default function QuoteCalculatorIsland({
                       <span>Transmitting Booking Request…</span>
                     </>
                   ) : (
-                    <span>Submit Ship for Me Request &rarr;</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span>Submit Ship for Me Request</span>
+                      <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                      </svg>
+                    </span>
                   )}
                 </button>
 
@@ -1253,6 +1232,9 @@ export default function QuoteCalculatorIsland({
               </div>
             </div>
           </div>
+
+          {/* Collapsible/Interactive FAQ Section Below Form */}
+          {showFaq && <QuoteFaqSection />}
         </form>
       )}
     </div>

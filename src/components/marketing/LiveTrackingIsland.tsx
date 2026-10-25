@@ -354,7 +354,13 @@ export default function LiveTrackingIsland({
         {/* Verification indicator & tracking guidance */}
         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
-            <span>🔒 Direct carrier synchronization</span>
+            <span className="flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 stroke-[2] text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span>Direct carrier synchronization</span>
+            </span>
             <span className="hidden sm:inline">·</span>
             <span className="hidden sm:inline">Real-time customs clearance &amp; flight/vessel waypoints</span>
           </div>
@@ -722,7 +728,7 @@ export default function LiveTrackingIsland({
                           <span className={`text-[9px] mt-0.5 font-mono ${
                             isCurrent ? 'text-[#EA1D2C] font-bold' : isCompleted ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400'
                           }`}>
-                            {isCompleted ? '✓ Done' : isCurrent ? 'Active' : `Step ${idx + 1}`}
+                            {isCompleted ? 'Completed' : isCurrent ? 'Active' : `Step ${idx + 1}`}
                           </span>
                         </div>
                       );

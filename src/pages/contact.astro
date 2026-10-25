@@ -162,7 +162,7 @@ const contactSchema = {
               const data = await res.json();
               if (res.ok && data.success) {
                 alertBox.className = 'p-3 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200';
-                alertBox.textContent = '✓ Message received! An email notification has been dispatched to our 24/7 Operations Desk.';
+                alertBox.textContent = 'Message received! An email notification has been dispatched to our 24/7 Operations Desk.';
                 alertBox.classList.remove('hidden');
                 form.reset();
               } else {

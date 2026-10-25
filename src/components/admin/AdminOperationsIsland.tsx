@@ -247,7 +247,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       if (data.success) {
         setTestEmailResult({
           success: true,
-          message: `✓ Test email dispatched successfully! ID: ${data.emailId || 'OK'}`
+          message: `Test email dispatched successfully! ID: ${data.emailId || 'OK'}`
         });
       } else {
         setTestEmailResult({
@@ -1739,10 +1739,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             <button
                               type="button"
                               onClick={() => handleDeleteUser(u.id, u.fullName)}
-                              className="px-2 py-1.5 rounded border border-transparent hover:border-red-200 hover:bg-red-50 text-slate-400 hover:text-red-600 font-semibold text-[11px] transition-none cursor-pointer"
+                              className="px-2 py-1.5 rounded border border-transparent hover:border-red-200 hover:bg-red-50 text-slate-400 hover:text-red-600 font-semibold text-[11px] transition-none cursor-pointer flex items-center justify-center"
                               title="Delete user"
                             >
-                              ✕
+                              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
                             </button>
                           </div>
                         </td>
@@ -2060,7 +2063,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                 <div className="space-y-3 text-xs">
                   <div className="flex items-start gap-3 p-3 rounded-md bg-slate-50 border border-slate-200">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
                     <div>
                       <strong className="text-slate-900 block font-semibold">1. Rate Quotation Inquiries</strong>
                       <span className="text-slate-600 text-[11px]">Instant acknowledgment with quote number to client, and alert notice to <code className="text-[0.9em] font-mono">ops@goshipping.com.bd</code>.</span>
@@ -2068,7 +2075,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   <div className="flex items-start gap-3 p-3 rounded-md bg-slate-50 border border-slate-200">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
                     <div>
                       <strong className="text-slate-900 block font-semibold">2. Consignment Booking Dispatch</strong>
                       <span className="text-slate-600 text-[11px]">When Admin/Ops registers a shipment, customer receives waybill details with a 1-click live tracking link.</span>
@@ -2076,7 +2087,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   <div className="flex items-start gap-3 p-3 rounded-md bg-slate-50 border border-slate-200">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
                     <div>
                       <strong className="text-slate-900 block font-semibold">3. Live Milestone Telemetry Checkpoints</strong>
                       <span className="text-slate-600 text-[11px]">Whenever milestone changes (e.g. Arrived Dhaka Airport, Customs Clearance), customer gets updated in BST.</span>
@@ -2084,7 +2099,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   <div className="flex items-start gap-3 p-3 rounded-md bg-slate-50 border border-slate-200">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
                     <div>
                       <strong className="text-slate-900 block font-semibold">4. User Account Onboarding</strong>
                       <span className="text-slate-600 text-[11px]">Staff creation in Admin or user signup dispatches an enterprise welcome credential email.</span>
@@ -2092,7 +2111,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   <div className="flex items-start gap-3 p-3 rounded-md bg-slate-50 border border-slate-200">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0">✓</span>
+                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                      <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
                     <div>
                       <strong className="text-slate-900 block font-semibold">5. Website Contact Form</strong>
                       <span className="text-slate-600 text-[11px]">Inquiries from <code className="text-[0.9em] font-mono">/contact</code> route directly to operations with client reply-to.</span>
