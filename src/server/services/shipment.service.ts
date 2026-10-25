@@ -609,6 +609,7 @@ export class ShipmentService {
    * Get all shipments with filtering & search
    */
   static async listShipments(params?: {
+    trackingNumber?: string;
     customerId?: string;
     customerName?: string;
     customerEmail?: string;
@@ -665,6 +666,7 @@ export class ShipmentService {
    * Create master shipment
    */
   static async createShipment(data: {
+    trackingNumber?: string;
     customerId?: string;
     customerName: string;
     productName?: string;
@@ -704,7 +706,9 @@ export class ShipmentService {
   }): Promise<ShipmentRecord> {
     const id = `shp-${Date.now().toString(36)}`;
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const trackingNumber = `GOSH-${new Date().getFullYear()}-${randomSuffix}`;
+    const trackingNumber = data.trackingNumber?.trim()
+      ? data.trackingNumber.trim().toUpperCase()
+      : `GOSH-${new Date().getFullYear()}-${randomSuffix}`;
     const now = new Date().toISOString();
 
     const originLat =

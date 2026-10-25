@@ -83,6 +83,26 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newItemTag, setNewItemTag] = useState<'General' | 'Commercial' | 'Liquids' | 'Dangerous' | 'Perishable' | 'Electronics'>('Commercial');
   const [submittingConsignment, setSubmittingConsignment] = useState(false);
 
+  // Live Tracking Quick Control & Feedback
+  const [createdShipmentResult, setCreatedShipmentResult] = useState<{
+    trackingNumber: string;
+    customerName: string;
+    route: string;
+    mode: string;
+  } | null>(null);
+  const [liveStatusFeedback, setLiveStatusFeedback] = useState<{
+    trackingNumber: string;
+    newStatus: string;
+    statusLabel: string;
+  } | null>(null);
+  const [newCustomTrackingNumber, setNewCustomTrackingNumber] = useState('');
+  const [newInitialStatus, setNewInitialStatus] = useState<string>('cn_warehouse_received');
+
+  // Quick Status Updater in Dashboard Overview
+  const [quickShipmentId, setQuickShipmentId] = useState<string>('');
+  const [quickTargetStage, setQuickTargetStage] = useState<string>('arrived_dhaka_airport');
+  const [updatingQuickStage, setUpdatingQuickStage] = useState(false);
+
   // Pricing Form State
   const [baseFreight, setBaseFreight] = useState('175000');
   const [fuelSurcharge, setFuelSurcharge] = useState('14500');
@@ -308,15 +328,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
-  // Handler: Create Master Consignment
+  // Handler: Create Master Consignment & Tracking Order
   const handleCreateConsignment = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingConsignment(true);
     try {
+      const trackingCodeToUse = newCustomTrackingNumber.trim()
+        ? newCustomTrackingNumber.trim().toUpperCase()
+        : `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
       const res = await fetch('/api/shipments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          trackingNumber: trackingCodeToUse,
           customerId: selectedCustomerId || 'usr-customer-01',
           customerName: newCustName,
           recipientName: newRecipientName,
@@ -355,7 +380,23 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       }
 
       const data = await res.json();
-      alert(`Master Consignment created! Reference: ${data.shipment.trackingNumber}`);
+
+      // If initial status is not purchased, advance status immediately
+      if (newInitialStatus && newInitialStatus !== 'purchased') {
+        await fetch(`/api/shipments/${data.shipment.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newInitialStatus })
+        });
+      }
+
+      setCreatedShipmentResult({
+        trackingNumber: data.shipment.trackingNumber,
+        customerName: newCustName,
+        route: `${newOriginCity} → ${newDestCity}`,
+        mode: newMode.toUpperCase()
+      });
+
       setShowConsignmentModal(false);
       loadData();
     } catch (err: any) {
@@ -365,7 +406,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
-  // Handler: Quick Status Update
+  // Handler: Quick Status Update with Immediate Feedback
   const handleQuickStatusUpdate = async (id: string, newStatus: string) => {
     try {
       const res = await fetch(`/api/shipments/${id}/status`, {
@@ -377,9 +418,29 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || 'Status update failed');
       }
+      const data = await res.json();
+      const updatedShipment = data.shipment;
+      const statusDef = TRACKING_STATUSES[newStatus as TrackingStatusCode];
+      setLiveStatusFeedback({
+        trackingNumber: updatedShipment.trackingNumber,
+        newStatus,
+        statusLabel: statusDef ? statusDef.label : newStatus.toUpperCase()
+      });
       loadData();
     } catch (err: any) {
       alert(err.message);
+    }
+  };
+
+  // Handler: Instant Overview Stage Update
+  const handleInstantOverviewStatusUpdate = async () => {
+    const targetShipment = shipments.find((s) => s.id === quickShipmentId || s.trackingNumber === quickShipmentId) || shipments[0];
+    if (!targetShipment) return;
+    setUpdatingQuickStage(true);
+    try {
+      await handleQuickStatusUpdate(targetShipment.id, quickTargetStage);
+    } finally {
+      setUpdatingQuickStage(false);
     }
   };
 
@@ -688,8 +749,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       case 'shipments':
       case 'tracking':
         return {
-          title: 'Master Consignments & Tracking',
-          subtitle: 'Air & Ocean freight waybills, carrier telemetry and live tracking'
+          title: 'Live Tracking & Orders Desk (লাইভ ট্র্যাকার ও অর্ডার কন্ট্রোল)',
+          subtitle: 'Air, Sea & P2P freight waybills, carrier telemetry and live tracking stage management'
         };
       case 'quotes':
         return {
@@ -770,6 +831,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
         {/* Right Action Controls */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+          <a
+            href="/tracking"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-none shadow-2xs"
+            title="Open Live Public Tracker"
+          >
+            <svg className="w-3.5 h-3.5 text-[#EA1D2C] stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+            <span>Live Tracker</span>
+            <span className="text-[10px] text-slate-400">↗</span>
+          </a>
+
           <button
             onClick={() => loadData()}
             disabled={loading}
@@ -785,7 +860,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <span className="hidden sm:inline">Sync</span>
           </button>
 
-          {/* 1-Click Add Milestone Button */}
+          {/* Update Live Status Button */}
           <button
             onClick={() => {
               if (shipments.length > 0 && !selectedShipmentId) {
@@ -793,25 +868,29 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               }
               setShowMilestoneModal(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-none cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-none cursor-pointer shadow-2xs"
+            title="Update Live Tracker Status & Milestone"
           >
             <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
-            <span className="hidden sm:inline">Milestone</span>
+            <span>Update Live Status</span>
           </button>
 
-          {/* New Master Consignment Button */}
+          {/* + New Tracking Order Button */}
           <button
-            onClick={() => setShowConsignmentModal(true)}
+            onClick={() => {
+              setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+              setShowConsignmentModal(true);
+            }}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
+            title="Create New Tracking Order & Consignment"
           >
             <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>New Consignment</span>
+            <span>+ New Tracking Order</span>
           </button>
 
           <a
@@ -871,6 +950,182 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* ========================================================= */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {/* SUPER ADMIN LIVE TRACKER CONTROL CENTER */}
+            <div className="bg-gradient-to-r from-red-50/90 via-rose-50/40 to-slate-50 border-2 border-red-200 rounded-xl p-5 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-100 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+                    <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                        Live Tracking &amp; Orders Control Center
+                      </h2>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EA1D2C] text-white uppercase tracking-wider font-mono">
+                        Super Admin
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Create customer tracking orders, assign tracking codes, and update physical delivery milestones in real-time.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                      setShowConsignmentModal(true);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5 transition-none"
+                  >
+                    <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span>+ Create Tracking Order (নতুন অর্ডার)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3 Quick Action Blocks */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Block 1: Create Order */}
+                <div className="p-4 rounded-xl bg-white border border-red-100 shadow-2xs space-y-2 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">Step 1: Order Creation</span>
+                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
+                      Add New Tracking Order
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                      Register goods from China supplier, set receiver info, and generate a tracking number (e.g. <code className="font-mono text-[#EA1D2C]">GOSH-2026-XXXX</code>).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                      setShowConsignmentModal(true);
+                    }}
+                    className="w-full py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-[#EA1D2C] text-xs font-bold transition-none cursor-pointer text-center"
+                  >
+                    + Open Order Form
+                  </button>
+                </div>
+
+                {/* Block 2: 1-Click Instant Live Status Changer */}
+                <div className="p-4 rounded-xl bg-white border border-indigo-100 shadow-2xs space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase tracking-wider">Step 2: Live Status Control</span>
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    Update Live Tracker Stage
+                  </h3>
+
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Select Shipment</label>
+                      <select
+                        value={quickShipmentId || (shipments[0]?.id || '')}
+                        onChange={(e) => setQuickShipmentId(e.target.value)}
+                        className="w-full h-8 px-2 text-[11px] font-mono font-bold rounded-md border border-slate-300 bg-slate-50 text-slate-900"
+                      >
+                        {shipments.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.trackingNumber} — {s.customerName} ({s.status.toUpperCase()})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">New Physical Stage</label>
+                      <select
+                        value={quickTargetStage}
+                        onChange={(e) => setQuickTargetStage(e.target.value)}
+                        className="w-full h-8 px-2 text-[11px] font-semibold rounded-md border border-indigo-300 bg-indigo-50/60 text-indigo-900"
+                      >
+                        <option value="purchased">1. PURCHASED</option>
+                        <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
+                        <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
+                        <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
+                        <option value="awaiting_customs">5. AWAITING CUSTOMS</option>
+                        <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
+                        <option value="payment_received">7. PAYMENT RECEIVED</option>
+                        <option value="out_for_delivery">8. OUT FOR DELIVERY</option>
+                        <option value="delivered">9. DELIVERED</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={updatingQuickStage || shipments.length === 0}
+                      onClick={handleInstantOverviewStatusUpdate}
+                      className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {updatingQuickStage ? 'Updating Live Tracker…' : 'Update Stage on Live Tracker'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Block 3: Public Tracker Preview */}
+                <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Step 3: Verification</span>
+                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
+                      Verify on Public Tracker
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed mt-1">
+                      Check how customers see the 8-stage progress bar and live waypoint telemetry on the public tracking portal.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {shipments.length > 0 && (
+                      <a
+                        href={`/tracking?code=${encodeURIComponent(shipments[0]?.trackingNumber || 'GOSH-2026-9812')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2 rounded-lg border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-none cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <span>Open {shipments[0]?.trackingNumber} Tracker</span>
+                        <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Update Feedback Banner */}
+              {liveStatusFeedback && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span>
+                      Live Tracker for <strong>{liveStatusFeedback.trackingNumber}</strong> updated to <strong>{liveStatusFeedback.statusLabel}</strong>!
+                    </span>
+                  </div>
+                  <a
+                    href={`/tracking?code=${encodeURIComponent(liveStatusFeedback.trackingNumber)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 shrink-0 inline-flex items-center gap-1"
+                  >
+                    <span>View Public Live Tracker</span>
+                    <span>↗</span>
+                  </a>
+                </div>
+              )}
+            </div>
+
             {/* Corridor Status Notification Banner */}
             <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -919,8 +1174,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <tr>
                         <th className="py-2.5 px-3">Tracking Code</th>
                         <th className="py-2.5 px-3">Customer / Importer</th>
-                        <th className="py-2.5 px-3">Corridor & Carrier</th>
-                        <th className="py-2.5 px-3">Status</th>
+                        <th className="py-2.5 px-3">Corridor &amp; Carrier</th>
+                        <th className="py-2.5 px-3">Status (Change to update Live Tracker)</th>
                         <th className="py-2.5 px-3 text-right">Action</th>
                       </tr>
                     </thead>
@@ -950,20 +1205,45 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             <div className="text-[10px] text-slate-400 font-mono uppercase">{s.mode} · {s.voyageOrFlightNumber}</div>
                           </td>
                           <td className="py-2.5 px-3">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold border ${getStatusBadge(s.status)}`}>
-                              {s.status.replace('_', ' ')}
-                            </span>
+                            <select
+                              value={s.status}
+                              onChange={(e) => handleQuickStatusUpdate(s.id, e.target.value)}
+                              className={`appearance-none px-2 py-1 rounded text-[11px] font-bold border cursor-pointer ${getStatusBadge(s.status)}`}
+                              title="Click to update live tracker status"
+                            >
+                              <option value="purchased">1. PURCHASED</option>
+                              <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
+                              <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
+                              <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
+                              <option value="awaiting_customs">5. AWAITING CUSTOMS</option>
+                              <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
+                              <option value="payment_received">7. PAYMENT RECEIVED</option>
+                              <option value="out_for_delivery">8. OUT FOR DELIVERY</option>
+                              <option value="delivered">9. DELIVERED</option>
+                            </select>
                           </td>
                           <td className="py-2.5 px-3 text-right">
-                            <button
-                              onClick={() => {
-                                setSelectedShipmentId(s.trackingNumber);
-                                setShowMilestoneModal(true);
-                              }}
-                              className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors"
-                            >
-                              + Milestone
-                            </button>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <a
+                                href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-none inline-flex items-center gap-0.5"
+                                title="Open Live Tracker"
+                              >
+                                <span>Track</span>
+                                <span className="text-[10px]">↗</span>
+                              </a>
+                              <button
+                                onClick={() => {
+                                  setSelectedShipmentId(s.trackingNumber);
+                                  setShowMilestoneModal(true);
+                                }}
+                                className="px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold transition-none"
+                              >
+                                + Milestone
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -2133,11 +2413,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       {/* ========================================================= */}
       {showMilestoneModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg border border-slate-200 max-w-lg w-full p-6 shadow-xl space-y-4 font-['Inter',sans-serif]">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 shadow-xl space-y-4 font-['Inter',sans-serif]">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
-                + Add Verified Milestone Event
-              </h3>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
+                  Update Live Tracker Status &amp; Milestone
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Instantly advances physical status on the public live tracking stepper.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowMilestoneModal(false)}
@@ -2153,16 +2438,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
             <form onSubmit={handleAddMilestone} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Target Consignment</label>
+                <label className="block font-semibold text-slate-700 mb-1">Target Consignment / Tracking Code</label>
                 <select
                   value={selectedShipmentId}
                   onChange={(e) => setSelectedShipmentId(e.target.value)}
                   required
-                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-xs"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono font-bold text-xs text-slate-900"
                 >
                   {shipments.map((s) => (
                     <option key={s.id} value={s.trackingNumber}>
-                      {s.trackingNumber} — {s.customerName} ({s.originCity} → {s.destCity})
+                      {s.trackingNumber} — {s.customerName} ({s.originCity} → {s.destCity}) [{s.status.toUpperCase()}]
                     </option>
                   ))}
                 </select>
@@ -2248,7 +2533,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Event Description & Notes</label>
+                <label className="block font-semibold text-slate-700 mb-1">Event Description &amp; Notes</label>
                 <textarea
                   value={eventDescription}
                   onChange={(e) => setEventDescription(e.target.value)}
@@ -2295,7 +2580,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   disabled={submittingEvent}
                   className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold"
                 >
-                  {submittingEvent ? 'Verifying...' : 'Save Milestone →'}
+                  {submittingEvent ? 'Verifying...' : 'Update Live Tracker Now →'}
                 </button>
               </div>
             </form>
@@ -2304,19 +2589,24 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       )}
 
       {/* ========================================================= */}
-      {/* 02. MODAL: NEW MASTER CONSIGNMENT                          */}
+      {/* 02. MODAL: CREATE NEW TRACKING ORDER & CONSIGNMENT         */}
       {/* ========================================================= */}
       {showConsignmentModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg border border-slate-200 max-w-xl w-full p-6 sm:p-7 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto font-['Inter',sans-serif]">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-xl w-full p-6 sm:p-7 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto font-['Inter',sans-serif]">
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
-                + Register Master Consignment & Goods
-              </h3>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
+                  + Create New Tracking Order (নতুন ট্র্যাকিং অর্ডার)
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Assign a unique tracking code and register customer cargo into the live tracking system.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowConsignmentModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md cursor-pointer"
                 aria-label="Close"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -2327,6 +2617,60 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             </div>
 
             <form onSubmit={handleCreateConsignment} className="space-y-3.5 text-xs">
+              {/* Tracking Code Generator / Input */}
+              <div className="p-3 bg-red-50/70 border border-red-200 rounded-lg space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block font-bold text-slate-800 text-xs">
+                    Tracking Number / Consignment Code (ট্র্যাকিং কোড)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
+                    className="text-[10px] text-[#EA1D2C] hover:underline font-bold cursor-pointer"
+                  >
+                    ↻ Generate New Number
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newCustomTrackingNumber}
+                    onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
+                    placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
+                    required
+                    className="flex-1 h-9 px-3 rounded-lg border border-red-300 bg-white font-mono font-bold text-slate-900 text-sm focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
+                  />
+                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1.5 rounded border border-emerald-200 shrink-0">
+                    Live Public Tracking Ready
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  This exact code can be tracked by anyone on <code>/tracking</code> immediately after creation.
+                </p>
+              </div>
+
+              {/* Initial Status on Live Tracker */}
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Initial Status on Live Tracker (প্রথম স্ট্যাটাস)
+                </label>
+                <select
+                  value={newInitialStatus}
+                  onChange={(e) => setNewInitialStatus(e.target.value)}
+                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-semibold text-xs text-slate-900 cursor-pointer"
+                >
+                  <option value="purchased">1. PURCHASED (Supplier sourcing)</option>
+                  <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED (Intake at Guangzhou Hub)</option>
+                  <option value="dispatched_from_china">3. DISPATCHED FROM CHINA (International Departure)</option>
+                  <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT (Touchdown at HSIA)</option>
+                  <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE (C&amp;F Processing)</option>
+                  <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED (Central Hub Sabujkanon)</option>
+                  <option value="payment_received">7. PAYMENT RECEIVED (Customs &amp; Freight Settled)</option>
+                  <option value="out_for_delivery">8. OUT FOR DELIVERY (Dispatch to Customer Door)</option>
+                  <option value="delivered">9. DELIVERED (Successfully Handed Over)</option>
+                </select>
+              </div>
+
               {/* Customer Profile Link Selector */}
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
@@ -2363,9 +2707,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-slate-500">
-                  Selecting this customer automatically links tracking telemetry, documents, and updates directly into their dashboard.
-                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -2416,14 +2757,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Origin City (China)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">Origin City (China Hub)</label>
                   <select
                     value={newOriginCity}
                     onChange={(e) => setNewOriginCity(e.target.value)}
                     className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white"
                   >
-                    <option value="Guangzhou">Guangzhou (CAN)</option>
-                    <option value="Shenzhen">Shenzhen (SZX)</option>
+                    <option value="Guangzhou">Guangzhou (CAN Hub - 765 Sanyuanli)</option>
+                    <option value="Shenzhen">Shenzhen (SZX Qianhai)</option>
                     <option value="Yiwu">Yiwu Trade Hub</option>
                   </select>
                 </div>
@@ -2434,8 +2775,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     onChange={(e) => setNewDestCity(e.target.value)}
                     className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white"
                   >
-                    <option value="Dhaka">Dhaka (HSIA / Tejgaon)</option>
-                    <option value="Chittagong">Chittagong (Port Terminal)</option>
+                    <option value="Dhaka">Dhaka (HSIA Airport / Sabujkanon)</option>
+                    <option value="Chittagong">Chittagong (Port CFS Terminal)</option>
                   </select>
                 </div>
               </div>
@@ -2446,11 +2787,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <select
                     value={newMode}
                     onChange={(e) => setNewMode(e.target.value as any)}
-                    className="w-full h-9 px-2 rounded-lg border border-slate-300 bg-white"
+                    className="w-full h-9 px-2 rounded-lg border border-slate-300 bg-white font-medium"
                   >
-                    <option value="air">Air</option>
-                    <option value="sea">Sea</option>
-                    <option value="hand_carry">P2P Transfer (Hand carry)</option>
+                    <option value="air">Air (7–14 Days)</option>
+                    <option value="sea">Sea (30–45 Days)</option>
+                    <option value="hand_carry">P2P Hand carry (24–48 Hours)</option>
                     <option value="road">Road / D2D</option>
                   </select>
                 </div>
@@ -2477,13 +2818,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
 
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
-                <span className="font-bold text-slate-800 text-xs block">Itemized Container Goods Spec</span>
+                <span className="font-bold text-slate-800 text-xs block">Itemized Container &amp; Goods Spec</span>
                 <div>
                   <label className="block font-medium text-slate-600 mb-1">Goods Description</label>
                   <input
                     type="text"
                     value={newItemDesc}
                     onChange={(e) => setNewItemDesc(e.target.value)}
+                    placeholder="e.g. Export Cotton T-Shirts, Electronics, Machinery parts..."
                     required
                     className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
                   />
@@ -2497,11 +2839,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       onChange={(e) => setNewItemType(e.target.value)}
                       className="w-full h-8 px-1.5 rounded border border-slate-300 bg-white text-[11px]"
                     >
+                      <option value="carton">Export Cartons</option>
+                      <option value="pallet">Palletized Unit</option>
+                      <option value="air_uld">Air Freight ULD</option>
                       <option value="40ft_hq">40ft HQ Container</option>
                       <option value="20ft_container">20ft Container</option>
-                      <option value="air_uld">Air Freight ULD</option>
-                      <option value="pallet">Palletized Unit</option>
-                      <option value="carton">Export Cartons</option>
                     </select>
                   </div>
                   <div>
@@ -2545,19 +2887,91 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <button
                   type="button"
                   onClick={() => setShowConsignmentModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold"
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingConsignment}
-                  className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold"
+                  className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold cursor-pointer"
                 >
-                  {submittingConsignment ? 'Registering...' : 'Dispatch Consignment →'}
+                  {submittingConsignment ? 'Creating Order...' : 'Create Tracking Order →'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 03. MODAL: CELEBRATION / TRACKING ORDER CREATED SUCCESS    */}
+      {/* ========================================================= */}
+      {createdShipmentResult && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4 text-center font-['Inter',sans-serif]">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto ring-8 ring-emerald-50">
+              <svg className="w-7 h-7 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 font-['Manrope',sans-serif]">
+                Tracking Order Created Successfully!
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                New consignment registered and live on GoShipping tracking network.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-left text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                <span className="text-slate-500 font-medium">Tracking Number:</span>
+                <span className="font-mono font-extrabold text-sm text-[#EA1D2C] bg-red-50 px-2 py-0.5 rounded border border-red-200 select-all">
+                  {createdShipmentResult.trackingNumber}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-semibold text-slate-800">{createdShipmentResult.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Route &amp; Mode:</span>
+                <span className="font-semibold text-slate-800">{createdShipmentResult.route} ({createdShipmentResult.mode})</span>
+              </div>
+            </div>
+
+            <div className="pt-2 space-y-2">
+              <a
+                href={`/tracking?code=${encodeURIComponent(createdShipmentResult.trackingNumber)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center justify-center gap-1.5 transition-none"
+              >
+                <span>Open in Public Live Tracker ↗</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedShipmentId(createdShipmentResult.trackingNumber);
+                  setCreatedShipmentResult(null);
+                  setShowMilestoneModal(true);
+                }}
+                className="w-full py-2 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold cursor-pointer transition-none"
+              >
+                Advance Status / Milestone
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCreatedShipmentResult(null)}
+                className="w-full py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-medium cursor-pointer transition-none"
+              >
+                Done / Close
+              </button>
+            </div>
           </div>
         </div>
       )}

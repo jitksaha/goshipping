@@ -332,6 +332,7 @@ const ShipmentItemInputSchema = z.object({
 });
 
 const CreateShipmentSchema = z.object({
+  trackingNumber: z.string().optional(),
   customerId: z.string().default('usr-customer-01'),
   customerName: z.string().min(2),
   recipientName: z.string().optional(),
