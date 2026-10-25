@@ -63,23 +63,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [previewInvoice, setPreviewInvoice] = useState<any | null>(null);
 
   // Modals state
-  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
-  const [showConsignmentModal, setShowConsignmentModal] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  const [selectedShipmentId, setSelectedShipmentId] = useState<string>('');
   const [selectedQuoteForPricing, setSelectedQuoteForPricing] = useState<QuoteRecord | null>(null);
-
-  // Milestone Form State
-  const [eventStatus, setEventStatus] = useState<string>('awaiting_customs');
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventLocation, setEventLocation] = useState('');
-  const [eventDescription, setEventDescription] = useState('');
-  const [eventDateTime, setEventDateTime] = useState('');
-  const [eventLat, setEventLat] = useState('');
-  const [eventLng, setEventLng] = useState('');
-  const [eventSource, setEventSource] = useState<'warehouse' | 'admin' | 'carrier_api' | 'driver'>('admin');
-  const [submittingEvent, setSubmittingEvent] = useState(false);
-  const [showAdvancedMilestoneFields, setShowAdvancedMilestoneFields] = useState(false);
   const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [toastNotification, setToastNotification] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
@@ -339,9 +324,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
       if (resShip.success && resShip.shipments) {
         setShipments(resShip.shipments);
-        if (resShip.shipments.length > 0 && !selectedShipmentId) {
-          setSelectedShipmentId(resShip.shipments[0].trackingNumber);
-        }
+        
       }
       if (resQte.success && resQte.quotes) setQuotes(resQte.quotes);
       if (resWh.success && resWh.warehouses) setWarehouses(resWh.warehouses);
@@ -443,49 +426,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
-  // Handler: Add Milestone Event
-  const handleAddMilestone = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedShipmentId) {
-      alert('Please select a shipment');
-      return;
-    }
-    setSubmittingEvent(true);
-    try {
-      const res = await fetch(`/api/shipments/${selectedShipmentId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: eventStatus,
-          title: eventTitle || undefined,
-          locationName: eventLocation || undefined,
-          description: eventDescription || undefined,
-          source: eventSource,
-          lat: eventLat ? parseFloat(eventLat) : undefined,
-          lng: eventLng ? parseFloat(eventLng) : undefined,
-          eventTime: eventDateTime ? new Date(eventDateTime).toISOString() : undefined
-        })
-      });
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Failed to add milestone');
-      }
-
-      const data = await res.json();
-      setShowMilestoneModal(false);
-      setEventTitle('');
-      setEventLocation('');
-      setEventDescription('');
-      setEventDateTime('');
-      showToast(`Status updated to ${data.statusLabel || eventStatus.toUpperCase()} for ${selectedShipmentId}`, 'success');
-      loadData(false);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setSubmittingEvent(false);
-    }
-  };
 
   // Handler: Create Master Consignment & Tracking Order
   const handleCreateConsignment = async (e: React.FormEvent) => {
@@ -1186,27 +1127,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             )}
           </button>
 
-          {/* 2. ⚡ Update Status Button (Opens Right Drawer) */}
-          <button
-            type="button"
-            onClick={() => {
-              if (!selectedShipmentId && shipments.length > 0) {
-                setSelectedShipmentId(shipments[0].trackingNumber);
-              }
-              const def = TRACKING_STATUSES[eventStatus as TrackingStatusCode] || TRACKING_STATUSES.awaiting_customs;
-              if (!eventTitle) setEventTitle(def.label);
-              if (!eventLocation) setEventLocation(def.defaultLocation);
-              if (!eventDescription) setEventDescription(def.defaultDescription);
-              setShowMilestoneModal(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-none shadow-2xs cursor-pointer"
-            title="Update Live Tracker Status"
-          >
-            <svg className="w-3.5 h-3.5 fill-amber-500 stroke-[1.5] text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-            <span className="hidden sm:inline">Update Status</span>
-          </button>
+
 
           {/* 3. + New Order Button / Back to Orders Button */}
           {activeTab === 'new_order' ? (
@@ -1315,7 +1236,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     type="button"
                     onClick={() => {
                       setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
-                      setShowConsignmentModal(true);
+                      switchTab('new_order');
                     }}
                     className="px-4 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5 transition-none"
                   >
@@ -1345,7 +1266,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     type="button"
                     onClick={() => {
                       setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
-                      setShowConsignmentModal(true);
+                      switchTab('new_order');
                     }}
                     className="w-full py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-[#EA1D2C] text-xs font-bold transition-none cursor-pointer text-center"
                   >
@@ -1577,15 +1498,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                 <span>Track</span>
                                 <span className="text-[10px]">↗</span>
                               </a>
-                              <button
-                                onClick={() => {
-                                  setSelectedShipmentId(s.trackingNumber);
-                                  setShowMilestoneModal(true);
-                                }}
-                                className="px-2 py-1 rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-[11px] font-semibold transition-none"
-                              >
-                                + Milestone
-                              </button>
+
                             </div>
                           </td>
                         </tr>
@@ -2690,15 +2603,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   type="button"
                   onClick={() => {
                     setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
-                    setShowConsignmentModal(true);
+                    switchTab('new_order');
                   }}
                   className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-none cursor-pointer"
+                  title="Create New Consignment Order"
                 >
                   <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>New Order</span>
+                  <span>+ New Order</span>
                 </button>
               </div>
             </div>
@@ -2940,17 +2854,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       {/* 7. Actions Desk */}
                       <td className="py-2.5 px-3 text-right pr-3">
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedShipmentId(s.trackingNumber);
-                              setShowMilestoneModal(true);
-                            }}
-                            className="px-2 py-1 rounded border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[10px] font-semibold transition-none inline-flex items-center gap-0.5 shadow-2xs cursor-pointer"
-                            title="Add Verified Milestone Event"
-                          >
-                            <span>+ Event</span>
-                          </button>
+
 
                           <button
                             type="button"
@@ -3506,7 +3410,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
 
               <button
-                onClick={() => setShowConsignmentModal(true)}
+                onClick={() => switchTab('new_order')}
                 className="px-3.5 py-1.5 rounded-lg bg-[#EA1D2C] text-white text-xs font-bold hover:bg-[#D41523] transition-colors"
               >
                 + Create Order
@@ -4191,343 +4095,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       </main>
 
       {/* ========================================================= */}
-      {/* 01. RIGHT SIDE DRAWER: UPDATE LIVE TRACKER STATUS         */}
-      {/* ========================================================= */}
-      {showMilestoneModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden font-['Inter',sans-serif]">
-          {/* Backdrop overlay */}
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200"
-            onClick={() => setShowMilestoneModal(false)}
-          />
-
-          {/* Slide-over Drawer Panel */}
-          <div className="fixed inset-y-0 right-0 max-w-full flex">
-            <div className="w-screen max-w-full sm:max-w-[560px] lg:max-w-[580px] bg-white border-l border-slate-200 shadow-2xl flex flex-col h-full transform transition ease-out duration-200">
-              
-              {/* 1. Drawer Header (Sticky Top) */}
-              <div className="px-6 py-4 border-b border-slate-200/90 flex items-center justify-between shrink-0 bg-white">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <span className="p-1 rounded-md bg-amber-50 text-amber-600 border border-amber-200/60">
-                      <svg className="w-4 h-4 fill-amber-500 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                      </svg>
-                    </span>
-                    <h2 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                      Update Shipment Status
-                    </h2>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/60">
-                      Live Stepper
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Advance tracking milestone and update client timeline in real-time.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowMilestoneModal(false)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-none cursor-pointer"
-                  title="Close (Esc)"
-                >
-                  <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-
-              {/* 2. Drawer Body (Scrollable Form) */}
-              <form id="drawer-milestone-form" onSubmit={handleAddMilestone} className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs bg-slate-50/40">
-                
-                {/* A. Target Shipment Card */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                      Target Shipment
-                    </label>
-                    <select
-                      value={selectedShipmentId}
-                      onChange={(e) => {
-                        const newTrk = e.target.value;
-                        setSelectedShipmentId(newTrk);
-                      }}
-                      required
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white font-mono font-medium text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                    >
-                      {shipments.map((s) => (
-                        <option key={s.id} value={s.trackingNumber}>
-                          {s.trackingNumber} — {s.customerName} ({s.originCity} → {s.destCity}) [{s.status.toUpperCase()}]
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Active Shipment Summary Pill */}
-                  {(() => {
-                    const activeS = shipments.find((s) => s.trackingNumber === selectedShipmentId || s.id === selectedShipmentId);
-                    if (!activeS) return null;
-                    const statusDef = TRACKING_STATUSES[normalizeStatusCode(activeS.status)] || TRACKING_STATUSES.purchased;
-                    return (
-                      <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 space-y-1.5">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-semibold text-slate-500 uppercase tracking-wider">Current Milestone</span>
-                          <span className={`px-2 py-0.5 rounded-full font-semibold border ${statusDef.badgeBg} ${statusDef.badgeText} ${statusDef.badgeBorder}`}>
-                            {statusDef.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/50">
-                          <span className="text-slate-600 font-medium">Customer: <strong className="text-slate-900 font-semibold">{activeS.customerName}</strong></span>
-                          <span className="text-slate-500 font-mono text-[11px]">{activeS.originCity} → {activeS.destCity}</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* B. Standard Physical Stage Selector */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-700">
-                      Advance to New Stage
-                    </label>
-                    <span className="text-[11px] text-slate-400">Clicking stage auto-fills details</span>
-                  </div>
-
-                  {/* Quick Stage Chips (Ordered 1 to 8) */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { code: 'purchased', label: '1. Purchased' },
-                      { code: 'cn_warehouse_received', label: '2. CN Warehouse' },
-                      { code: 'dispatched_from_china', label: '3. Dispatched CN' },
-                      { code: 'arrived_dhaka_airport', label: '4. Arrived Dhaka' },
-                      { code: 'awaiting_customs', label: '5. Customs Clearance' },
-                      { code: 'bd_warehouse_received', label: '6. BD Warehouse' },
-                      { code: 'out_for_delivery', label: '7. Out for Delivery' },
-                      { code: 'delivered', label: '8. Delivered' },
-                    ].map((st) => {
-                      const isSelected = eventStatus === st.code;
-                      return (
-                        <button
-                          key={st.code}
-                          type="button"
-                          onClick={() => {
-                            setEventStatus(st.code);
-                            const def = TRACKING_STATUSES[st.code as TrackingStatusCode];
-                            if (def) {
-                              setEventTitle(def.label);
-                              setEventLocation(def.defaultLocation);
-                              setEventDescription(def.defaultDescription);
-                            }
-                          }}
-                          className={`px-3 py-2 rounded-lg text-left text-xs font-semibold border transition-none cursor-pointer flex items-center justify-between ${
-                            isSelected
-                              ? 'border-red-500 bg-red-50/60 text-[#EA1D2C] ring-1 ring-red-400'
-                              : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                          }`}
-                        >
-                          <span>{st.label}</span>
-                          {isSelected && (
-                            <svg className="w-3.5 h-3.5 stroke-[2.5] text-[#EA1D2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Independent Payment Milestone Option */}
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500">Finance milestone:</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEventStatus('payment_received');
-                        const def = TRACKING_STATUSES['payment_received'];
-                        if (def) {
-                          setEventTitle(def.label);
-                          setEventLocation(def.defaultLocation);
-                          setEventDescription(def.defaultDescription);
-                        }
-                      }}
-                      className={`px-2.5 py-1 rounded text-[11px] font-semibold border transition-none cursor-pointer ${
-                        eventStatus === 'payment_received'
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-400'
-                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      💳 Payment Received
-                    </button>
-                  </div>
-                </div>
-
-                {/* C. Milestone Details (Title, Location, Description) */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
-                  <h3 className="text-xs font-medium text-slate-700">
-                    Milestone Details
-                  </h3>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Event Title
-                    </label>
-                    <input
-                      type="text"
-                      value={eventTitle}
-                      onChange={(e) => setEventTitle(e.target.value)}
-                      placeholder="e.g. ARRIVED DHAKA AIRPORT"
-                      required
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Checkpoint Location
-                    </label>
-                    <input
-                      type="text"
-                      value={eventLocation}
-                      onChange={(e) => setEventLocation(e.target.value)}
-                      placeholder="e.g. HSIA Cargo Village, Dhaka"
-                      required
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                      Status Update Note
-                    </label>
-                    <textarea
-                      value={eventDescription}
-                      onChange={(e) => setEventDescription(e.target.value)}
-                      rows={2}
-                      placeholder="Operational details visible to customer on tracking timeline..."
-                      required
-                      className="w-full p-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none"
-                    />
-                  </div>
-                </div>
-
-                {/* D. Collapsible Advanced Options */}
-                <div className="rounded-xl border border-slate-200/90 bg-white shadow-2xs overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdvancedMilestoneFields(!showAdvancedMilestoneFields)}
-                    className="w-full px-4 py-3 text-left flex items-center justify-between text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <svg className="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                      </svg>
-                      <span>Advanced Settings (Verification Source, Time, GPS)</span>
-                    </span>
-                    <span className="text-slate-400 text-xs font-mono">
-                      {showAdvancedMilestoneFields ? '▲ Hide' : '▼ Expand'}
-                    </span>
-                  </button>
-
-                  {showAdvancedMilestoneFields && (
-                    <div className="p-4 border-t border-slate-100 space-y-3.5 bg-slate-50/50">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                            Verification Source
-                          </label>
-                          <select
-                            value={eventSource}
-                            onChange={(e) => setEventSource(e.target.value as any)}
-                            className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900"
-                          >
-                            <option value="admin">Operations Dispatch / Desk</option>
-                            <option value="warehouse">GoShipping Receiving Hub</option>
-                            <option value="carrier_api">Carrier Tracking API</option>
-                            <option value="driver">Fleet Courier Driver</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                            Occurrence Time (BST / UTC)
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={eventDateTime}
-                            onChange={(e) => setEventDateTime(e.target.value)}
-                            className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
-                            title="Leave empty to use current time"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                            Latitude (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={eventLat}
-                            onChange={(e) => setEventLat(e.target.value)}
-                            placeholder="23.8433"
-                            className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white font-mono text-xs text-slate-900"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] font-medium text-slate-600 mb-1">
-                            Longitude (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={eventLng}
-                            onChange={(e) => setEventLng(e.target.value)}
-                            placeholder="90.4029"
-                            className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white font-mono text-xs text-slate-900"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </form>
-
-              {/* 3. Drawer Footer (Sticky Bottom) */}
-              <div className="px-6 py-3.5 border-t border-slate-200/90 bg-white flex items-center justify-between shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setShowMilestoneModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium text-xs transition-none cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="drawer-milestone-form"
-                  disabled={submittingEvent}
-                  className="px-5 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-semibold hover:opacity-90 transition-none shadow-xs cursor-pointer flex items-center gap-1.5"
-                >
-                  {submittingEvent ? (
-                    <>
-                      <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                      </svg>
-                      <span>Updating...</span>
-                    </>
-                  ) : (
-                    <span>Update Status Now →</span>
-                  )}
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ========================================================= */}
       {/* 03. MODAL: CELEBRATION / TRACKING ORDER CREATED SUCCESS    */}
       {/* ========================================================= */}
@@ -4576,17 +4143,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <span>Open in Public Live Tracker ↗</span>
               </a>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedShipmentId(createdShipmentResult.trackingNumber);
-                  setCreatedShipmentResult(null);
-                  setShowMilestoneModal(true);
-                }}
-                className="w-full py-2 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold cursor-pointer transition-none"
-              >
-                Advance Status / Milestone
-              </button>
+
 
               <button
                 type="button"
