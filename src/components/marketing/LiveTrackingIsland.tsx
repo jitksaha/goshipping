@@ -583,70 +583,151 @@ export default function LiveTrackingIsland({
                     Stage {progress.completedStagesCount} of {progress.totalStagesCount} ({progress.percentage}%)
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-400 hidden sm:block">
-                  Current Waypoint: <span className="font-medium text-slate-700 dark:text-slate-300">{trackingData.currentLocation}</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-slate-400 lg:hidden flex items-center gap-1 font-medium bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                    <span>Swipe stages</span> <span>→</span>
+                  </span>
+                  <div className="text-[11px] text-slate-400 hidden sm:block">
+                    Current Waypoint: <span className="font-medium text-slate-700 dark:text-slate-300">{trackingData.currentLocation}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Progress Bar Line & Physical Stage Stepper */}
-              <div className="relative pt-2 pb-1">
-                {/* Background Track */}
-                <div className="absolute top-5 left-3 right-3 h-1 bg-slate-200 dark:bg-slate-700 rounded-full z-0" />
-                {/* Active Progress Fill */}
-                <div
-                  className="absolute top-5 left-3 h-1 bg-emerald-500 rounded-full z-0 transition-none motion-reduce:transition-none"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      Math.max(0, ((progress.completedStagesCount - 1) / (progress.totalStagesCount - 1)) * 100)
-                    )}%`
-                  }}
-                />
+              {/* Responsive Stepper Container */}
+              <div className="overflow-x-auto pb-3 pt-1 scrollbar-none">
+                <div className="min-w-[760px] relative pt-2 pb-2">
+                  {/* Background Track */}
+                  <div className="absolute top-[58px] left-8 right-8 h-0.5 bg-slate-200 dark:bg-slate-700 z-0" />
+                  {/* Active Progress Fill */}
+                  <div
+                    className="absolute top-[58px] left-8 h-0.5 bg-emerald-500 z-0 transition-none motion-reduce:transition-none"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(0, ((progress.completedStagesCount - 1) / (progress.totalStagesCount - 1)) * 100)
+                      )}%`
+                    }}
+                  />
 
-                {/* Stepper Nodes (8 Physical Stages) */}
-                <div className="relative z-10 flex items-start justify-between">
-                  {PHYSICAL_STAGES.map((stageKey, idx) => {
-                    const stageDef = TRACKING_STATUSES[stageKey];
-                    const isCompleted = idx < progress.completedStagesCount - 1;
-                    const isCurrent = idx === progress.completedStagesCount - 1;
-                    const isFuture = idx >= progress.completedStagesCount;
+                  {/* Stepper Nodes (8 Physical Stages with Same Size Icons) */}
+                  <div className="relative z-10 flex items-start justify-between">
+                    {PHYSICAL_STAGES.map((stageKey, idx) => {
+                      const stageDef = TRACKING_STATUSES[stageKey];
+                      const isCompleted = idx < progress.completedStagesCount - 1;
+                      const isCurrent = idx === progress.completedStagesCount - 1;
+                      const isFuture = idx >= progress.completedStagesCount;
 
-                    return (
-                      <div key={stageKey} className="flex flex-col items-center group max-w-[70px] sm:max-w-[85px] text-center">
-                        <div
-                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-none motion-reduce:transition-none ${
-                            isCurrent
-                              ? 'bg-[#EA1D2C] border-white text-white ring-2 ring-[#EA1D2C]/40 shadow-xs'
-                              : isCompleted
-                              ? 'bg-emerald-500 border-white text-white ring-1 ring-emerald-300'
-                              : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400'
-                          }`}
-                        >
-                          {isCompleted ? (
-                            <svg className="w-3.5 h-3.5 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          ) : isCurrent ? (
-                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                          ) : (
-                            <span>{idx + 1}</span>
-                          )}
+                      return (
+                        <div key={stageKey} className="flex flex-col items-center group w-[85px] text-center shrink-0">
+                          {/* Step-wise Logistics Icon Badge (Same Exact Size: 40x40px with 20x20px SVG) */}
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mb-2 border transition-none motion-reduce:transition-none ${
+                              isCurrent
+                                ? 'bg-red-50 dark:bg-red-950/50 text-[#EA1D2C] border-2 border-[#EA1D2C] shadow-xs ring-2 ring-red-200 dark:ring-red-900/60'
+                                : isCompleted
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800'
+                                : 'bg-slate-50 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700'
+                            }`}
+                          >
+                            {stageKey === 'purchased' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="8" cy="21" r="1" />
+                                <circle cx="19" cy="21" r="1" />
+                                <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+                              </svg>
+                            )}
+                            {stageKey === 'cn_warehouse_received' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                              </svg>
+                            )}
+                            {stageKey === 'dispatched_from_china' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z" />
+                              </svg>
+                            )}
+                            {stageKey === 'arrived_dhaka_airport' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M2 22h20" />
+                                <path d="M19 16l-7-3-4 1-2-2 1.5-1.5L11 12l7-2 3 3z" />
+                              </svg>
+                            )}
+                            {stageKey === 'awaiting_customs' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                <path d="m9 12 2 2 4-4" />
+                              </svg>
+                            )}
+                            {stageKey === 'bd_warehouse_received' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M3 21h18" />
+                                <path d="M5 21V7l8-4v18" />
+                                <path d="M19 21V11l-6-4" />
+                                <path d="M9 9v.01" />
+                                <path d="M9 13v.01" />
+                              </svg>
+                            )}
+                            {stageKey === 'out_for_delivery' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <rect width="16" height="13" x="1" y="6" rx="2" />
+                                <circle cx="5.5" cy="18.5" r="2.5" />
+                                <circle cx="18.5" cy="18.5" r="2.5" />
+                                <path d="M17 10h4l3 3v3h-3" />
+                              </svg>
+                            )}
+                            {stageKey === 'delivered' && (
+                              <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* Stepper Node Circle */}
+                          <div
+                            className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold border transition-none motion-reduce:transition-none z-10 ${
+                              isCurrent
+                                ? 'bg-[#EA1D2C] border-white text-white ring-4 ring-red-100 dark:ring-red-950 shadow-xs'
+                                : isCompleted
+                                ? 'bg-emerald-500 border-white text-white shadow-2xs'
+                                : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600 text-slate-400'
+                            }`}
+                          >
+                            {isCompleted ? (
+                              <svg className="w-3 h-3 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            ) : isCurrent ? (
+                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            ) : (
+                              <span>{idx + 1}</span>
+                            )}
+                          </div>
+
+                          {/* Stage Label */}
+                          <span
+                            className={`mt-1.5 text-[10px] leading-tight font-semibold tracking-tight ${
+                              isCurrent
+                                ? 'font-bold text-[#EA1D2C]'
+                                : isCompleted
+                                ? 'text-slate-800 dark:text-slate-200'
+                                : 'text-slate-400 dark:text-slate-500'
+                            }`}
+                          >
+                            {stageDef.shortLabel}
+                          </span>
+
+                          {/* Stage Status Pill */}
+                          <span className={`text-[9px] mt-0.5 font-mono ${
+                            isCurrent ? 'text-[#EA1D2C] font-bold' : isCompleted ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400'
+                          }`}>
+                            {isCompleted ? '✓ Done' : isCurrent ? 'Active' : `Step ${idx + 1}`}
+                          </span>
                         </div>
-
-                        <span
-                          className={`mt-1.5 text-[9px] sm:text-[10px] leading-tight font-medium tracking-tight line-clamp-2 ${
-                            isCurrent
-                              ? 'font-bold text-[#EA1D2C]'
-                              : isCompleted
-                              ? 'text-slate-800 dark:text-slate-200 font-semibold'
-                              : 'text-slate-400 dark:text-slate-500'
-                          }`}
-                        >
-                          {stageDef.shortLabel}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
