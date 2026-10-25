@@ -124,16 +124,9 @@ export default function SearchableLocationSelect({
       >
         <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
           {selectedOption ? (
-            <div className="flex items-center gap-1.5 min-w-0 truncate">
-              <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
-                {selectedOption.label}
-              </span>
-              {selectedOption.code && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
-                  {selectedOption.code}
-                </span>
-              )}
-            </div>
+            <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">
+              {selectedOption.label}
+            </span>
           ) : value ? (
             <span className="font-bold text-slate-900 text-xs sm:text-sm truncate">{value}</span>
           ) : (
@@ -204,11 +197,6 @@ export default function SearchableLocationSelect({
                       <span className={`text-slate-900 ${isSelected ? 'font-bold text-[#EA1D2C]' : 'font-medium'}`}>
                         {opt.label}
                       </span>
-                      {opt.code && (
-                        <span className="px-1 py-0.2 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                          {opt.code}
-                        </span>
-                      )}
                       {opt.badge && (
                         <span className={`px-1.5 py-0.2 rounded text-[10px] font-semibold border ${getBadgeStyle(opt.badge)}`}>
                           {opt.badge}
