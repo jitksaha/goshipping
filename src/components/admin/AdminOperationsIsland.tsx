@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
 import type { WarehouseRecord } from '../../server/services/warehouse.service';
@@ -139,9 +139,44 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [userBin, setUserBin] = useState('');
   const [submittingUser, setSubmittingUser] = useState(false);
 
-  // New Consignment Customer Link State
+  // New Consignment Customer Link & Real-time Selection State
   const [selectedCustomerId, setSelectedCustomerId] = useState('usr-customer-01');
+  const [orderCustomerMode, setOrderCustomerMode] = useState<'existing' | 'new'>('existing');
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [newCustomerFullName, setNewCustomerFullName] = useState('');
+  const [newCustomerEmail, setNewCustomerEmail] = useState('');
+  const [newCustomerPhone, setNewCustomerPhone] = useState('');
+  const [newCustomerCompany, setNewCustomerCompany] = useState('');
+  const [newCustomerAddress, setNewCustomerAddress] = useState('');
+  const [newCustomerPassword, setNewCustomerPassword] = useState('password123');
   const [newRecipientPhone, setNewRecipientPhone] = useState('+880 1711-002233');
+
+  // Customer Filtering & Live Selection Mappings
+  const filteredCustomersForOrder = useMemo(() => {
+    const q = customerSearchQuery.trim().toLowerCase();
+    if (!q) return users;
+    return users.filter((u) => {
+      const name = (u.fullName || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      const comp = (u.companyName || '').toLowerCase();
+      const phone = (u.phone || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || comp.includes(q) || phone.includes(q);
+    });
+  }, [users, customerSearchQuery]);
+
+  const currentSelectedCustomer = useMemo(() => {
+    return users.find((u) => u.id === selectedCustomerId) || customers.find((c) => c.id === selectedCustomerId);
+  }, [users, customers, selectedCustomerId]);
+
+  const selectCustomerForOrder = (target: any) => {
+    setSelectedCustomerId(target.id);
+    setNewCustName(target.companyName || target.fullName || '');
+    setNewRecipientName(target.fullName || '');
+    if (target.phone) setNewRecipientPhone(target.phone);
+    if (target.address) setNewRecipientAddress(target.address);
+    setIsCustomerDropdownOpen(false);
+  };
 
   // Email Diagnostics State
   const [emailStatus, setEmailStatus] = useState<any>(null);
@@ -340,6 +375,72 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     e.preventDefault();
     setSubmittingConsignment(true);
     try {
+      let finalCustomerId = selectedCustomerId;
+      let finalCustName = newCustName.trim();
+      let finalRecipientName = newRecipientName.trim();
+      let finalRecipientPhone = newRecipientPhone.trim();
+      let finalRecipientAddress = newRecipientAddress.trim();
+
+      // If Admin opted to Register New Customer Account on the fly
+      if (orderCustomerMode === 'new') {
+        if (!newCustomerFullName.trim()) {
+          throw new Error('Please enter customer full name.');
+        }
+        if (!newCustomerEmail.trim() || !newCustomerEmail.includes('@')) {
+          throw new Error('Please enter a valid customer email address.');
+        }
+        if (!newCustomerPhone.trim()) {
+          throw new Error('Please enter customer phone/WhatsApp number.');
+        }
+
+        const existingAcc = users.find(
+          (u) => u.email.toLowerCase() === newCustomerEmail.trim().toLowerCase()
+        );
+
+        if (existingAcc) {
+          finalCustomerId = existingAcc.id;
+          finalCustName = newCustomerCompany.trim() || existingAcc.companyName || existingAcc.fullName;
+          finalRecipientName = newCustomerFullName.trim() || existingAcc.fullName;
+          finalRecipientPhone = newCustomerPhone.trim() || existingAcc.phone;
+          finalRecipientAddress = newCustomerAddress.trim() || existingAcc.address || `${newDestCity}, Bangladesh`;
+        } else {
+          // Register new user account via API
+          const userRes = await fetch('/api/admin/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fullName: newCustomerFullName.trim(),
+              email: newCustomerEmail.trim().toLowerCase(),
+              password: newCustomerPassword.trim() || 'password123',
+              role: 'customer',
+              status: 'active',
+              phone: newCustomerPhone.trim(),
+              companyName: newCustomerCompany.trim() || newCustomerFullName.trim(),
+              address: newCustomerAddress.trim() || `${newDestCity}, Bangladesh`
+            })
+          });
+
+          if (!userRes.ok) {
+            const errData = await userRes.json().catch(() => ({}));
+            throw new Error(errData.error || 'Failed to create new customer user account.');
+          }
+
+          const createdUser = await userRes.json();
+          finalCustomerId = createdUser.user?.id || `usr-${Date.now()}`;
+          finalCustName = newCustomerCompany.trim() || newCustomerFullName.trim();
+          finalRecipientName = newCustomerFullName.trim();
+          finalRecipientPhone = newCustomerPhone.trim();
+          finalRecipientAddress = newCustomerAddress.trim() || `${newDestCity}, Bangladesh`;
+        }
+      } else {
+        if (!finalCustName) {
+          finalCustName = currentSelectedCustomer?.companyName || currentSelectedCustomer?.fullName || 'Valued Customer';
+        }
+        if (!finalRecipientName) {
+          finalRecipientName = currentSelectedCustomer?.fullName || finalCustName;
+        }
+      }
+
       const trackingCodeToUse = newCustomTrackingNumber.trim()
         ? newCustomTrackingNumber.trim().toUpperCase()
         : `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -349,11 +450,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           trackingNumber: trackingCodeToUse,
-          customerId: selectedCustomerId || 'usr-customer-01',
-          customerName: newCustName,
-          recipientName: newRecipientName,
-          recipientPhone: newRecipientPhone,
-          recipientAddress: newRecipientAddress,
+          customerId: finalCustomerId || 'usr-customer-01',
+          customerName: finalCustName,
+          recipientName: finalRecipientName,
+          recipientPhone: finalRecipientPhone,
+          recipientAddress: finalRecipientAddress,
           originCountry: newOriginCountry,
           originCity: newOriginCity,
           destCountry: newDestCountry,
@@ -399,12 +500,18 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
       setCreatedShipmentResult({
         trackingNumber: data.shipment.trackingNumber,
-        customerName: newCustName,
+        customerName: finalCustName,
         route: `${newOriginCity} → ${newDestCity}`,
         mode: newMode.toUpperCase()
       });
 
       setShowConsignmentModal(false);
+      setCustomerSearchQuery('');
+      setNewCustomerFullName('');
+      setNewCustomerEmail('');
+      setNewCustomerPhone('');
+      setNewCustomerCompany('');
+      setNewCustomerAddress('');
       loadData();
     } catch (err: any) {
       alert(err.message);
@@ -1520,7 +1627,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>New Consignment</span>
+                  <span>+ New Order / Consignment (নতুন অর্ডার)</span>
                 </button>
               </div>
             </div>
@@ -3197,123 +3304,376 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       {/* ========================================================= */}
       {showConsignmentModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-slate-200 max-w-xl w-full p-6 sm:p-7 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto font-['Inter',sans-serif]">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-2xl w-full p-6 sm:p-7 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto font-['Inter',sans-serif]">
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
-                  + Create New Tracking Order (নতুন ট্র্যাকিং অর্ডার)
-                </h3>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
+                    + Create New Tracking Order (নতুন অর্ডার তৈরি করুন)
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-[#EA1D2C] border border-red-200">
+                    Live Dispatch Ready
+                  </span>
+                </div>
                 <p className="text-[11px] text-slate-500">
-                  Assign a unique tracking code and register customer cargo into the live tracking system.
+                  Assign unique tracking code, bind customer profile, and register cargo into live tracking network.
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowConsignmentModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md cursor-pointer"
+                onClick={() => {
+                  setShowConsignmentModal(false);
+                  setIsCustomerDropdownOpen(false);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-none cursor-pointer"
                 aria-label="Close"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
             </div>
 
-            <form onSubmit={handleCreateConsignment} className="space-y-3.5 text-xs">
-              {/* Tracking Code Generator / Input */}
-              <div className="p-3 bg-red-50/70 border border-red-200 rounded-lg space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block font-bold text-slate-800 text-xs">
-                    Tracking Number / Consignment Code (ট্র্যাকিং কোড)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
-                    className="text-[10px] text-[#EA1D2C] hover:underline font-bold cursor-pointer"
-                  >
-                    ↻ Generate New Number
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
+            <form onSubmit={handleCreateConsignment} className="space-y-4 text-xs">
+              {/* 1. Tracking Identity & Initial Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-red-50/60 border border-red-200 rounded-lg">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-slate-800 text-xs">
+                      Tracking / Consignment Code (ট্র্যাকিং কোড)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
+                      className="text-[10px] text-[#EA1D2C] hover:underline font-bold cursor-pointer"
+                    >
+                      ↻ Regenerate
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={newCustomTrackingNumber}
                     onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
                     placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
                     required
-                    className="flex-1 h-9 px-3 rounded-lg border border-red-300 bg-white font-mono font-bold text-slate-900 text-sm focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
+                    className="w-full h-9 px-3 rounded-lg border border-red-300 bg-white font-mono font-bold text-slate-900 text-sm focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
                   />
-                  <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1.5 rounded border border-emerald-200 shrink-0">
-                    Live Public Tracking Ready
+                  <span className="text-[10px] text-slate-500 mt-1 block">
+                    Customer can track this code on <code>/tracking</code> immediately.
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-500">
-                  This exact code can be tracked by anyone on <code>/tracking</code> immediately after creation.
-                </p>
-              </div>
 
-              {/* Initial Status on Live Tracker */}
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Initial Status on Live Tracker (প্রথম স্ট্যাটাস)
-                </label>
-                <select
-                  value={newInitialStatus}
-                  onChange={(e) => setNewInitialStatus(e.target.value)}
-                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-semibold text-xs text-slate-900 cursor-pointer"
-                >
-                  <option value="purchased">PURCHASED (Supplier sourcing)</option>
-                  <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED (Intake at Guangzhou Hub)</option>
-                  <option value="dispatched_from_china">DISPATCHED FROM CHINA (International Departure)</option>
-                  <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT (Touchdown at HSIA)</option>
-                  <option value="awaiting_customs">AWAITING CUSTOMS CLEARANCE (C&amp;F Processing)</option>
-                  <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED (Central Hub Sabujkanon)</option>
-                  <option value="payment_received">PAYMENT RECEIVED (Customs &amp; Freight Settled)</option>
-                  <option value="out_for_delivery">OUT FOR DELIVERY (Dispatch to Customer Door)</option>
-                  <option value="delivered">DELIVERED (Successfully Handed Over)</option>
-                </select>
-              </div>
-
-              {/* Customer Profile Link Selector */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block font-bold text-slate-800 text-xs">
-                    Target Customer Profile (Direct Consignment Binding)
+                <div>
+                  <label className="block font-bold text-slate-800 text-xs mb-1">
+                    Initial Status on Live Tracker (প্রথম স্ট্যাটাস)
                   </label>
-                  <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    Auto-Linked to Customer Portal
+                  <select
+                    value={newInitialStatus}
+                    onChange={(e) => setNewInitialStatus(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-red-200 bg-white font-semibold text-xs text-slate-900 cursor-pointer"
+                  >
+                    <option value="purchased">PURCHASED (Supplier sourcing)</option>
+                    <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED (Guangzhou Hub)</option>
+                    <option value="dispatched_from_china">DISPATCHED FROM CHINA (International Departure)</option>
+                    <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT (Touchdown at HSIA)</option>
+                    <option value="awaiting_customs">AWAITING CUSTOMS CLEARANCE (C&amp;F Processing)</option>
+                    <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED (Sabujkanon Hub)</option>
+                    <option value="payment_received">PAYMENT RECEIVED (Freight Settled)</option>
+                    <option value="out_for_delivery">OUT FOR DELIVERY (Dispatch to Door)</option>
+                    <option value="delivered">DELIVERED (Successfully Handed Over)</option>
+                  </select>
+                  <span className="text-[10px] text-emerald-700 font-medium mt-1 block">
+                    Real-time status broadcast active across all open trackers.
                   </span>
                 </div>
-                <select
-                  value={selectedCustomerId}
-                  onChange={(e) => {
-                    const cId = e.target.value;
-                    setSelectedCustomerId(cId);
-                    const target = users.find((u) => u.id === cId) || customers.find((c) => c.id === cId);
-                    if (target) {
-                      setNewCustName(target.companyName || target.fullName);
-                      setNewRecipientName(target.fullName);
-                      if (target.address) setNewRecipientAddress(target.address);
-                      if (target.phone) setNewRecipientPhone(target.phone);
-                    }
-                  }}
-                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 cursor-pointer"
-                >
-                  {users.filter((u) => u.role === 'customer').map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.fullName} — {u.companyName || u.email} ({u.email})
-                    </option>
-                  ))}
-                  {users.filter((u) => u.role !== 'customer').map((u) => (
-                    <option key={u.id} value={u.id}>
-                      [{u.role}] {u.fullName} ({u.email})
-                    </option>
-                  ))}
-                </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* 2. Customer / User Account Selection (গ্রাহক নির্বাচন) */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <span className="block font-bold text-slate-900 text-xs">
+                      Customer &amp; User Account (গ্রাহক নির্বাচন ও অ্যাকাউন্ট লিংক)
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Select an existing user to auto-fill details or register a new customer account simultaneously.
+                    </p>
+                  </div>
+
+                  {/* Mode Tabs */}
+                  <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 shrink-0 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setOrderCustomerMode('existing')}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-none ${
+                        orderCustomerMode === 'existing'
+                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Select Existing User
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrderCustomerMode('new');
+                        setIsCustomerDropdownOpen(false);
+                      }}
+                      className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-none ${
+                        orderCustomerMode === 'new'
+                          ? 'bg-white text-[#EA1D2C] shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      + Register New Customer
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mode A: Select Existing Customer */}
+                {orderCustomerMode === 'existing' ? (
+                  <div className="space-y-2.5">
+                    {/* Search / Filter Input */}
+                    <div className="relative">
+                      <div className="relative flex items-center">
+                        <div className="absolute left-3 text-slate-400 pointer-events-none">
+                          <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={customerSearchQuery}
+                          onChange={(e) => {
+                            setCustomerSearchQuery(e.target.value);
+                            setIsCustomerDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsCustomerDropdownOpen(true)}
+                          placeholder="Type customer name, company, email or phone to search..."
+                          className="w-full h-9 pl-9 pr-8 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] focus:outline-hidden"
+                        />
+                        {customerSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomerSearchQuery('')}
+                            className="absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Dropdown Results */}
+                      {isCustomerDropdownOpen && (
+                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg divide-y divide-slate-100">
+                          {filteredCustomersForOrder.length === 0 ? (
+                            <div className="p-3 text-center text-slate-500 text-xs space-y-1">
+                              <div>No matching users found for "{customerSearchQuery}".</div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOrderCustomerMode('new');
+                                  setNewCustomerFullName(customerSearchQuery);
+                                  setIsCustomerDropdownOpen(false);
+                                }}
+                                className="text-[11px] font-bold text-[#EA1D2C] hover:underline cursor-pointer"
+                              >
+                                + Register New Customer with this name
+                              </button>
+                            </div>
+                          ) : (
+                            filteredCustomersForOrder.map((u) => {
+                              const isSelected = u.id === selectedCustomerId;
+                              return (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() => selectCustomerForOrder(u)}
+                                  className={`w-full text-left p-2.5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-none ${
+                                    isSelected ? 'bg-red-50/60' : ''
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
+                                      isSelected ? 'bg-[#EA1D2C] text-white' : 'bg-slate-100 text-slate-700'
+                                    }`}>
+                                      {(u.fullName || u.companyName || 'U').substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="truncate">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-semibold text-slate-900 text-xs truncate">
+                                          {u.fullName}
+                                        </span>
+                                        {u.companyName && (
+                                          <span className="text-[10px] text-slate-500 font-medium truncate">
+                                            ({u.companyName})
+                                          </span>
+                                        )}
+                                        <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${
+                                          u.role === 'customer'
+                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                            : 'bg-slate-100 text-slate-600'
+                                        }`}>
+                                          {u.role}
+                                        </span>
+                                      </div>
+                                      <div className="text-[10px] text-slate-400 font-mono truncate">
+                                        {u.email} {u.phone ? `• ${u.phone}` : ''}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {isSelected && (
+                                    <span className="text-[10px] text-[#EA1D2C] font-bold shrink-0">Selected ✓</span>
+                                  )}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Active Selected Customer Preview Card */}
+                    {currentSelectedCustomer && (
+                      <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/60 flex items-center justify-between">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                            {(currentSelectedCustomer.fullName || 'C').substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="truncate">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-emerald-950 text-xs">
+                                {currentSelectedCustomer.fullName}
+                              </span>
+                              {currentSelectedCustomer.companyName && (
+                                <span className="text-[11px] text-emerald-800 font-medium truncate">
+                                  • {currentSelectedCustomer.companyName}
+                                </span>
+                              )}
+                              <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-200">
+                                Bound to ID: {currentSelectedCustomer.id}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-emerald-700 font-mono truncate mt-0.5">
+                              {currentSelectedCustomer.email} | {currentSelectedCustomer.phone || 'No phone'} | {currentSelectedCustomer.address || 'Dhaka, Bangladesh'}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsCustomerDropdownOpen(true)}
+                          className="text-[11px] text-emerald-800 hover:text-emerald-950 font-bold hover:underline shrink-0 ml-2 cursor-pointer"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Mode B: Register New Customer Account on the fly */
+                  <div className="space-y-2.5 p-3 rounded-lg border border-red-200 bg-red-50/30">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-800">
+                        New Customer Account Details (অন-দ্য-ফ্লাই অ্যাকাউন্ট)
+                      </span>
+                      <span className="text-[10px] text-[#EA1D2C] font-semibold bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                        Creates portal login automatically
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Full Name *</label>
+                        <input
+                          type="text"
+                          value={newCustomerFullName}
+                          onChange={(e) => {
+                            setNewCustomerFullName(e.target.value);
+                            setNewRecipientName(e.target.value);
+                          }}
+                          placeholder="e.g. Mahbubur Rahman"
+                          required={orderCustomerMode === 'new'}
+                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Company / Importer Name</label>
+                        <input
+                          type="text"
+                          value={newCustomerCompany}
+                          onChange={(e) => {
+                            setNewCustomerCompany(e.target.value);
+                            setNewCustName(e.target.value);
+                          }}
+                          placeholder="e.g. Bengal Logistics Corp"
+                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Email Address (Login ID) *</label>
+                        <input
+                          type="email"
+                          value={newCustomerEmail}
+                          onChange={(e) => setNewCustomerEmail(e.target.value)}
+                          placeholder="customer@domain.com"
+                          required={orderCustomerMode === 'new'}
+                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Phone / WhatsApp *</label>
+                        <input
+                          type="text"
+                          value={newCustomerPhone}
+                          onChange={(e) => {
+                            setNewCustomerPhone(e.target.value);
+                            setNewRecipientPhone(e.target.value);
+                          }}
+                          placeholder="+880 1711-XXXXXX"
+                          required={orderCustomerMode === 'new'}
+                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Warehouse / Delivery Address</label>
+                        <input
+                          type="text"
+                          value={newCustomerAddress}
+                          onChange={(e) => {
+                            setNewCustomerAddress(e.target.value);
+                            setNewRecipientAddress(e.target.value);
+                          }}
+                          placeholder="e.g. Plot 14, Uttara, Dhaka"
+                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Login Password</label>
+                        <input
+                          type="text"
+                          value={newCustomerPassword}
+                          onChange={(e) => setNewCustomerPassword(e.target.value)}
+                          placeholder="password123"
+                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                        />
+                        <span className="text-[9px] text-slate-500 block mt-0.5">Default password: password123</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. Consignee Delivery Details (Auto-filled & Fine-tunable) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Company / Importer Name</label>
                   <input
@@ -3321,7 +3681,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     value={newCustName}
                     onChange={(e) => setNewCustName(e.target.value)}
                     required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300"
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs"
                   />
                 </div>
                 <div>
@@ -3331,12 +3691,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     value={newRecipientName}
                     onChange={(e) => setNewRecipientName(e.target.value)}
                     required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300"
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Recipient Phone / WhatsApp</label>
                   <input
@@ -3344,7 +3704,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     value={newRecipientPhone}
                     onChange={(e) => setNewRecipientPhone(e.target.value)}
                     required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 font-mono"
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 font-mono text-xs"
                   />
                 </div>
                 <div>
@@ -3354,22 +3714,24 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     value={newRecipientAddress}
                     onChange={(e) => setNewRecipientAddress(e.target.value)}
                     required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300"
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* 4. Corridor & Logistics Mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Origin City (China Hub)</label>
                   <select
                     value={newOriginCity}
                     onChange={(e) => setNewOriginCity(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white text-xs"
                   >
                     <option value="Guangzhou">Guangzhou (CAN Hub - 765 Sanyuanli)</option>
                     <option value="Shenzhen">Shenzhen (SZX Qianhai)</option>
                     <option value="Yiwu">Yiwu Trade Hub</option>
+                    <option value="Hong Kong">Hong Kong (HKG International Hub)</option>
                   </select>
                 </div>
                 <div>
@@ -3377,7 +3739,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <select
                     value={newDestCity}
                     onChange={(e) => setNewDestCity(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white text-xs"
                   >
                     <option value="Dhaka">Dhaka (HSIA Airport / Sabujkanon)</option>
                     <option value="Chittagong">Chittagong (Port CFS Terminal)</option>
@@ -3385,13 +3747,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Mode</label>
                   <select
                     value={newMode}
                     onChange={(e) => setNewMode(e.target.value as any)}
-                    className="w-full h-9 px-2 rounded-lg border border-slate-300 bg-white font-medium"
+                    className="w-full h-9 px-2 rounded-lg border border-slate-300 bg-white font-medium text-xs"
                   >
                     <option value="air">Air (7–14 Days)</option>
                     <option value="sea">Sea (30–45 Days)</option>
@@ -3406,7 +3768,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     value={newCarrier}
                     onChange={(e) => setNewCarrier(e.target.value)}
                     required
-                    className="w-full h-9 px-2 rounded-lg border border-slate-300"
+                    className="w-full h-9 px-2 rounded-lg border border-slate-300 text-xs"
                   />
                 </div>
                 <div>
@@ -3416,13 +3778,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     value={newVoyage}
                     onChange={(e) => setNewVoyage(e.target.value)}
                     required
-                    className="w-full h-9 px-2 rounded-lg border border-slate-300 font-mono"
+                    className="w-full h-9 px-2 rounded-lg border border-slate-300 font-mono text-xs"
                   />
                 </div>
               </div>
 
+              {/* 5. Cargo & Package Specs */}
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
-                <span className="font-bold text-slate-800 text-xs block">Itemized Container &amp; Goods Spec</span>
+                <span className="font-bold text-slate-800 text-xs block">Itemized Cargo &amp; Goods Spec</span>
                 <div>
                   <label className="block font-medium text-slate-600 mb-1">Goods Description</label>
                   <input
@@ -3435,7 +3798,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   />
                 </div>
 
-                <div className="grid grid-cols-4 gap-2 font-mono">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
                   <div>
                     <label className="block text-[10px] text-slate-500 mb-0.5">Package Type</label>
                     <select
@@ -3487,20 +3850,33 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
               </div>
 
+              {/* Form Actions */}
               <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowConsignmentModal(false)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold cursor-pointer"
+                  onClick={() => {
+                    setShowConsignmentModal(false);
+                    setIsCustomerDropdownOpen(false);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold cursor-pointer text-xs hover:bg-slate-50 transition-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingConsignment}
-                  className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold cursor-pointer"
+                  className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold cursor-pointer text-xs flex items-center gap-2 shadow-xs transition-none"
                 >
-                  {submittingConsignment ? 'Creating Order...' : 'Create Tracking Order →'}
+                  {submittingConsignment ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                      </svg>
+                      <span>Creating Order...</span>
+                    </>
+                  ) : (
+                    <span>Create &amp; Dispatch Order →</span>
+                  )}
                 </button>
               </div>
             </form>
