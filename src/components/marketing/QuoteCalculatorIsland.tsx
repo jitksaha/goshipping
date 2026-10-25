@@ -39,6 +39,11 @@ export default function QuoteCalculatorIsland({
   const [quantity, setQuantity] = useState('10');
   const [packagingType, setPackagingType] = useState('carton');
   const [cargoDescription, setCargoDescription] = useState('E-commerce Parcels, Garments & Accessories (1688 / Factory)');
+  const [productName, setProductName] = useState('');
+  const [productCategory, setProductCategory] = useState('Garments, Apparel & Fashion Wear');
+  const [productUrl, setProductUrl] = useState('');
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string; size: string }[]>([]);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [guestName, setGuestName] = useState(defaultGuestName);
   const [guestEmail, setGuestEmail] = useState(defaultGuestEmail);
   const [guestPhone, setGuestPhone] = useState(defaultGuestPhone);
@@ -138,6 +143,63 @@ export default function QuoteCalculatorIsland({
   const estimatedAirCost = Math.round(airChargeableKg * 750 + 2500);
   const estimatedSeaCost = Math.round(Math.max(numCbm, 0.5) * 18500 + 4500);
 
+  const PRODUCT_CATEGORIES = [
+    'Garments, Apparel & Fashion Wear',
+    'Fabrics, Textiles, Yarn & Accessories',
+    'Electronics, Smart Gadgets & Mobile Accessories',
+    'Machinery, Industrial Equipment & Spare Parts',
+    'Footwear, Bags & Leather Goods',
+    'Beauty, Cosmetics & Personal Care',
+    'Home, Kitchenware & Plastic Items',
+    'Toys, Baby Care & Stationery',
+    'Automotive & Motorcycle Spare Parts',
+    'Hardware, Electrical Tools & Lighting',
+    'General Commercial Cargo / Other'
+  ];
+
+  const handleImageFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setImageError(null);
+
+    const maxFiles = 5;
+    if (productImages.length + files.length > maxFiles) {
+      setImageError(`You can attach up to ${maxFiles} product photos.`);
+      return;
+    }
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith('image/')) {
+        setImageError('Please select valid image files (JPG, PNG, WEBP).');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setImageError(`Image "${file.name}" exceeds 5MB limit.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (result) {
+          setProductImages((prev) => [
+            ...prev,
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+              name: file.name,
+              url: result,
+              size: `${(file.size / 1024).toFixed(0)} KB`
+            }
+          ]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeProductImage = (id: string) => {
+    setProductImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
   const currentEstimate = mode === 'air' ? estimatedAirCost : estimatedSeaCost;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -151,9 +213,15 @@ export default function QuoteCalculatorIsland({
 
     try {
       const serviceType = fulfillmentType === 'delivery' ? 'door_to_door' : 'port_to_port';
-      const cargoDescWithFulfillment = destAddress.trim()
-        ? `${cargoDescription} [Fulfillment: ${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Self-Pickup'}, Delivery Address: ${destAddress.trim()}]`
-        : `${cargoDescription} [Fulfillment: ${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Self-Pickup'}]`;
+      const cargoDescParts = [
+        productName.trim() ? `Product: ${productName.trim()}` : '',
+        productCategory ? `Category: ${productCategory}` : '',
+        productUrl.trim() ? `URL: ${productUrl.trim()}` : '',
+        cargoDescription.trim(),
+        destAddress.trim()
+          ? `[Fulfillment: ${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Self-Pickup'}, Delivery Address: ${destAddress.trim()}]`
+          : `[Fulfillment: ${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Self-Pickup'}]`
+      ].filter(Boolean).join(' | ');
 
       const res = await fetch('/api/quotes', {
         method: 'POST',
@@ -168,7 +236,11 @@ export default function QuoteCalculatorIsland({
           destCity,
           mode,
           serviceType,
-          cargoDescription: cargoDescWithFulfillment,
+          productName: productName.trim() || undefined,
+          productCategory,
+          productUrl: productUrl.trim() || undefined,
+          productImages: productImages.map((img) => img.url),
+          cargoDescription: cargoDescParts,
           packagingType,
           quantity: parseInt(quantity) || 1,
           totalWeightKg: numWeight,
@@ -671,123 +743,264 @@ export default function QuoteCalculatorIsland({
                 </div>
               </div>
 
-              {/* Cargo Dimensions & Specifications */}
-              <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+              {/* Product Details & Cargo Specifications */}
+              <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-red-100 dark:border-slate-800 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2.5">
-                  <span className="flex items-center gap-1.5">
-                    <svg aria-hidden="true" className="w-3.5 h-3.5 text-[var(--color-brand-primary)] stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                    </svg>
-                    <span>Cargo Specifications</span>
+                  <span className="flex items-center gap-2 font-['Manrope',sans-serif] font-bold text-sm">
+                    <span className="w-5 h-5 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center text-[10px] font-bold">3</span>
+                    <span>Product Details &amp; Cargo Specifications</span>
                   </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
                     Volumetric Eq: {airVolumetricKg.toFixed(1)} KG ({numCbm} CBM × 167)
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {/* Weight */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Gross Weight
-                    </label>
-                    <div className="relative">
+                {/* Sub-Section 1: Product Identification */}
+                <div className="p-3.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-700/60 space-y-3">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-[#EA1D2C] flex items-center gap-1.5">
+                    <span>📦</span>
+                    <span>Product Identification &amp; Category</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Product Name */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Product Name / Item Title <span className="text-[#EA1D2C]">*</span>
+                      </label>
                       <input
-                        type="number"
-                        step="any"
-                        value={weightKg}
-                        onChange={(e) => setWeightKg(e.target.value)}
+                        type="text"
+                        placeholder="e.g. Cotton T-Shirts, Smart Watch, LED Flood Light..."
+                        value={productName}
+                        onChange={(e) => setProductName(e.target.value)}
+                        className="w-full h-9 px-3 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none"
                         required
-                        className="w-full h-9 pl-3 pr-9 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
                       />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] font-medium text-slate-400 select-none">
-                        KG
-                      </span>
                     </div>
-                  </div>
 
-                  {/* CBM */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Volume
-                    </label>
-                    <div className="relative">
+                    {/* Product Category */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Product Category <span className="text-[#EA1D2C]">*</span>
+                      </label>
+                      <select
+                        value={productCategory}
+                        onChange={(e) => {
+                          setProductCategory(e.target.value);
+                          if (!cargoDescription || cargoDescription.includes('(1688 / Factory)')) {
+                            setCargoDescription(`${e.target.value} (1688 / Factory)`);
+                          }
+                        }}
+                        className="w-full h-9 px-2.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none cursor-pointer"
+                      >
+                        {PRODUCT_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Product Link / 1688 / Taobao URL */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Product / Supplier Link (1688 / Taobao / Alibaba URL) <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
                       <input
-                        type="number"
-                        step="any"
-                        value={cbm}
-                        onChange={(e) => setCbm(e.target.value)}
-                        required
-                        className="w-full h-9 pl-3 pr-11 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
+                        type="url"
+                        placeholder="https://detail.1688.com/... or Taobao / factory link"
+                        value={productUrl}
+                        onChange={(e) => setProductUrl(e.target.value)}
+                        className="w-full h-9 px-3 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none"
                       />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] font-medium text-slate-400 select-none">
-                        CBM
-                      </span>
                     </div>
                   </div>
 
-                  {/* Quantity */}
+                  {/* Product Picture Upload Box */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Pieces Qty
-                    </label>
-                    <div className="relative">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Product Pictures &amp; Photos <span className="text-slate-400 font-normal">(Upload samples, carton labels or catalog pictures)</span>
+                      </label>
+                      <span className="text-[10px] font-mono font-medium text-slate-500">
+                        {productImages.length}/5 Attached
+                      </span>
+                    </div>
+
+                    {/* Drag & Drop / Click zone */}
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-[#EA1D2C] dark:hover:border-[#EA1D2C] rounded-xl p-3 bg-white dark:bg-slate-900 cursor-pointer transition-none group">
                       <input
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                        className="w-full h-9 pl-3 pr-9 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleImageFiles(e.target.files)}
                       />
-                      <span className="absolute right-2.5 top-2.5 text-[10px] font-medium text-slate-400 select-none">
-                        Pcs
+                      <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 group-hover:text-[#EA1D2C]">
+                        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                        <span className="text-xs font-semibold">
+                          Click to upload or drag &amp; drop product photos
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-0.5">
+                        PNG, JPG, WEBP up to 5MB each (Max 5 photos)
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Packaging Type */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Packaging
                     </label>
-                    <select
-                      value={packagingType}
-                      onChange={(e) => setPackagingType(e.target.value)}
-                      className="w-full h-9 px-2.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none cursor-pointer"
-                    >
-                      <option value="carton">Cartons</option>
-                      <option value="pallet">Pallets</option>
-                      <option value="crate">Wooden Crates</option>
-                      <option value="drum">Steel Drums</option>
-                    </select>
+
+                    {imageError && (
+                      <p className="text-[11px] text-red-600 font-medium mt-1">
+                        ⚠️ {imageError}
+                      </p>
+                    )}
+
+                    {/* Image Previews Strip */}
+                    {productImages.length > 0 && (
+                      <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        {productImages.map((img, idx) => (
+                          <div
+                            key={img.id}
+                            className="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 aspect-square flex items-center justify-center"
+                          >
+                            <img
+                              src={img.url}
+                              alt={`Product preview ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeProductImage(img.id)}
+                              aria-label="Remove image"
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-700 cursor-pointer transition-none"
+                            >
+                              ×
+                            </button>
+                            <span className="absolute bottom-1 left-1 text-[9px] font-mono bg-black/60 text-white px-1 py-0.2 rounded backdrop-blur-xs">
+                              {img.size}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Commodity Description & Quick Category Pills */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Commodity or Cargo Description
-                    </label>
-                    <div className="flex items-center gap-1">
-                      {['Garments', 'Fabrics', 'Electronics', 'Machinery'].map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setCargoDescription(`${cat} & Commercial Goods (1688 / Factory)`)}
-                          className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-none cursor-pointer"
-                        >
-                          +{cat}
-                        </button>
-                      ))}
+                {/* Sub-Section 2: Cargo Weight, Volume & Packaging */}
+                <div className="space-y-3 pt-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                    <span>⚖️</span>
+                    <span>Cargo Weight &amp; Dimension Metrics</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {/* Weight */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Gross Weight
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="any"
+                          value={weightKg}
+                          onChange={(e) => setWeightKg(e.target.value)}
+                          required
+                          className="w-full h-9 pl-3 pr-9 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
+                        />
+                        <span className="absolute right-2.5 top-2.5 text-[10px] font-medium text-slate-400 select-none">
+                          KG
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* CBM */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Volume
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="any"
+                          value={cbm}
+                          onChange={(e) => setCbm(e.target.value)}
+                          required
+                          className="w-full h-9 pl-3 pr-11 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
+                        />
+                        <span className="absolute right-2.5 top-2.5 text-[10px] font-medium text-slate-400 select-none">
+                          CBM
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Quantity */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Pieces Qty
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                          className="w-full h-9 pl-3 pr-9 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
+                        />
+                        <span className="absolute right-2.5 top-2.5 text-[10px] font-medium text-slate-400 select-none">
+                          Pcs
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Packaging Type */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Packaging
+                      </label>
+                      <select
+                        value={packagingType}
+                        onChange={(e) => setPackagingType(e.target.value)}
+                        className="w-full h-9 px-2.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none cursor-pointer"
+                      >
+                        <option value="carton">Cartons</option>
+                        <option value="pallet">Pallets</option>
+                        <option value="crate">Wooden Crates</option>
+                        <option value="drum">Steel Drums</option>
+                        <option value="bag">Woven Bags / Sacks</option>
+                      </select>
                     </div>
                   </div>
-                  <input
-                    type="text"
-                    value={cargoDescription}
-                    onChange={(e) => setCargoDescription(e.target.value)}
-                    required
-                    className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
-                  />
+
+                  {/* Commodity Description & Quick Category Pills */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Additional Cargo Notes / Specifications
+                      </label>
+                      <div className="flex items-center gap-1">
+                        {['Garments', 'Fabrics', 'Electronics', 'Machinery'].map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setCargoDescription(`${cat} & Commercial Goods (1688 / Factory)`)}
+                            className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-none cursor-pointer"
+                          >
+                            +{cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      value={cargoDescription}
+                      onChange={(e) => setCargoDescription(e.target.value)}
+                      required
+                      placeholder="Special handling instructions, carton markings, or specifications..."
+                      className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -931,6 +1144,36 @@ export default function QuoteCalculatorIsland({
                     <span>Route Corridor:</span>
                     <span className="font-semibold text-slate-900">{originCity} → {destCity}</span>
                   </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Product Item:</span>
+                    <span className="font-semibold text-slate-900 truncate max-w-[150px]">
+                      {productName.trim() || 'General Cargo'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Category:</span>
+                    <span className="font-semibold text-slate-900 truncate max-w-[150px]">
+                      {productCategory}
+                    </span>
+                  </div>
+                  {productImages.length > 0 && (
+                    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1.5">
+                      <div className="flex items-center justify-between text-[10.5px]">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">📷 Product Photos:</span>
+                        <span className="text-[#EA1D2C] font-mono font-bold">{productImages.length} Attached</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                        {productImages.map((img) => (
+                          <img
+                            key={img.id}
+                            src={img.url}
+                            alt="preview"
+                            className="w-9 h-9 rounded object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-between text-slate-600">
                     <span>Declared Volume:</span>
                     <span className="font-semibold font-mono text-slate-900 tabular-nums">

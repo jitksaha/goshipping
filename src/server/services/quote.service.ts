@@ -31,6 +31,11 @@ export interface QuoteRecord {
   destCity: string;
   mode: 'air' | 'sea' | 'hand_carry';
   serviceType: 'door_to_door' | 'port_to_port' | 'door_to_port';
+  productName?: string;
+  productCategory?: string;
+  productImages?: string[];
+  productUrl?: string;
+  declaredValue?: number;
   cargoDescription: string;
   packagingType: string;
   quantity: number;
@@ -156,6 +161,11 @@ export class QuoteService {
     destCity: string;
     mode: 'air' | 'sea' | 'hand_carry';
     serviceType?: 'door_to_door' | 'port_to_port' | 'door_to_port';
+    productName?: string;
+    productCategory?: string;
+    productImages?: string[];
+    productUrl?: string;
+    declaredValue?: number;
     cargoDescription: string;
     packagingType?: string;
     quantity?: number;
@@ -181,6 +191,11 @@ export class QuoteService {
       destCity: data.destCity,
       mode: data.mode,
       serviceType: data.serviceType || 'door_to_door',
+      productName: data.productName,
+      productCategory: data.productCategory,
+      productImages: data.productImages || [],
+      productUrl: data.productUrl,
+      declaredValue: data.declaredValue,
       cargoDescription: data.cargoDescription,
       packagingType: data.packagingType || 'carton',
       quantity: data.quantity || 1,
