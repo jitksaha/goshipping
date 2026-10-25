@@ -342,7 +342,7 @@ export default function QuoteCalculatorIsland({
                       ? `✈️ Air · Est: ${airDates}`
                       : mode === 'sea'
                       ? `🚢 Sea · Est: ${seaDates}`
-                      : `🎒 Hand carry · Est: ${handCarryDates}`}
+                      : `🤝 P2P Transfer (Hand carry) · Est: ${handCarryDates}`}
                   </span>
                 </div>
 
@@ -418,7 +418,7 @@ export default function QuoteCalculatorIsland({
                     </div>
                   </button>
 
-                  {/* Hand carry Card */}
+                  {/* P2P Transfer (Hand carry) Card */}
                   <button
                     type="button"
                     onClick={() => setMode('hand_carry')}
@@ -434,18 +434,32 @@ export default function QuoteCalculatorIsland({
                           mode === 'hand_carry' ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                         }`}>
                           <svg className="w-5 h-5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
-                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                           </svg>
                         </div>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">24–48 Hours</span>
                       </div>
-                      <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
-                        Hand carry
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
+                          P2P Transfer
+                        </span>
+                        <span className="text-[10px] font-medium text-amber-800 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60">
+                          Hand carry
+                        </span>
+                      </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                        Dedicated on-board courier for samples, high-value tech &amp; urgent cargo.
+                        Person-to-person cargo transfer through our agent network. Send and receive packages via our warehouses.
                       </p>
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-1">
+                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Agent network</span>
+                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Warehouse storage</span>
+                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Easy pickup</span>
+                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Secure handling</span>
+                        <span className="text-[9.5px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded">✓ Real-time status</span>
+                      </div>
                     </div>
                     <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
                       <span className="text-slate-500 dark:text-slate-400">Est. Arrival:</span>
@@ -870,7 +884,7 @@ export default function QuoteCalculatorIsland({
                   <div className="flex justify-between text-slate-600">
                     <span>Service Mode:</span>
                     <span className="font-semibold text-slate-900">
-                      {mode === 'air' ? 'Air' : mode === 'sea' ? 'Sea' : 'Hand carry'}
+                      {mode === 'air' ? 'Air Freight' : mode === 'sea' ? 'Sea Freight' : 'P2P Transfer (Hand carry)'}
                     </span>
                   </div>
                   <div className="flex justify-between text-slate-600">
@@ -895,6 +909,24 @@ export default function QuoteCalculatorIsland({
                       Calculated from real-time dispatch date upon intake at Guangzhou hub.
                     </p>
                   </div>
+                  {mode === 'hand_carry' && (
+                    <div className="p-2.5 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 text-xs space-y-1.5">
+                      <div className="font-bold text-amber-900 dark:text-amber-300 text-[11px] flex items-center justify-between">
+                        <span>🤝 P2P Transfer Specifications</span>
+                        <span className="text-[9px] uppercase tracking-wider bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-mono">Agent Network</span>
+                      </div>
+                      <p className="text-[10.5px] text-amber-800/90 dark:text-amber-300/90 leading-tight">
+                        Person-to-person cargo transfer through our agent network. Send and receive packages via our warehouses.
+                      </p>
+                      <div className="grid grid-cols-2 gap-1 text-[10px] text-amber-900 dark:text-amber-200 pt-1 border-t border-amber-200/60 dark:border-amber-900/40">
+                        <div className="flex items-center gap-1">✓ Agent network</div>
+                        <div className="flex items-center gap-1">✓ Warehouse storage</div>
+                        <div className="flex items-center gap-1">✓ Easy pickup</div>
+                        <div className="flex items-center gap-1">✓ Secure handling</div>
+                        <div className="flex items-center gap-1 col-span-2">✓ Real-time status tracking</div>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-between text-slate-600">
                     <span>Route Corridor:</span>
                     <span className="font-semibold text-slate-900">{originCity} → {destCity}</span>

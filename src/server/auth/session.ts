@@ -135,9 +135,6 @@ export function saveAuthStore(): void {
   }
 }
 
-// Initial load on startup
-loadAuthStore();
-
 /**
  * Get all active user accounts (predefined defaults + dynamic signups)
  */
@@ -515,3 +512,6 @@ export const DEFAULT_ACCOUNTS = [
     binNumber: '002918291-0102'
   }
 ];
+
+// Initial load on startup after DEFAULT_ACCOUNTS is defined
+loadAuthStore();

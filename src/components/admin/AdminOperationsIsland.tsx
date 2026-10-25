@@ -2427,7 +2427,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   >
                     <option value="air">Air</option>
                     <option value="sea">Sea</option>
-                    <option value="hand_carry">Hand carry</option>
+                    <option value="hand_carry">P2P Transfer (Hand carry)</option>
                     <option value="road">Road / D2D</option>
                   </select>
                 </div>
