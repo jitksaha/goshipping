@@ -95,6 +95,7 @@ export const shipments = mysqlTable('shipments', {
   id: varchar('id', { length: 36 }).primaryKey(),
   trackingNumber: varchar('tracking_number', { length: 50 }).notNull().unique(), // e.g. GOSH-2026-9812
   customerId: varchar('customer_id', { length: 36 }).references(() => customers.id),
+  productName: varchar('product_name', { length: 255 }).default('Commercial Goods'),
   originWarehouseId: varchar('origin_warehouse_id', { length: 36 }).references(() => warehouses.id),
   destWarehouseId: varchar('dest_warehouse_id', { length: 36 }).references(() => warehouses.id),
   originCountry: varchar('origin_country', { length: 100 }).notNull(),
@@ -103,8 +104,10 @@ export const shipments = mysqlTable('shipments', {
   destCity: varchar('dest_city', { length: 100 }).notNull(),
   mode: varchar('mode', { length: 30 }).notNull().default('air'), // air, sea, road, multimodal
   serviceLevel: varchar('service_level', { length: 50 }).notNull().default('standard'), // express, standard, priority
-  status: varchar('status', { length: 50 }).notNull().default('warehouse_received'),
-  // Possible statuses: warehouse_received, in_transit, customs_clearance, out_for_delivery, delivered, on_hold, cancelled
+  status: varchar('status', { length: 50 }).notNull().default('purchased'),
+  // 9 Standard Statuses: purchased, cn_warehouse_received, dispatched_from_china, arrived_dhaka_airport, awaiting_customs, bd_warehouse_received, payment_received, out_for_delivery, delivered
+  paymentStatus: varchar('payment_status', { length: 50 }).notNull().default('pending'), // pending, payment_received
+  eventVersion: int('event_version').notNull().default(1),
   currentLocation: varchar('current_location', { length: 255 }),
   currentLat: decimal('current_lat', { precision: 10, scale: 7 }),
   currentLng: decimal('current_lng', { precision: 10, scale: 7 }),
@@ -129,6 +132,8 @@ export const shipmentEvents = mysqlTable('shipment_events', {
   id: varchar('id', { length: 36 }).primaryKey(),
   shipmentId: varchar('shipment_id', { length: 36 }).notNull().references(() => shipments.id, { onDelete: 'cascade' }),
   status: varchar('status', { length: 50 }).notNull(),
+  statusCode: varchar('status_code', { length: 50 }).default('purchased'),
+  statusLabel: varchar('status_label', { length: 100 }).default('PURCHASED'),
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   locationName: varchar('location_name', { length: 255 }).notNull(),
@@ -136,6 +141,8 @@ export const shipmentEvents = mysqlTable('shipment_events', {
   lat: decimal('lat', { precision: 10, scale: 7 }),
   lng: decimal('lng', { precision: 10, scale: 7 }),
   source: varchar('source', { length: 50 }).default('warehouse'), // warehouse, admin, carrier_api, driver
+  visibility: varchar('visibility', { length: 20 }).default('public'), // public, internal
+  eventVersion: int('event_version').default(1),
   createdByUserId: varchar('created_by_user_id', { length: 36 }).references(() => users.id),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
@@ -157,7 +164,7 @@ export const shipmentItems = mysqlTable('shipment_items', {
   cbm: decimal('cbm', { precision: 10, scale: 3 }).notNull().default('0.000'),
   hsCode: varchar('hs_code', { length: 50 }),
   declaredValue: decimal('declared_value', { precision: 12, scale: 2 }),
-  currency: varchar('currency', { length: 10 }).default('USD'),
+  currency: varchar('currency', { length: 10 }).default('BDT'),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
@@ -210,7 +217,7 @@ export const quoteRevisions = mysqlTable('quote_revisions', {
   insuranceFee: decimal('insurance_fee', { precision: 12, scale: 2 }).default('0.00'),
   otherFees: decimal('other_fees', { precision: 12, scale: 2 }).default('0.00'),
   totalAmount: decimal('total_amount', { precision: 12, scale: 2 }).notNull().default('0.00'),
-  currency: varchar('currency', { length: 10 }).notNull().default('USD'),
+  currency: varchar('currency', { length: 10 }).notNull().default('BDT'),
   validityDate: timestamp('validity_date'),
   transitTimeDays: varchar('transit_time_days', { length: 50 }),
   notes: text('notes'),
@@ -230,7 +237,7 @@ export const quoteItems = mysqlTable('quote_items', {
   description: varchar('description', { length: 255 }).notNull(),
   quantity: decimal('quantity', { precision: 10, scale: 2 }).notNull().default('1.00'),
   unitRate: decimal('unit_rate', { precision: 12, scale: 2 }).notNull(),
-  currency: varchar('currency', { length: 10 }).notNull().default('USD'),
+  currency: varchar('currency', { length: 10 }).notNull().default('BDT'),
   totalAmount: decimal('total_amount', { precision: 12, scale: 2 }).notNull(),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 });

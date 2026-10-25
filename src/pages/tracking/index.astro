@@ -2,15 +2,46 @@
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import LiveTrackingIsland from '../../components/marketing/LiveTrackingIsland';
 import QuoteCalculatorIsland from '../../components/marketing/QuoteCalculatorIsland';
+import { getSiteOrigin } from '../../server/utils/domain';
 
 const queryCode = Astro.url.searchParams.get('code') || 'GOSH-2026-9812';
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/tracking`;
+
+const trackingSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${canonicalUrl}#tracking`,
+      "url": canonicalUrl,
+      "name": "Track Shipment | Live China to Bangladesh Cargo Tracking — Go Shipping",
+      "description": "Track your China to Bangladesh consignment live with Go Shipping. Real-time milestones from Guangzhou/Shenzhen intake to Dhaka Airport, Chittagong Port, and door delivery."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Track Shipment", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
 ---
 
-<PublicLayout title="Live Consignment Tracking | GoShipping" currentPath="/tracking">
+<PublicLayout
+  title="Track Shipment | Live China to Bangladesh Cargo Tracking — Go Shipping"
+  description="Track your China to Bangladesh consignment live with Go Shipping. Real-time milestones from Guangzhou/Shenzhen intake to Dhaka Airport, Chittagong Port, and door delivery."
+  keywords="Track Go Shipping, China shipment tracking Bangladesh, consignment tracking Guangzhou to Dhaka"
+  currentPath="/tracking"
+  image="/og/og-tracking.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(trackingSchema)} />
+  </Fragment>
   <div class="bg-slate-900 text-white py-14 border-b border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Live Waypoint Telemetry</span>
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
         Authenticated Consignment Tracking
       </h1>
       <p class="text-slate-300 text-sm max-w-2xl mt-2 leading-relaxed">
@@ -21,7 +52,7 @@ const queryCode = Astro.url.searchParams.get('code') || 'GOSH-2026-9812';
 
   <section class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
     <!-- Live Tracking React Island -->
-    <LiveTrackingIsland client:load initialTrackingNumber={queryCode} pollIntervalMs={25000} />
+    <LiveTrackingIsland client:load initialTrackingNumber={queryCode} pollIntervalMs={12000} />
 
     <!-- Quotation Hook -->
     <div class="pt-8">

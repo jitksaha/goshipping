@@ -1,0 +1,15 @@
+---
+import { destroySession } from '../server/auth/session';
+
+// Extract session cookie
+const sessionCookie = Astro.cookies.get('goshipping_session')?.value;
+if (sessionCookie) {
+  await destroySession(sessionCookie);
+}
+
+// Invalidate cookie
+Astro.cookies.delete('goshipping_session', { path: '/' });
+
+// Redirect to login page
+return Astro.redirect('/login?message=logged_out');
+---

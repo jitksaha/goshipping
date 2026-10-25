@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <radialGradient id="tire_rubber" cx="50%" cy="50%" r="50%">
+      <stop offset="70%" stop-color="#181F26"/>
+      <stop offset="90%" stop-color="#11161B"/>
+      <stop offset="100%" stop-color="#080B0D"/>
+    </radialGradient>
+    <radialGradient id="steel_rim" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#CBD5E1"/>
+      <stop offset="50%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Outer Tire Rubber -->
+  <circle cx="50" cy="50" r="48" fill="url(#tire_rubber)" stroke="#0F172A" stroke-width="3"/>
+
+  <!-- Radial Tire Treads (8 notches) -->
+  <g stroke="#080B0D" stroke-width="3">
+    <line x1="50" y1="2" x2="50" y2="10"/>
+    <line x1="50" y1="90" x2="50" y2="98"/>
+    <line x1="2" y1="50" x2="10" y2="50"/>
+    <line x1="90" y1="50" x2="98" y2="50"/>
+    <line x1="16" y1="16" x2="22" y2="22"/>
+    <line x1="78" y1="78" x2="84" y2="84"/>
+    <line x1="16" y1="84" x2="22" y2="78"/>
+    <line x1="78" y1="22" x2="84" y2="16"/>
+  </g>
+
+  <!-- Inner Rim Bead -->
+  <circle cx="50" cy="50" r="34" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Steel Wheel Rim -->
+  <circle cx="50" cy="50" r="28" fill="url(#steel_rim)" stroke="#334155" stroke-width="2"/>
+
+  <!-- Rim Ventilation Holes -->
+  <circle cx="50" cy="30" r="3" fill="#1E293B"/>
+  <circle cx="50" cy="70" r="3" fill="#1E293B"/>
+  <circle cx="30" cy="50" r="3" fill="#1E293B"/>
+  <circle cx="70" cy="50" r="3" fill="#1E293B"/>
+  <circle cx="36" cy="36" r="3" fill="#1E293B"/>
+  <circle cx="64" cy="64" r="3" fill="#1E293B"/>
+  <circle cx="36" cy="64" r="3" fill="#1E293B"/>
+  <circle cx="64" cy="36" r="3" fill="#1E293B"/>
+
+  <!-- Center Hub Cap & Lug Nuts -->
+  <circle cx="50" cy="50" r="16" fill="#1E293B" stroke="#0F172A" stroke-width="2"/>
+  <circle cx="50" cy="50" r="8" fill="#EA1D2C" stroke="#B91C1C" stroke-width="1.5"/>
+  <circle cx="50" cy="50" r="3" fill="#FFFFFF"/>
+</svg>

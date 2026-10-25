@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 140" fill="none">
+  <defs>
+    <linearGradient id="boom_gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#EA1D2C"/>
+      <stop offset="60%" stop-color="#DC2626"/>
+      <stop offset="100%" stop-color="#B91C1C"/>
+    </linearGradient>
+    <linearGradient id="tele_inner" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="50%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="chrome_ram" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base Main Arm (GoShipping Red) Pivots at (40, 70) -->
+  <path d="M20 70 Q20 50 40 45 L380 30 L380 90 L40 95 Q20 90 20 70 Z" fill="url(#boom_gradient)" stroke="#991B1B" stroke-width="2.5"/>
+
+  <!-- Main Arm Pivot Eye (aligns with chassis hinge) -->
+  <circle cx="40" cy="70" r="18" fill="#1E293B" stroke="#0F172A" stroke-width="3"/>
+  <circle cx="40" cy="70" r="8" fill="#CBD5E1" stroke="#64748B" stroke-width="2"/>
+
+  <!-- Stenciled Boom Capacity & Branding -->
+  <text x="200" y="68" fill="#FFFFFF" font-family="'Manrope', sans-serif" font-weight="800" font-size="14" letter-spacing="1">GOSHIPPING HEAVY LIFT 45T</text>
+  <line x1="80" y1="76" x2="340" y2="76" stroke="#FFFFFF" stroke-width="2" stroke-dasharray="12 6" opacity="0.7"/>
+
+  <!-- Hydraulic Cylinder Pin Mount on Boom -->
+  <circle cx="180" cy="85" r="10" fill="#1E293B" stroke="#0F172A" stroke-width="2"/>
+  <circle cx="180" cy="85" r="4" fill="#94A3B8"/>
+
+  <!-- Inner Telescopic Section (Extends forward from 360 to 540) -->
+  <rect x="360" y="38" width="180" height="44" rx="3" fill="url(#tele_inner)" stroke="#0F172A" stroke-width="2"/>
+  <!-- Cable chain guide -->
+  <rect x="370" y="42" width="150" height="6" fill="#64748B" stroke="#334155"/>
+
+  <!-- Boom Nose Tip (Spreader Attachment Joint at (550, 60)) -->
+  <path d="M530 38 L560 38 Q570 38 570 48 L570 72 Q570 82 560 82 L530 82 Z" fill="#1E293B" stroke="#0F172A" stroke-width="2.5"/>
+  <circle cx="550" cy="60" r="12" fill="#334155" stroke="#0F172A" stroke-width="2.5"/>
+  <circle cx="550" cy="60" r="5" fill="#EA1D2C"/>
+
+  <!-- Auxiliary Hydraulic Hoses -->
+  <path d="M40 50 C120 20 260 20 380 34" stroke="#0F172A" stroke-width="3" fill="none"/>
+  <path d="M380 34 C420 26 480 30 540 45" stroke="#0F172A" stroke-width="2.5" fill="none" stroke-dasharray="6 2"/>
+</svg>

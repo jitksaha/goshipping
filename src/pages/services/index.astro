@@ -1,112 +1,284 @@
 ---
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import QuoteCalculatorIsland from '../../components/marketing/QuoteCalculatorIsland';
+import { getSiteOrigin } from '../../server/utils/domain';
 
-export const prerender = true;
+const siteOrigin = getSiteOrigin(Astro.request);
+
+const servicesListSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "ItemList",
+      "name": "Go Shipping Logistics & Freight Services",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Air Shipment China to Bangladesh",
+          "url": `${siteOrigin}/services/air-shipment`
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Sea Shipment China to Bangladesh",
+          "url": `${siteOrigin}/services/sea-shipment`
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Door-to-Door Delivery Bangladesh",
+          "url": `${siteOrigin}/services/door-to-door`
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Customs Clearance Bangladesh",
+          "url": `${siteOrigin}/services/customs-clearance`
+        },
+        {
+          "@type": "ListItem",
+          "position": 5,
+          "name": "China Warehousing & Consolidation",
+          "url": `${siteOrigin}/services/china-warehouse`
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Services", "item": `${siteOrigin}/services` }
+      ]
+    }
+  ]
+};
 ---
 
-<PublicLayout title="Services — Integrated Logistics Solutions | GoShipping" currentPath="/services">
+<PublicLayout
+  title="Our Services | Complete China to Bangladesh Logistics Solutions — Go Shipping"
+  description="Explore full logistics solutions: Air Freight (3-7 days), Sea Container Shipping (FCL/LCL), All-inclusive Door-to-Door DDP Delivery, Customs Brokerage, and China Warehouses."
+  keywords="China to Bangladesh services, air shipment China to Bangladesh, sea shipment China to Bangladesh, door-to-door delivery Bangladesh, China cargo support, customs clearance dhaka"
+  currentPath="/services"
+  image="/og/og-services.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(servicesListSchema)} />
+  </Fragment>
+
   <!-- Services Header -->
   <div class="bg-white py-16 lg:py-24 border-b border-slate-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <span class="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono block mb-3">
-        /OUR COMPREHENSIVE SERVICES
+      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C] font-mono block mb-3">
+        /OUR SERVICES
       </span>
       <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-[#11181E] font-['Manrope',sans-serif]">
-        Integrated Logistics Solutions
+        Complete Logistics Solutions for Your Business
       </h1>
       <p class="text-slate-600 text-sm max-w-2xl mt-4 leading-relaxed font-medium">
-        We offer a comprehensive range of freight and customs services engineered to meet the high-velocity demands of global commerce.
+        We help online sellers, e-commerce businesses and importers move products from China to Bangladesh with reliable shipping and door-to-door logistics support.
       </p>
     </div>
   </div>
 
   <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
-    <!-- Service 01: Ocean Freight -->
+    <!-- Service 01: Air Shipment -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
       <div class="lg:col-span-6 space-y-4">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/01 — MARITIME</span>
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/01 — AIR FREIGHT</span>
         <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
-          Ocean Freight (FCL & LCL)
+          <a href="/services/air-shipment" class="hover:text-[#EA1D2C] transition-colors">Air Shipment</a>
         </h2>
-        <p class="text-xs text-slate-600 leading-relaxed font-medium">
-          Direct allocations with global container lines including Maersk, MSC, and CMA CGM. Weekly buyer consolidation at our dedicated Chittagong CFS container freight station.
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+          Fast and reliable air cargo service from Guangzhou and Shenzhen to Dhaka, Bangladesh. Approximate transit: 3–7 days with daily flight allocations.
         </p>
         <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">Full Container Load (FCL)</h4>
-            <p class="text-slate-500 mt-1">20ft, 40ft GP, High-Cube & temperature-controlled reefers.</p>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Urgent Shipments</h4>
+            <p class="text-slate-500 mt-1">Ideal for time-sensitive cargo and fast restocking.</p>
           </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">LCL Buyer's Box</h4>
-            <p class="text-slate-500 mt-1">Multi-vendor consolidation into a single export manifest.</p>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Small & Medium Cargo</h4>
+            <p class="text-slate-500 mt-1">Flexible quantities accepted starting from sample parcels.</p>
           </div>
         </div>
+        <div class="pt-2 flex items-center gap-4">
+          <a
+            href="/services/air-shipment"
+            class="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] px-4 py-2 rounded-md transition-colors"
+          >
+            Explore Air Shipment →
+          </a>
+          <a
+            href="/quote"
+            class="text-xs font-semibold text-slate-700 hover:text-black hover:underline"
+          >
+            Calculate Air Rate
+          </a>
+        </div>
       </div>
-      <div class="lg:col-span-6 rounded-2xl overflow-hidden shadow-sm border border-slate-200 aspect-[16/10]">
+      <div class="lg:col-span-6 rounded-lg overflow-hidden border border-slate-200 aspect-[16/10]">
         <img
-          src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=1200&q=80"
-          alt="Ocean shipping container logistics"
+          src="https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=1200&q=80"
+          alt="Air shipment cargo plane"
           class="w-full h-full object-cover"
         />
       </div>
     </div>
 
-    <!-- Service 02: Air Cargo -->
+    <!-- Service 02: Sea Shipment -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8 border-t border-slate-100">
-      <div class="lg:col-span-6 rounded-2xl overflow-hidden shadow-sm border border-slate-200 aspect-[16/10] order-2 lg:order-1">
+      <div class="lg:col-span-6 rounded-lg overflow-hidden border border-slate-200 aspect-[16/10] order-2 lg:order-1">
         <img
-          src="https://images.unsplash.com/photo-1542296332-2e4473faf563?auto=format&fit=crop&w=1200&q=80"
-          alt="Air cargo tarmac loading"
+          src="https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=1200&q=80"
+          alt="Sea shipment container vessel"
           class="w-full h-full object-cover"
         />
       </div>
       <div class="lg:col-span-6 space-y-4 order-1 lg:order-2">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/02 — AVIATION</span>
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/02 — MARITIME</span>
         <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
-          Scheduled & Charter Air Freight
+          <a href="/services/sea-shipment" class="hover:text-[#EA1D2C] transition-colors">Sea Shipment</a>
         </h2>
-        <p class="text-xs text-slate-600 leading-relaxed font-medium">
-          When time-to-market is non-negotiable, our blocked space agreements with Tier-1 carriers out of Dhaka HSIA provide 48–72 hour transatlantic and European turnaround.
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+          Affordable and efficient sea freight for larger shipments from China to Chittagong Port. Full Container Load (FCL) & Shared (LCL) solutions.
         </p>
         <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">Garment-On-Hanger (GOH)</h4>
-            <p class="text-slate-500 mt-1">Specialized airline container rigs for wrinkle-free retail delivery.</p>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Bulk & Heavy Cargo</h4>
+            <p class="text-slate-500 mt-1">Cost-conscious shipping for high-volume orders.</p>
           </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">Priority Charters</h4>
-            <p class="text-slate-500 mt-1">Dedicated freighter flights for critical volume deadlines.</p>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">LCL & FCL Options</h4>
+            <p class="text-slate-500 mt-1">Consolidated LCL cartons or dedicated full containers.</p>
           </div>
+        </div>
+        <div class="pt-2 flex items-center gap-4">
+          <a
+            href="/services/sea-shipment"
+            class="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] px-4 py-2 rounded-md transition-colors"
+          >
+            Explore Sea Freight →
+          </a>
+          <a
+            href="/quote"
+            class="text-xs font-semibold text-slate-700 hover:text-black hover:underline"
+          >
+            Calculate Sea Rate
+          </a>
         </div>
       </div>
     </div>
 
-    <!-- Service 03: Warehousing & Customs -->
+    <!-- Service 03: Door-to-Door Delivery -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8 border-t border-slate-100">
       <div class="lg:col-span-6 space-y-4">
-        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/03 — CONTRACT LOGISTICS</span>
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/03 — FINAL MILE</span>
         <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
-          Warehousing & Licensed Customs Brokerage
+          <a href="/services/door-to-door" class="hover:text-[#EA1D2C] transition-colors">Door-to-Door Delivery</a>
         </h2>
-        <p class="text-xs text-slate-600 leading-relaxed font-medium">
-          Operating under Chittagong Customs Clearing Agent License #182 with direct ASYCUDA electronic filing, bonded transshipments, and climate-controlled storage.
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+          From China warehouse to your doorstep in Bangladesh. One coordinated journey covering customs clearance and inland transportation across all 64 districts.
         </p>
         <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">Bonded CFS Depots</h4>
-            <p class="text-slate-500 mt-1">200,000+ sq. ft. of barcode-tracked capacity.</p>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Zero Hassle Clearance</h4>
+            <p class="text-slate-500 mt-1">No complicated customs handling for the customer.</p>
           </div>
-          <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
-            <h4 class="font-bold text-slate-900">Fast Customs Release</h4>
-            <p class="text-slate-500 mt-1">HS code validation, Duty assessments & GSP certificates.</p>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Nationwide Reach</h4>
+            <p class="text-slate-500 mt-1">Reliable doorstep delivery anywhere in Bangladesh.</p>
           </div>
         </div>
+        <div class="pt-2 flex items-center gap-4">
+          <a
+            href="/services/door-to-door"
+            class="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] px-4 py-2 rounded-md transition-colors"
+          >
+            Explore Door-to-Door →
+          </a>
+        </div>
       </div>
-      <div class="lg:col-span-6 rounded-2xl overflow-hidden shadow-sm border border-slate-200 aspect-[16/10]">
+      <div class="lg:col-span-6 rounded-lg overflow-hidden border border-slate-200 aspect-[16/10]">
+        <img
+          src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80"
+          alt="Door to door warehouse and parcel delivery"
+          class="w-full h-full object-cover"
+        />
+      </div>
+    </div>
+
+    <!-- Service 04: Customs Clearance Support -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8 border-t border-slate-100">
+      <div class="lg:col-span-6 rounded-lg overflow-hidden border border-slate-200 aspect-[16/10] order-2 lg:order-1">
+        <img
+          src="https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1200&q=80"
+          alt="Customs clearance and cargo documentation"
+          class="w-full h-full object-cover"
+        />
+      </div>
+      <div class="lg:col-span-6 space-y-4 order-1 lg:order-2">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/04 — CUSTOMS</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
+          <a href="/services/customs-clearance" class="hover:text-[#EA1D2C] transition-colors">Customs Clearance Support</a>
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+          Licensed customs brokerage at Dhaka HSIA Airport (DAC) and Chittagong Port (CGP). Rapid HS Code verification, ASYCUDA World assessment, and legal duty compliance.
+        </p>
+        <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">HS Code Advisory</h4>
+            <p class="text-slate-500 mt-1">Avoid tariff disputes and misdeclaration penalties.</p>
+          </div>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Fast Airport Release</h4>
+            <p class="text-slate-500 mt-1">24 to 48 hour express customs clearance available.</p>
+          </div>
+        </div>
+        <div class="pt-2 flex items-center gap-4">
+          <a
+            href="/services/customs-clearance"
+            class="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] px-4 py-2 rounded-md transition-colors"
+          >
+            Explore Customs Clearance →
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Service 05: China Warehouses -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center pt-8 border-t border-slate-100">
+      <div class="lg:col-span-6 space-y-4">
+        <span class="text-xs font-mono font-bold uppercase tracking-wider text-[#EA1D2C]">/05 — WAREHOUSING</span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 font-['Manrope',sans-serif]">
+          <a href="/services/china-warehouse" class="hover:text-[#EA1D2C] transition-colors">China Warehouse Support</a>
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
+          Consolidation hubs in Guangzhou, Yiwu, and Shenzhen. Free 30-day receiving and package storage, multi-supplier parcel merging, and carton repacking before flight or vessel dispatch.
+        </p>
+        <div class="grid grid-cols-2 gap-4 pt-2 text-xs">
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">30 Days Free Storage</h4>
+            <p class="text-slate-500 mt-1">Collect from multiple suppliers with zero holding fees.</p>
+          </div>
+          <div class="p-4 rounded-md bg-slate-50 border border-slate-200">
+            <h4 class="font-bold text-slate-900">Inspection & Repacking</h4>
+            <p class="text-slate-500 mt-1">Photo verification and reinforced boxing for safety.</p>
+          </div>
+        </div>
+        <div class="pt-2 flex items-center gap-4">
+          <a
+            href="/services/china-warehouse"
+            class="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] px-4 py-2 rounded-md transition-colors"
+          >
+            Explore China Warehouses →
+          </a>
+        </div>
+      </div>
+      <div class="lg:col-span-6 rounded-lg overflow-hidden border border-slate-200 aspect-[16/10]">
         <img
           src="https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1200&q=80"
-          alt="Modern logistics warehouse storage"
+          alt="Cargo and logistics warehouse support"
           class="w-full h-full object-cover"
         />
       </div>
@@ -120,3 +292,4 @@ export const prerender = true;
     </div>
   </section>
 </PublicLayout>
+

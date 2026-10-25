@@ -1,0 +1,168 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { getSiteOrigin } from '../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/faq`;
+
+const faqCategories = [
+  {
+    category: "General & Account",
+    items: [
+      {
+        q: "How can I start shipping with Go Shipping?",
+        a: "Simply contact our support team via WhatsApp or our online quotation form. We will assign you a dedicated China warehouse address and a unique Client Shipping Mark (e.g., GOSH-YOURNAME) to share with your Chinese suppliers."
+      },
+      {
+        q: "Do I need a commercial import license (IRC) or BIN?",
+        a: "Not necessarily. If you use our all-inclusive DDP (Door-to-Door) service, Go Shipping handles all import clearance under our authorized commercial logistics license. If you are an enterprise importing under your own company name with your own Letter of Credit, we provide standard port-to-port B/L release."
+      },
+      {
+        q: "Where are your offices and warehouses located?",
+        a: "Our Bangladesh headquarters is in Dhaka with port operations in Chittagong. In China, our receiving and consolidation hubs are located in Guangzhou (Baiyun), Yiwu (near Trade Mart), and Shenzhen (Bao'an)."
+      }
+    ]
+  },
+  {
+    category: "Air Shipment Questions",
+    items: [
+      {
+        q: "How long does air freight take from China to Bangladesh?",
+        a: "Standard air cargo takes 3 to 7 business days from warehouse departure to Dhaka airport arrival. Customs clearance and local door delivery typically take an additional 1 to 2 business days."
+      },
+      {
+        q: "How is chargeable weight determined for air cargo?",
+        a: "Airlines bill according to the higher value between Gross Scale Weight (kg) and Volumetric Weight. Volumetric weight is calculated using: (Length cm × Width cm × Height cm) ÷ 6,000. For example, a 60×50×40 cm carton equals 20.0 kg volumetric weight."
+      },
+      {
+        q: "Can I ship batteries, liquids, or magnetic products by air?",
+        a: "Yes, but special Dangerous Goods (DG) flight schedules and carrier surcharges apply. Please declare power banks, lithium batteries, liquids, or magnets to our team before supplier dispatch."
+      }
+    ]
+  },
+  {
+    category: "Sea Shipment Questions",
+    items: [
+      {
+        q: "What is the transit timeline for ocean freight to Chittagong?",
+        a: "Vessel transit from Guangzhou Nansha or Shenzhen Shekou to Chittagong Port (CGP) takes approximately 18 to 25 days. Including port destuffing, customs clearance, and delivery across Bangladesh, door-to-door transit is typically 35 to 45 days."
+      },
+      {
+        q: "What is the minimum volume for sea shipment?",
+        a: "Our minimum booking volume for Less than Container Load (LCL) shared shipments is 1.0 CBM (Cubic Meter). For full containers (FCL), standard 20ft and 40ft HQ containers are available."
+      }
+    ]
+  },
+  {
+    category: "Customs, Taxes & Delivery",
+    items: [
+      {
+        q: "Are customs duties and port charges included in your quotes?",
+        a: "For all Door-to-Door (DDP) shipments, all customs duties, VAT, AIT, port handling, and terminal fees in Bangladesh are 100% included in the quoted per-kg or per-CBM rate. Zero hidden fees upon arrival."
+      },
+      {
+        q: "How will my cargo be delivered in Bangladesh?",
+        a: "In Dhaka metropolitan areas, our private delivery vehicles deliver directly to your address. For other divisions (Chittagong, Sylhet, Rajshahi, Khulna, etc.), we deliver through secure registered domestic courier partners."
+      },
+      {
+        q: "What payment methods are accepted?",
+        a: "We accept payments via Bangladeshi Bank Transfer (BEFTN/NPSB), Cheque, bKash/Nagad merchant gateway, or cash on delivery upon consignment handover in Dhaka."
+      }
+    ]
+  }
+];
+
+const allFaqs = faqCategories.flatMap(c => c.items);
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "FAQPage",
+      "@id": `${canonicalUrl}#faq`,
+      "mainEntity": allFaqs.map(item => ({
+        "@type": "Question",
+        "name": item.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": item.a
+        }
+      }))
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "FAQ", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="Frequently Asked Questions (FAQ) | China to Bangladesh Shipping — Go Shipping"
+  description="Clear answers to common questions about shipping from China to Bangladesh: air and sea transit times, freight rates, customs clearance, volumetric weight, and door delivery."
+  keywords="china to bangladesh shipping faq, air cargo transit time china bd, sea shipping questions bangladesh, go shipping faq, china cargo questions"
+  currentPath="/faq"
+  image="/og/og-faq.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  </Fragment>
+
+  <!-- Hero Header -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-20 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/" class="hover:underline text-slate-400">Home</a>
+        <span>/</span>
+        <span>Knowledge Base</span>
+      </div>
+      <div class="max-w-3xl space-y-3">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+          Frequently Asked Questions
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          Everything you need to know about shipping products from China to Bangladesh with Go Shipping. Transparent answers on transit timelines, rates, customs, and delivery.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Categorized FAQ Accordions / Cards -->
+  <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+    {faqCategories.map((cat) => (
+      <div class="space-y-6">
+        <div class="border-b border-slate-200 pb-3">
+          <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/CATEGORY</span>
+          <h2 class="text-2xl font-bold text-slate-900 font-['Manrope'] mt-1">{cat.category}</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {cat.items.map((item) => (
+            <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-2.5 hover:border-slate-300 transition-colors">
+              <h3 class="text-sm font-bold text-slate-900 font-['Manrope']">{item.q}</h3>
+              <p class="text-xs text-slate-600 leading-relaxed">{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+
+    <!-- Still have questions banner -->
+    <div class="bg-slate-50 border border-slate-200 rounded-lg p-8 lg:p-12 text-center space-y-4">
+      <h3 class="text-2xl font-bold text-slate-900 font-['Manrope']">Have a specific shipment question?</h3>
+      <p class="text-xs text-slate-600 max-w-lg mx-auto">
+        Our customer support and logistics desk in Dhaka is available 6 days a week to review your product specifications and advise on the most cost-effective shipping route.
+      </p>
+      <div class="flex items-center justify-center gap-4 pt-2">
+        <a href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20have%20a%20question." target="_blank" rel="noreferrer" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-md transition-colors">
+          Chat on WhatsApp (+880 1797-252627)
+        </a>
+        <a href="/contact" class="px-5 py-2.5 bg-[#11181E] hover:bg-black text-white font-bold text-xs rounded-md transition-colors">
+          Contact Office
+        </a>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

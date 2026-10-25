@@ -1,7 +1,31 @@
 {
   "name": "goshipping",
   "version": "1.0.0",
-  "description": "GoShipping - Enterprise Logistics & Supply Chain Platform (Astro + React + Kumo UI + Hono + MySQL)",
+  "description": "GoShipping — Modern International Freight Forwarding, Cargo Tracking & Customs Brokerage Platform. Seamless China to Bangladesh Air/Sea Shipments with Real-Time Waypoint Telemetry, DDP Rates & Enterprise Operations.",
+  "keywords": [
+    "logistics",
+    "freight-forwarding",
+    "cargo-tracking",
+    "china-to-bangladesh",
+    "air-shipment",
+    "sea-freight",
+    "customs-clearance",
+    "supply-chain",
+    "astro",
+    "react19",
+    "cloudflare-kumo",
+    "hono",
+    "drizzle-orm",
+    "resend",
+    "tailwind4"
+  ],
+  "author": "The Dynime & Jit Kumar Saha <hello@goshipping.com.bd> (https://goshipping.com.bd)",
+  "license": "MIT",
+  "homepage": "https://goshipping.com.bd",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/thedynime/go-shipping.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "astro dev --host",
@@ -22,12 +46,14 @@
     "astro": "^5.4.0",
     "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.40.0",
+    "gsap": "^3.15.0",
     "hono": "^4.7.2",
     "lucide-react": "^1.16.0",
     "motion": "^12.4.7",
     "mysql2": "^3.13.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "resend": "^6.34.1",
     "tailwindcss": "^4.0.0",
     "zod": "^3.24.2"
   },

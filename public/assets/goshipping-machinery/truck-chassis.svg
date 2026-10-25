@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 120" fill="none">
+  <defs>
+    <linearGradient id="chassis_steel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="40%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Gooseneck Main I-Beam Chassis (600px long to match container) -->
+  <path d="M10 32 L40 32 L60 48 L640 48 L640 64 L50 64 L30 46 L10 46 Z" fill="url(#chassis_steel)" stroke="#0F172A" stroke-width="2"/>
+
+  <!-- Corner Twistlock Bolsters (Locks container at 4 corners) -->
+  <!-- Front Twistlock (x=30) -->
+  <rect x="22" y="24" width="24" height="12" rx="2" fill="#EA1D2C" stroke="#991B1B" stroke-width="1.5"/>
+  <circle cx="34" cy="30" r="3" fill="#F8FAFC"/>
+  <!-- Rear Twistlock (x=620) -->
+  <rect x="614" y="40" width="24" height="12" rx="2" fill="#EA1D2C" stroke="#991B1B" stroke-width="1.5"/>
+  <circle cx="626" cy="46" r="3" fill="#F8FAFC"/>
+
+  <!-- Middle Reinforcement Gussets -->
+  <rect x="180" y="50" width="8" height="14" fill="#475569"/>
+  <rect x="300" y="50" width="8" height="14" fill="#475569"/>
+  <rect x="420" y="50" width="8" height="14" fill="#475569"/>
+
+  <!-- Landing Gear Legs (Retractable Dolly Legs) -->
+  <rect x="130" y="64" width="12" height="40" fill="#1E293B" stroke="#0F172A" stroke-width="1.5"/>
+  <rect x="124" y="100" width="24" height="6" rx="2" fill="#475569"/>
+  <circle cx="146" cy="74" r="4" fill="#94A3B8"/>
+
+  <!-- Dual Rear Tandem Axle Fenders & Mudguards -->
+  <path d="M470 64 Q510 20 550 64 Z" fill="#0F172A"/>
+  <path d="M550 64 Q590 20 630 64 Z" fill="#0F172A"/>
+  <!-- Mudflap Rear -->
+  <rect x="635" y="60" width="6" height="35" fill="#0F172A"/>
+  <text x="638" y="85" fill="#EA1D2C" font-size="6" font-family="sans-serif" font-weight="bold" transform="rotate(90 638 85)">GO</text>
+
+  <!-- DOT Reflective Conspicuity Tape (Red/White stripes along beam) -->
+  <g stroke-width="3">
+    <line x1="80" y1="56" x2="100" y2="56" stroke="#EF4444"/>
+    <line x1="100" y1="56" x2="120" y2="56" stroke="#FFFFFF"/>
+    <line x1="120" y1="56" x2="140" y2="56" stroke="#EF4444"/>
+    <line x1="140" y1="56" x2="160" y2="56" stroke="#FFFFFF"/>
+    <line x1="160" y1="56" x2="180" y2="56" stroke="#EF4444"/>
+    <line x1="180" y1="56" x2="200" y2="56" stroke="#FFFFFF"/>
+    <line x1="220" y1="56" x2="240" y2="56" stroke="#EF4444"/>
+    <line x1="240" y1="56" x2="260" y2="56" stroke="#FFFFFF"/>
+    <line x1="260" y1="56" x2="280" y2="56" stroke="#EF4444"/>
+    <line x1="280" y1="56" x2="300" y2="56" stroke="#FFFFFF"/>
+    <line x1="320" y1="56" x2="340" y2="56" stroke="#EF4444"/>
+    <line x1="340" y1="56" x2="360" y2="56" stroke="#FFFFFF"/>
+    <line x1="360" y1="56" x2="380" y2="56" stroke="#EF4444"/>
+    <line x1="380" y1="56" x2="400" y2="56" stroke="#FFFFFF"/>
+  </g>
+
+  <!-- Rear Bumper & LED Taillights -->
+  <rect x="638" y="60" width="12" height="20" fill="#1E293B" stroke="#0F172A"/>
+  <rect x="644" y="63" width="4" height="6" fill="#EF4444"/>
+  <rect x="644" y="71" width="4" height="4" fill="#F59E0B"/>
+</svg>

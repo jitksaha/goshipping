@@ -69,6 +69,34 @@ let initialWarehouses: WarehouseRecord[] = [
     capacitySqft: 75000,
     currentOccupancyPct: 79,
     isActive: true
+  },
+  {
+    id: 'wh-yiw-01',
+    code: 'YIW-01',
+    name: 'Yiwu International Commodity CFS Hub',
+    country: 'China',
+    city: 'Yiwu',
+    address: 'Chouzhou North Road, International Trade City Zone 4, Yiwu, Zhejiang',
+    contactPerson: 'Chen Gang',
+    phone: '+86 579 8555 6789',
+    email: 'yiw.cfs@goshipping.com',
+    capacitySqft: 50000,
+    currentOccupancyPct: 84,
+    isActive: true
+  },
+  {
+    id: 'wh-szx-01',
+    code: 'SZX-01',
+    name: 'Shenzhen Qianhai Air-Ocean Gateway',
+    country: 'China',
+    city: 'Shenzhen',
+    address: 'Baoan Airport Logistics Park & Qianhai Port CFS, Shenzhen',
+    contactPerson: 'Zhang Ming',
+    phone: '+86 755 2345 8899',
+    email: 'szx.gateway@goshipping.com',
+    capacitySqft: 45000,
+    currentOccupancyPct: 62,
+    isActive: true
   }
 ];
 

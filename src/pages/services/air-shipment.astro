@@ -1,0 +1,221 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import QuoteCalculatorIsland from '../../components/marketing/QuoteCalculatorIsland';
+import { getSiteOrigin } from '../../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/services/air-shipment`;
+
+const faqItems = [
+  {
+    q: "How long does air shipment take from China to Bangladesh?",
+    a: "Standard air cargo from Guangzhou and Shenzhen to Dhaka Hazrat Shahjalal International Airport (DAC) takes 3 to 7 business days, including China export handling and airline transit. Customs clearance and local delivery within Dhaka takes an additional 1 to 2 days."
+  },
+  {
+    q: "How is air chargeable weight calculated?",
+    a: "Airlines charge based on the greater of Actual Gross Weight (kg) or Volumetric Weight (kg). Volumetric Weight is calculated using the IATA formula: (Length cm × Width cm × Height cm) ÷ 6,000 (or 167 kg per Cubic Meter / CBM)."
+  },
+  {
+    q: "Do you handle customs clearance (DDP) for air cargo in Bangladesh?",
+    a: "Yes. Go Shipping provides all-inclusive Delivered Duty Paid (DDP) air cargo forwarding. All customs assessments, import duties, AIT, VAT, and airport terminal handling charges are covered in our quoted per-kg rate."
+  },
+  {
+    q: "What products can be shipped via air freight?",
+    a: "We regularly ship ready-made garments, fabric samples, mobile accessories, electronic components, machine spare parts, commercial product samples, cosmetics, and medical goods. Battery cargo (DG) is accepted via designated DG flights."
+  }
+];
+
+const serviceSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      "@id": `${siteOrigin}/services/air-shipment#service`,
+      "name": "China to Bangladesh Air Shipment & Air Cargo Services",
+      "serviceType": "Air Freight Forwarding",
+      "provider": {
+        "@type": "LogisticsService",
+        "@id": `${siteOrigin}/#organization`,
+        "name": "Go Shipping"
+      },
+      "areaServed": [
+        { "@type": "Country", "name": "Bangladesh" },
+        { "@type": "Country", "name": "China" }
+      ],
+      "description": "Fast and dependable China to Bangladesh air freight cargo forwarding with daily consolidations in Guangzhou and Shenzhen, full customs clearance at Dhaka HSIA airport, and door delivery.",
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "BDT",
+        "price": "750.00",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "750.00",
+          "priceCurrency": "BDT",
+          "unitText": "kg"
+        }
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Services", "item": `${siteOrigin}/services` },
+        { "@type": "ListItem", "position": 3, "name": "Air Shipment", "item": canonicalUrl }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": faqItems.map(item => ({
+        "@type": "Question",
+        "name": item.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": item.a
+        }
+      }))
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="Air Shipment China to Bangladesh | Fast Air Freight & Cargo — Go Shipping"
+  description="Fast and reliable air cargo service from Guangzhou and Shenzhen to Dhaka, Bangladesh. 3–7 days transit, all-inclusive DDP customs clearance, and nationwide door delivery."
+  keywords="air shipment china to bangladesh, air freight guangzhou to dhaka, air cargo shenzhen to dhaka, fast china air cargo bangladesh, ddp air shipment bangladesh, air freight rate per kg china to bd"
+  currentPath="/services/air-shipment"
+  image="/og/og-air-shipment.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+  </Fragment>
+
+  <!-- Hero Banner -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-24 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/services" class="hover:underline text-slate-400">Services</a>
+        <span>/</span>
+        <span>Air Freight</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-8 space-y-4">
+          <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+            China to Bangladesh Air Shipment
+          </h1>
+          <p class="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
+            High-priority scheduled air freight connecting major Chinese industrial hubs (Guangzhou, Shenzhen, Hong Kong, Yiwu) directly to Hazrat Shahjalal International Airport (DAC), Dhaka. Complete with customs clearance and door-to-door delivery.
+          </p>
+          <div class="flex flex-wrap gap-4 pt-4 text-xs">
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Transit Time</span>
+              <span class="font-bold text-white text-sm">3–7 Days</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Consolidation Hubs</span>
+              <span class="font-bold text-white text-sm">Guangzhou & Shenzhen</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Clearance Mode</span>
+              <span class="font-bold text-white text-sm">All-Inclusive DDP</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Minimum Cargo</span>
+              <span class="font-bold text-white text-sm">1.0 KG</span>
+            </div>
+          </div>
+        </div>
+        <div class="lg:col-span-4 flex flex-col gap-3">
+          <a href="#quote-calculator" class="w-full text-center py-3 px-6 bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold text-sm rounded-md transition-colors shadow-sm">
+            Calculate Air Rate
+          </a>
+          <a href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20need%20Air%20Shipment%20from%20China." target="_blank" rel="noreferrer" class="w-full text-center py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-md transition-colors">
+            WhatsApp Air Cargo Desk
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Service Details & Advantages -->
+  <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-3">
+        <div class="w-10 h-10 rounded-md bg-red-50 text-[#EA1D2C] flex items-center justify-center font-bold text-lg font-mono">
+          01
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Daily Scheduled Flights</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Daily space allocations on direct commercial and freighter flights from Guangzhou Baiyun (CAN) and Shenzhen Bao'an (SZX) ensuring minimal tarmac delays.
+        </p>
+      </div>
+
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-3">
+        <div class="w-10 h-10 rounded-md bg-red-50 text-[#EA1D2C] flex items-center justify-center font-bold text-lg font-mono">
+          02
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">HSIA Customs Brokerage</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Licensed C&F customs brokerage team operating directly inside the Dhaka HSIA Air Freight Complex. Rapid assessment, duty payment, and authorized gate pass.
+        </p>
+      </div>
+
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-3">
+        <div class="w-10 h-10 rounded-md bg-red-50 text-[#EA1D2C] flex items-center justify-center font-bold text-lg font-mono">
+          03
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Full DDP Door Delivery</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          One fixed per-kg charge covers export customs in China, international air waybill freight, Bangladesh customs duty, port clearance, and doorstep delivery across Bangladesh.
+        </p>
+      </div>
+    </div>
+
+    <!-- How Chargeable Weight Works -->
+    <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 lg:p-10">
+      <div class="max-w-3xl space-y-4">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/CARGO CALCULATION</span>
+        <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">Understanding Air Freight Chargeable Weight</h2>
+        <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+          Air freight charges are determined by <strong>Chargeable Weight</strong>, which is the greater of your shipment's actual gross weight (scale weight) or its volumetric dimensional weight.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-slate-900 block font-mono">Volumetric Formula (cm):</span>
+            <code class="text-xs bg-slate-100 px-2 py-1 rounded block text-slate-800 font-mono">
+              (L × W × H in cm) ÷ 6,000 = Volumetric KG
+            </code>
+            <p class="text-[11px] text-slate-500 pt-1">Example: A 60×40×40 cm carton = 96,000 ÷ 6,000 = 16.0 KG volumetric weight.</p>
+          </div>
+          <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+            <span class="text-xs font-bold text-slate-900 block font-mono">CBM Conversion:</span>
+            <code class="text-xs bg-slate-100 px-2 py-1 rounded block text-slate-800 font-mono">
+              1.0 CBM = 167.0 KG Air Weight
+            </code>
+            <p class="text-[11px] text-slate-500 pt-1">If actual gross weight exceeds volumetric weight, you are charged purely on gross weight.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive Instant Calculator -->
+    <div id="quote-calculator" class="pt-4">
+      <QuoteCalculatorIsland client:visible initialMode="air" />
+    </div>
+
+    <!-- FAQ Accordion -->
+    <div class="space-y-6 pt-8">
+      <div class="space-y-2">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/KNOWLEDGE BASE</span>
+        <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">Air Shipment Frequently Asked Questions</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {faqItems.map(item => (
+          <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-2">
+            <h3 class="text-sm font-bold text-slate-900 font-['Manrope']">{item.q}</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">{item.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</PublicLayout>

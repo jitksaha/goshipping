@@ -1,151 +1,546 @@
 ---
 import '../styles/global.css';
+import { getSiteOrigin, getCanonicalUrl, getAssetUrl } from '../server/utils/domain';
+import { getTrackingConfig } from '../server/utils/tracking';
+import TrackingHead from '../components/analytics/TrackingHead.astro';
+import TrackingBody from '../components/analytics/TrackingBody.astro';
+import WhatsAppLiveChatWidget from '../components/marketing/WhatsAppLiveChatWidget';
 
 interface Props {
   title?: string;
   description?: string;
+  keywords?: string;
   currentPath?: string;
+  image?: string;
 }
 
 const {
-  title = "GoShipping — Let's Move Your Business Forward",
-  description = 'We provide reliable shipping wherever you need it. High-velocity air & ocean freight forwarding, licensed customs clearance, and live tracking telemetry.',
-  currentPath = '/'
+  title = "Go Shipping | China to Bangladesh Shipping & Logistics",
+  description = "Reliable China to Bangladesh air and sea shipment services with door-to-door delivery, secure cargo handling and logistics support.",
+  keywords = "China to Bangladesh shipping, China to Bangladesh logistics, China to Bangladesh air shipment, China to Bangladesh sea shipment, door-to-door delivery Bangladesh, China cargo forwarding, Guangzhou to Dhaka freight, Shenzhen to Chittagong shipping, customs clearance Bangladesh, DDP shipping Bangladesh, China warehouse support, e-commerce shipping Bangladesh, Go Shipping, goshipping.com.bd",
+  currentPath = '/',
+  image = '/og/og-default.png'
 } = Astro.props;
 
+// Dynamic Domain Resolution (Request Headers -> Environment Variables -> Production Default)
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = getCanonicalUrl(currentPath, Astro.request);
+const ogImageUrl = getAssetUrl(image, Astro.request);
+const trackingConfig = getTrackingConfig();
 const user = Astro.locals?.user;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="overflow-x-clip scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+    <link rel="alternate icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="author" content="Go Shipping" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="theme-color" content="#EA1D2C" />
 
-    <!-- Google Fonts: Manrope & Inter & Noto Sans Bengali -->
+    <!-- Open Graph / Facebook / WhatsApp / LinkedIn Preview (1200x630 High Res) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="Go Shipping" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:secure_url" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content={title} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="bn_BD" />
+
+    <!-- Twitter / X Summary Large Image -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <meta name="twitter:image:alt" content={title} />
+
+    <!-- Geographical / Regional Meta -->
+    <meta name="geo.region" content="BD" />
+    <meta name="geo.placename" content="Dhaka, Bangladesh" />
+    <meta name="target" content="all" />
+
+    <!-- Google Fonts: Manrope (Headings/Editorial), Inter (UI/Body) & Noto Sans Bengali -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Noto+Sans+Bengali:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Multi-Platform Tracking & DataLayer (GTM, Meta Pixel, TikTok, GA4, LinkedIn) -->
+    <TrackingHead config={trackingConfig} siteOrigin={siteOrigin} />
+
+    <!-- Structured Data: Organization & LogisticsService (JSON-LD with Dynamic Domain) -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "LogisticsService",
+          "@id": `${siteOrigin}/#organization`,
+          "name": "Go Shipping",
+          "alternateName": ["GoShipping", "Go Shipping Bangladesh"],
+          "url": siteOrigin,
+          "logo": `${siteOrigin}/brand/logo-light.svg`,
+          "image": `${siteOrigin}/brand/logo-light.svg`,
+          "description": "Reliable China to Bangladesh air and sea shipment services with door-to-door delivery, secure cargo handling and logistics support.",
+          "telephone": "+8801797252627",
+          "email": "hello@goshipping.com.bd",
+          "priceRange": "$$",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Dhaka",
+            "addressCountry": "BD"
+          },
+          "areaServed": [
+            { "@type": "Country", "name": "Bangladesh" },
+            { "@type": "Country", "name": "China" }
+          ],
+          "sameAs": [
+            "https://wa.me/8801797252627"
+          ],
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "China to Bangladesh Shipping Services",
+            "itemListElement": [
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "China to Bangladesh Air Shipment",
+                  "description": "Fast air cargo service with 3-5 days delivery from Guangzhou/Shenzhen to Dhaka."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "China to Bangladesh Sea Shipment",
+                  "description": "Cost-effective FCL and LCL container maritime shipping from Guangzhou and Shenzhen to Chittagong Port."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Door-to-Door Delivery Bangladesh",
+                  "description": "All-inclusive DDP freight forwarding with customs clearance and doorstep delivery across Bangladesh."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "China Warehouse Support",
+                  "description": "Consolidation warehouses in Guangzhou, Yiwu, and Shenzhen for online sellers and commercial importers."
+                }
+              }
+            ]
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": `${siteOrigin}/#website`,
+          "url": siteOrigin,
+          "name": "Go Shipping",
+          "publisher": {
+            "@id": `${siteOrigin}/#organization`
+          },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": `${siteOrigin}/tracking?code={search_term_string}`,
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    })} />
+    
+    <!-- Page-Specific Head & Schema Injection Slot -->
+    <slot name="head" />
   </head>
-  <body class="bg-[#FAFAFA] text-[#11181E] flex flex-col min-h-screen selection:bg-[#EA1D2C] selection:text-white font-['Inter',sans-serif]">
-    <!-- Minimalist Top Navigation -->
-    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
+  <body class="bg-[#FFFFFF] text-[#11181E] flex flex-col min-h-screen selection:bg-[#EA1D2C] selection:text-white font-['Inter',sans-serif] overflow-x-clip">
+    <!-- Tracking Fallback Noscript Elements -->
+    <TrackingBody config={trackingConfig} />
+    <!-- Minimalist Industrial Top Navigation -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-        <!-- Brand Logo / Wordmark in editorial slash format -->
-        <a href="/" class="flex items-center gap-2 group" aria-label="GoShipping">
-          <span class="text-xl font-extrabold tracking-tighter font-['Manrope',sans-serif] text-slate-900 group-hover:text-[#EA1D2C] transition-colors-fast">
-            <span class="text-[#EA1D2C]">/</span>GOSHIPPING
-          </span>
+        
+        <!-- Original GoShipping Logo -->
+        <a href="/" class="flex items-center gap-2 group shrink-0" aria-label="GoShipping Home">
+          <img
+            src="/brand/logo-light.svg"
+            alt="Go Shipping"
+            class="h-9 sm:h-10 w-auto object-contain"
+          />
         </a>
 
-        <!-- Center Menu Links -->
-        <nav class="hidden md:flex items-center space-x-8 text-xs font-semibold text-slate-600">
-          <a href="/about" class="hover:text-slate-900 transition-colors-fast">About us</a>
-          <a href="/services" class="hover:text-slate-900 transition-colors-fast">Services</a>
-          <a href="/services#approach" class="hover:text-slate-900 transition-colors-fast">Our Approach</a>
-          <a href="/#technology" class="hover:text-slate-900 transition-colors-fast">Technology</a>
-          <a href="/tracking" class="hover:text-[#EA1D2C] transition-colors-fast">Tracking</a>
+        <!-- Center Menu Links (Aligned to 14px font standard with comfortable gap) -->
+        <nav class="hidden md:flex items-center space-x-5 lg:space-x-6 text-sm font-semibold text-slate-700 font-['Manrope',sans-serif]">
+          <a href="/services" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath.startsWith('/services') ? 'text-[#EA1D2C]' : ''}`}>Services</a>
+          <a href="/how-it-works" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/how-it-works' ? 'text-[#EA1D2C]' : ''}`}>How It Works</a>
+          <a href="/tracking" class={`hover:text-[#EA1D2C] transition-colors duration-150 flex items-center gap-1 ${currentPath.startsWith('/tracking') ? 'text-[#EA1D2C]' : ''}`}>
+            <span>Tracking</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-[#EA1D2C] animate-pulse"></span>
+          </a>
+          <a href="/quote" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/quote' ? 'text-[#EA1D2C]' : ''}`}>Ship for Me</a>
+          <a href="/about" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/about' ? 'text-[#EA1D2C]' : ''}`}>About Us</a>
+          <a href="/faq" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/faq' ? 'text-[#EA1D2C]' : ''}`}>FAQ</a>
+          <a href="/contact" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/contact' ? 'text-[#EA1D2C]' : ''}`}>Contact</a>
         </nav>
 
         <!-- Right Action Buttons -->
-        <div class="flex items-center gap-3">
+        <div class="hidden sm:flex items-center space-x-2.5 sm:space-x-3">
+          <!-- WhatsApp Quick Access (Real Official Meta Icon, Height equal to buttons h-9, No Background) -->
           <a
-            href="/contact"
-            class="hidden sm:inline-flex items-center justify-center px-5 py-2.5 rounded-full bg-[#11181E] text-white text-xs font-bold hover:bg-slate-800 transition-colors-fast"
+            href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20would%20like%20a%20shipping%20quote."
+            target="_blank"
+            rel="noreferrer"
+            class="h-9 w-9 inline-flex items-center justify-center shrink-0 hover:scale-105 active:scale-95 transition-transform"
+            aria-label="WhatsApp Support (+880 1797-252627)"
+            title="Chat on WhatsApp (+880 1797-252627)"
           >
-            Contact Us
+            <svg class="w-9 h-9" viewBox="0 0 48 48" fill="none">
+              <path fill="#25D366" fill-rule="evenodd" clip-rule="evenodd" d="M24 4C12.954 4 4 12.954 4 24c0 3.513.91 6.815 2.502 9.682L4 44l10.59-2.433A19.92 19.92 0 0 0 24 44c11.046 0 20-8.954 20-20S35.046 4 24 4z"/>
+              <path fill="#FFFFFF" d="M33.6 28.8c-.46-.23-2.73-1.35-3.15-1.5-.42-.16-.73-.23-1.04.23-.31.47-1.19 1.5-1.45 1.8-.27.31-.53.35-1 .12-.46-.23-1.96-.72-3.73-2.3-1.38-1.23-2.31-2.75-2.58-3.21-.27-.46-.03-.71.2-.94.21-.21.46-.54.7-.81.23-.27.31-.46.46-.77.15-.31.08-.58-.04-.81-.12-.23-1.04-2.5-1.42-3.42-.38-.9-.76-.78-1.04-.79h-.88c-.31 0-.81.12-1.23.58-.42.46-1.61 1.58-1.61 3.85 0 2.27 1.65 4.46 1.88 4.77.23.31 3.25 4.96 7.87 6.96 1.1.48 1.96.76 2.63.98 1.1.35 2.11.3 2.91.18.89-.13 2.73-1.12 3.12-2.19.38-1.08.38-2 .27-2.19-.12-.19-.42-.31-.88-.54z"/>
+            </svg>
           </a>
 
-          {user ? (
+          <!-- Track Shipment Button (Direct access next to auth button, exact h-9) -->
+          <a
+            href="/tracking"
+            class={`h-9 inline-flex items-center gap-1.5 px-3.5 text-xs font-bold rounded-md border transition-colors duration-150 ${currentPath.startsWith('/tracking') ? 'text-[#EA1D2C] bg-red-50 border-red-200' : 'text-slate-800 bg-slate-50 hover:bg-slate-100 hover:text-[#EA1D2C] border-slate-200'}`}
+            title="Track Shipment"
+          >
+            <svg class="w-3.5 h-3.5 text-[#EA1D2C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Track</span>
+          </a>
+
+          <!-- Dynamic Auth Controls (Sign In & Sign Up if guest; Dashboard & Sign Out if authenticated, exact h-9) -->
+          <div id="header-auth-container" class="inline-flex items-center gap-2">
+            {user ? (
+              <>
+                <a
+                  id="header-auth-btn"
+                  href={user.role === 'customer' ? '/dashboard' : '/admin'}
+                  class="h-9 inline-flex items-center gap-1.5 px-3.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-md transition-none border border-slate-200 shadow-xs"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>Dashboard</span>
+                </a>
+                <a
+                  href="/logout"
+                  class="h-9 inline-flex items-center gap-1 px-2.5 text-xs font-medium text-slate-500 hover:text-red-600 rounded-md transition-none hover:bg-red-50 border border-transparent hover:border-red-100"
+                  title="Sign out"
+                >
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span class="hidden lg:inline">Sign Out</span>
+                </a>
+              </>
+            ) : (
+              <>
+                <a
+                  id="header-auth-btn"
+                  href="/login"
+                  class="h-9 inline-flex items-center px-3.5 text-xs font-semibold text-slate-700 hover:text-black border border-slate-300 rounded-md hover:bg-slate-50 transition-none"
+                >
+                  Sign In
+                </a>
+                <a
+                  id="header-signup-btn"
+                  href="/signup"
+                  class="h-9 inline-flex items-center px-3.5 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] rounded-md transition-none shadow-xs"
+                >
+                  Sign Up
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+
+        <!-- Mobile Menu Toggle Button -->
+        <button
+          id="mobile-nav-toggle"
+          class="md:hidden p-2 text-slate-700 hover:text-black focus:outline-none"
+          aria-label="Toggle Navigation"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Navigation Drawer -->
+      <div id="mobile-nav-menu" class="hidden md:hidden border-t border-slate-100 bg-white px-4 pt-3 pb-6 space-y-3 font-['Manrope']">
+        <a href="/services" class="block py-2 text-sm font-semibold text-slate-800">All Services</a>
+        <a href="/services/air-shipment" class="block py-1.5 pl-3 text-xs text-slate-600">↳ Air Shipment (3-7 Days)</a>
+        <a href="/services/sea-shipment" class="block py-1.5 pl-3 text-xs text-slate-600">↳ Sea Shipment (FCL/LCL)</a>
+        <a href="/services/door-to-door" class="block py-1.5 pl-3 text-xs text-slate-600">↳ Door-to-Door Delivery</a>
+        <a href="/services/customs-clearance" class="block py-1.5 pl-3 text-xs text-slate-600">↳ Customs Clearance Support</a>
+        <a href="/services/china-warehouse" class="block py-1.5 pl-3 text-xs text-slate-600">↳ China Warehouse Support</a>
+        <a href="/how-it-works" class="block py-2 text-sm font-semibold text-slate-800">How It Works</a>
+        <a href="/quote" class="block py-2 text-sm font-semibold text-[#EA1D2C]">Ship for Me</a>
+        <a href="/about" class="block py-2 text-sm font-semibold text-slate-800">About Us</a>
+        <a href="/faq" class="block py-2 text-sm font-semibold text-slate-800">FAQ</a>
+        <a href="/contact" class="block py-2 text-sm font-semibold text-slate-800">Contact</a>
+        <a href="/tracking" class="block py-2 text-sm font-semibold text-[#EA1D2C]">Track Consignment</a>
+        <div class="pt-3 border-t border-slate-100 flex flex-col gap-2">
+          <div class="grid grid-cols-2 gap-2">
             <a
-              href={user.role === 'customer' ? '/dashboard' : '/admin'}
-              class="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-slate-300 bg-white text-slate-900 text-xs font-bold hover:border-slate-400 hover:bg-slate-50 transition-colors-fast"
+              href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20would%20like%20a%20shipping%20quote."
+              target="_blank"
+              rel="noreferrer"
+              class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition-colors duration-150"
             >
-              Portal ({user.fullName.split(' ')[0]})
+              <svg class="w-4 h-4 fill-emerald-600" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.54 1.861.855 2.796.856 3.183 0 5.768-2.587 5.769-5.766.001-3.182-2.585-5.769-5.769-5.769zm3.364 8.163c-.144.405-.837.774-1.17.822-.312.043-.683.076-2.18-.544-1.916-.79-3.149-2.73-3.245-2.858-.095-.127-.778-1.034-.778-1.972 0-.938.491-1.399.666-1.59.175-.19.382-.239.508-.239.127 0 .254.001.365.006.119.006.277-.045.433.329.162.388.552 1.343.6 1.44.048.098.08.212.016.339-.064.127-.095.207-.19.317-.095.11-.2.247-.286.332-.095.095-.195.198-.084.388.111.19.494.815 1.059 1.319.728.648 1.342.85 1.533.945.19.095.302.079.413-.048.111-.127.476-.554.603-.744.127-.19.254-.159.429-.095.175.063 1.111.524 1.302.619.19.095.317.143.365.222.048.079.048.459-.095.864z"/>
+              </svg>
+              <span>WhatsApp</span>
             </a>
-          ) : (
             <a
-              href="/login"
-              class="inline-flex items-center justify-center px-5 py-2.5 rounded-full border border-slate-300 bg-white text-slate-900 text-xs font-bold hover:border-slate-400 hover:bg-slate-50 transition-colors-fast"
+              href="/tracking"
+              class="flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md transition-colors duration-150"
             >
-              Sign In
+              <svg class="w-3.5 h-3.5 text-[#EA1D2C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Track</span>
             </a>
-          )}
+          </div>
+          <div id="mobile-auth-container">
+            {user ? (
+              <div class="grid grid-cols-2 gap-2">
+                <a
+                  href={user.role === 'customer' ? '/dashboard' : '/admin'}
+                  class="block text-center py-2.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-md"
+                >
+                  Dashboard
+                </a>
+                <a
+                  href="/logout"
+                  class="block text-center py-2.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md"
+                >
+                  Sign Out
+                </a>
+              </div>
+            ) : (
+              <div class="grid grid-cols-2 gap-2">
+                <a
+                  href="/login"
+                  class="block text-center py-2.5 text-xs font-semibold text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50"
+                >
+                  Sign In
+                </a>
+                <a
+                  href="/signup"
+                  class="block text-center py-2.5 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] rounded-md shadow-xs"
+                >
+                  Sign Up
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Page Content -->
+    <!-- Page Content Slot -->
     <main class="flex-grow">
       <slot />
     </main>
 
-    <!-- Editorial Minimalist Footer -->
-    <footer class="bg-[#11181E] text-slate-300 pt-20 pb-12 border-t border-slate-800">
+    <!-- Interactive Real-Time WhatsApp Live Support Chat Widget -->
+    <WhatsAppLiveChatWidget client:load />
+
+    <!-- Editorial Industrial Footer (Dark Midnight #11181E) -->
+    <footer class="bg-[#11181E] text-slate-300 pt-20 pb-12 border-t border-slate-800 font-['Inter',sans-serif]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-10">
           <!-- Col 1: Brand & Tagline -->
           <div class="md:col-span-5 space-y-4">
-            <span class="text-2xl font-extrabold tracking-tighter font-['Manrope',sans-serif] text-white">
-              <span class="text-[#EA1D2C]">/</span>GOSHIPPING
-            </span>
+            <a href="/" class="inline-block">
+              <img
+                src="/brand/logo-dark.svg"
+                alt="Go Shipping"
+                class="h-10 sm:h-11 w-auto object-contain"
+              />
+            </a>
             <p class="text-xs text-slate-400 max-w-sm leading-relaxed">
-              We specialize in providing reliable and efficient logistics solutions. High-velocity air & ocean freight forwarding, licensed customs clearance, and authenticated waypoint telemetry.
+              Reliable China to Bangladesh air and sea shipment services with door-to-door delivery, secure cargo handling and logistics support for businesses and online sellers across Bangladesh.
             </p>
-            <div class="pt-2 text-[11px] text-slate-500 font-mono">
-              BAFFA · IATA CARGO AGENT · FIATA · CHITTAGONG CUSTOMS #182
+            <div class="pt-2 text-[11px] text-slate-500 font-mono space-y-1">
+              <div>CHINA WAREHOUSE HUBS: GUANGZHOU · YIWU · SHENZHEN</div>
+              <div>BANGLADESH CLEARANCE: DHAKA HSIA AIRPORT · CHITTAGONG SEAPORT CFS</div>
             </div>
           </div>
 
           <!-- Col 2: Services -->
           <div class="md:col-span-2 space-y-3">
-            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Services</h4>
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Services</h4>
             <ul class="text-xs space-y-2 text-slate-400">
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Ocean Freight</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Air Cargo</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Warehousing</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Customs Clearance</a></li>
-              <li><a href="/services" class="hover:text-white transition-colors-fast">Supply Chain</a></li>
+              <li><a href="/services/air-shipment" class="hover:text-white transition-colors duration-150">Air Shipment (3-7 Days)</a></li>
+              <li><a href="/services/sea-shipment" class="hover:text-white transition-colors duration-150">Sea Shipment (FCL/LCL)</a></li>
+              <li><a href="/services/door-to-door" class="hover:text-white transition-colors duration-150">Door-to-Door Delivery</a></li>
+              <li><a href="/services/customs-clearance" class="hover:text-white transition-colors duration-150">Customs Clearance Support</a></li>
+              <li><a href="/services/china-warehouse" class="hover:text-white transition-colors duration-150">China Warehouse Support</a></li>
             </ul>
           </div>
 
           <!-- Col 3: Company -->
           <div class="md:col-span-2 space-y-3">
-            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Company</h4>
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Company</h4>
             <ul class="text-xs space-y-2 text-slate-400">
-              <li><a href="/about" class="hover:text-white transition-colors-fast">About Us</a></li>
-              <li><a href="/#why-choose-us" class="hover:text-white transition-colors-fast">Why Choose Us</a></li>
-              <li><a href="/contact" class="hover:text-white transition-colors-fast">Global Hubs</a></li>
-              <li><a href="/tracking" class="hover:text-white transition-colors-fast">Live Tracking</a></li>
-              <li><a href="/login" class="hover:text-white transition-colors-fast">Sign In</a></li>
+              <li><a href="/about" class="hover:text-white transition-colors duration-150">About Go Shipping</a></li>
+              <li><a href="/how-it-works" class="hover:text-white transition-colors duration-150">How It Works</a></li>
+              <li><a href="/quote" class="hover:text-white transition-colors duration-150">Shipping Rates & Quote</a></li>
+              <li><a href="/tracking" class="hover:text-white transition-colors duration-150">Track Consignment</a></li>
+              <li><a href="/faq" class="hover:text-white transition-colors duration-150">FAQ & Guidelines</a></li>
+              <li><a href="/contact" class="hover:text-white transition-colors duration-150">Contact Us</a></li>
             </ul>
           </div>
 
-          <!-- Col 4: Regional Hubs -->
+          <!-- Col 4: Verified Contact Channels from goshipping.com.bd -->
           <div class="md:col-span-3 space-y-3 text-xs text-slate-400">
-            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Operations Desk</h4>
-            <p><strong class="text-slate-200">Dhaka HQ:</strong> Plot 14, Sector 3, Uttara Export Zone</p>
-            <p><strong class="text-slate-200">Port CFS:</strong> Chittagong Maritime Point</p>
-            <p><strong class="text-slate-200">Direct Hotline:</strong> +880 2 890 1200 / +880 9638-005544</p>
-            <p><strong class="text-slate-200">Email:</strong> ops@goshipping.com</p>
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider font-mono">Direct Contact</h4>
+            <p><strong class="text-slate-200">Phone:</strong> <a href="tel:+8801797252627" class="hover:text-white transition-colors">+880 1797-252627</a></p>
+            <p><strong class="text-slate-200">WhatsApp:</strong> <a href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20would%20like%20a%20shipping%20quote." target="_blank" rel="noreferrer" class="text-emerald-400 hover:text-emerald-300 transition-colors">+880 1797-252627 (Instant Chat)</a></p>
+            <p><strong class="text-slate-200">Email:</strong> <a href="mailto:hello@goshipping.com.bd" class="hover:text-white transition-colors">hello@goshipping.com.bd</a></p>
+            <p><strong class="text-slate-200">Location:</strong> Dhaka, Bangladesh</p>
           </div>
         </div>
 
-        <div class="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-4">
-          <p>© {new Date().getFullYear()} GoShipping Logistics Ltd. All rights reserved.</p>
+        <div class="pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-4">
+          <p>© {new Date().getFullYear()} Go Shipping. All Rights Reserved. (goshipping.com.bd)</p>
           <div class="flex items-center space-x-6">
-            <span>Astro + React + Kumo UI + Hono</span>
-            <a href="/about" class="hover:text-slate-300">Privacy Notice</a>
-            <a href="/about" class="hover:text-slate-300">Terms of Service</a>
+            <a href="/privacy" class="hover:text-slate-300">Privacy Policy</a>
+            <a href="/terms" class="hover:text-slate-300">Terms of Shipping</a>
+            <a href="/faq" class="hover:text-slate-300">FAQ</a>
+            <span>China to Bangladesh Logistics Network</span>
           </div>
         </div>
       </div>
     </footer>
+
+    <script>
+      const toggle = document.getElementById('mobile-nav-toggle');
+      const menu = document.getElementById('mobile-nav-menu');
+      if (toggle && menu) {
+        toggle.addEventListener('click', () => {
+          menu.classList.toggle('hidden');
+        });
+      }
+
+      // Dynamic Auth session sync with database & session cookie
+      (async function syncAuthButton() {
+        try {
+          const res = await fetch('/api/auth/me', { headers: { 'Accept': 'application/json' } });
+          if (!res.ok) return;
+          const data = await res.json();
+          const desktopContainer = document.getElementById('header-auth-container');
+          const mobileContainer = document.getElementById('mobile-auth-container');
+
+          if (data && data.authenticated && data.user) {
+            const dashboardUrl = data.user.role === 'customer' ? '/dashboard' : '/admin';
+            const desktopHtml = `
+              <a
+                id="header-auth-btn"
+                href="${dashboardUrl}"
+                class="h-9 inline-flex items-center gap-1.5 px-3.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-md transition-none border border-slate-200 shadow-xs"
+              >
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Dashboard</span>
+              </a>
+              <a
+                href="/logout"
+                class="h-9 inline-flex items-center gap-1 px-2.5 text-xs font-medium text-slate-500 hover:text-red-600 rounded-md transition-none hover:bg-red-50 border border-transparent hover:border-red-100"
+                title="Sign out"
+              >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span class="hidden lg:inline">Sign Out</span>
+              </a>
+            `;
+            const mobileHtml = `
+              <div class="grid grid-cols-2 gap-2">
+                <a
+                  href="${dashboardUrl}"
+                  class="block text-center py-2.5 text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-md"
+                >
+                  Dashboard
+                </a>
+                <a
+                  href="/logout"
+                  class="block text-center py-2.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md"
+                >
+                  Sign Out
+                </a>
+              </div>
+            `;
+            if (desktopContainer) desktopContainer.innerHTML = desktopHtml;
+            if (mobileContainer) mobileContainer.innerHTML = mobileHtml;
+          } else {
+            const guestHtmlDesktop = `
+              <a
+                id="header-auth-btn"
+                href="/login"
+                class="h-9 inline-flex items-center px-3.5 text-xs font-semibold text-slate-700 hover:text-black border border-slate-300 rounded-md hover:bg-slate-50 transition-none"
+              >
+                Sign In
+              </a>
+              <a
+                id="header-signup-btn"
+                href="/signup"
+                class="h-9 inline-flex items-center px-3.5 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] rounded-md transition-none shadow-xs"
+              >
+                Sign Up
+              </a>
+            `;
+            const guestHtmlMobile = `
+              <div class="grid grid-cols-2 gap-2">
+                <a
+                  href="/login"
+                  class="block text-center py-2.5 text-xs font-semibold text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50"
+                >
+                  Sign In
+                </a>
+                <a
+                  href="/signup"
+                  class="block text-center py-2.5 text-xs font-bold text-white bg-[#EA1D2C] hover:bg-[#D41523] rounded-md shadow-xs"
+                >
+                  Sign Up
+                </a>
+              </div>
+            `;
+            if (desktopContainer) desktopContainer.innerHTML = guestHtmlDesktop;
+            if (mobileContainer) mobileContainer.innerHTML = guestHtmlMobile;
+          }
+        } catch {
+          // SSR initial render persists safely
+        }
+      })();
+    </script>
   </body>
 </html>

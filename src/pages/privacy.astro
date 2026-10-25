@@ -1,0 +1,112 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { getSiteOrigin } from '../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/privacy`;
+
+const privacySchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${canonicalUrl}#webpage`,
+      "url": canonicalUrl,
+      "name": "Privacy Policy | Go Shipping Bangladesh",
+      "description": "Go Shipping's customer privacy policy, outlining how personal information, business consignment details, and shipping records are protected."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Privacy Policy", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="Privacy Policy | Go Shipping Bangladesh"
+  description="Our privacy policy explains how Go Shipping collects, uses, protects, and manages customer information, consignment records, and shipping documents."
+  keywords="privacy policy go shipping, data protection, customer confidentiality, cargo privacy bangladesh"
+  currentPath="/privacy"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(privacySchema)} />
+  </Fragment>
+
+  <!-- Hero Header -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-20 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/" class="hover:underline text-slate-400">Home</a>
+        <span>/</span>
+        <span>Legal</span>
+      </div>
+      <div class="max-w-3xl space-y-3">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+          Privacy Policy
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          Last updated: October 2026. This policy describes how Go Shipping collects, safeguards, and handles your business and personal information when using our logistics and shipping services.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Policy Content Body -->
+  <section class="py-16 lg:py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 text-slate-700 text-xs sm:text-sm leading-relaxed">
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">1. Information We Collect</h2>
+      <p>
+        To coordinate international freight forwarding and customs clearance from China to Bangladesh, Go Shipping collects necessary commercial and contact information, including:
+      </p>
+      <ul class="list-disc pl-5 space-y-1 text-slate-600">
+        <li>Contact details: Name, phone number, WhatsApp number, email address, and physical delivery address in Bangladesh.</li>
+        <li>Consignment details: Product descriptions, HS codes, packaging types, weights, dimensions, commercial invoice values, and supplier coordinates in China.</li>
+        <li>Account and transaction data: Registered login credentials, historical shipments, quotes requested, and payment settlement records.</li>
+      </ul>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">2. How We Use Your Information</h2>
+      <p>
+        Collected information is strictly used for legitimate operational and logistics purposes:
+      </p>
+      <ul class="list-disc pl-5 space-y-1 text-slate-600">
+        <li>Generating quotation estimates and official booking confirmations.</li>
+        <li>Executing export documentation in China and customs clearance with Bangladesh Customs (NBR).</li>
+        <li>Coordinating physical door-to-door delivery and dispatch telemetry updates.</li>
+        <li>Communicating real-time milestone alerts and urgent transit notices via WhatsApp or email.</li>
+      </ul>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">3. Confidentiality & Third-Party Disclosure</h2>
+      <p>
+        We do not sell, rent, or trade your personal or business shipment details to third parties. Information is disclosed solely to authorized regulatory bodies (e.g., Bangladesh Customs authorities, civil aviation authorities, and port handling terminals) or vetted domestic delivery carriers strictly required to complete the delivery of your cargo.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">4. Data Security</h2>
+      <p>
+        We implement industry-standard cryptographic encryption, secure server architecture, and access-controlled databases to prevent unauthorized access, alteration, or disclosure of your shipping records and personal information.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">5. Contact Our Privacy Officer</h2>
+      <p>
+        If you have questions about your privacy rights or wish to request corrections to your account information, please reach out to our compliance desk:
+      </p>
+      <div class="p-4 bg-slate-50 border border-slate-200 rounded-md font-mono text-xs space-y-1 text-slate-800">
+        <div>Go Shipping Compliance Desk</div>
+        <div>Email: <a href="mailto:hello@goshipping.com.bd" class="text-[#EA1D2C] underline">hello@goshipping.com.bd</a></div>
+        <div>Phone / WhatsApp: +880 1797-252627</div>
+        <div>Location: Dhaka, Bangladesh</div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

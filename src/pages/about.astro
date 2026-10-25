@@ -1,69 +1,129 @@
 ---
 import PublicLayout from '../layouts/PublicLayout.astro';
+import { getSiteOrigin } from '../server/utils/domain';
 
-export const prerender = true;
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/about`;
+
+const aboutSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "AboutPage",
+      "@id": `${canonicalUrl}#about`,
+      "url": canonicalUrl,
+      "name": "About Go Shipping | Your Trusted China to Bangladesh Shipping Partner",
+      "description": "Learn about Go Shipping: our logistics network connecting Guangzhou, Yiwu, and Shenzhen to Dhaka and Chittagong with reliable air, sea, and door-to-door forwarding."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "About Us", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
 ---
 
-<PublicLayout title="About GoShipping | Global Network, Fleet & Credentials" currentPath="/about">
-  <div class="bg-slate-900 text-white py-16 border-b border-slate-800">
+<PublicLayout
+  title="About Go Shipping | Your Trusted China to Bangladesh Shipping Partner"
+  description="We help online sellers, e-commerce businesses and importers move products from China to Bangladesh with reliable shipping and door-to-door logistics support."
+  keywords="About Go Shipping, China to Bangladesh shipping partner, e-commerce shipping Bangladesh, China warehouse support, door-to-door logistics Bangladesh"
+  currentPath="/about"
+  image="/og/og-about.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(aboutSchema)} />
+  </Fragment>
+  <div class="bg-slate-900 text-white py-16 lg:py-20 border-b border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Corporate Profile</span>
-      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
-        Engineering Reliable Global Supply Chains Since 2014
+      <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C] font-mono">
+        /CHINA → BD END-TO-END SUPPORT
+      </span>
+      <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight mt-2 text-white">
+        Your Trusted China to Bangladesh Shipping Partner
       </h1>
-      <p class="text-slate-300 text-sm max-w-2xl mt-3 leading-relaxed">
-        GoShipping connects South Asia's powerhouse manufacturing centers to global markets with authenticated operational integrity, transparent pricing, and digital tracking.
+      <p class="text-slate-300 text-sm sm:text-base max-w-2xl mt-4 leading-relaxed font-normal">
+        We help online sellers, e-commerce businesses and importers move products from China to Bangladesh with reliable shipping and door-to-door logistics support.
       </p>
     </div>
   </div>
 
-  <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-    <!-- Corporate Mission & Numbers -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
-        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">200K+</span>
-        <h3 class="font-bold text-slate-900 text-sm mt-2">Sq. Ft. Warehouse Network</h3>
-        <p class="text-xs text-slate-500 mt-1">Modern secure bonded and non-bonded facilities across Dhaka, Chittagong, Dubai and Guangzhou.</p>
+  <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+    <!-- 4 Core Pillars -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="p-6 rounded-lg bg-slate-50 border border-slate-200">
+        <span class="text-2xl font-black text-[#EA1D2C] font-mono">01</span>
+        <h3 class="font-extrabold text-slate-900 text-base mt-2">Safe & Secure</h3>
+        <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+          Your cargo is handled with care from warehouse to delivery.
+        </p>
       </div>
 
-      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
-        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">12,500</span>
-        <h3 class="font-bold text-slate-900 text-sm mt-2">Annual TEU Ocean Volume</h3>
-        <p class="text-xs text-slate-500 mt-1">Reliable weekly departures via mainline and feeder maritime carriers.</p>
+      <div class="p-6 rounded-lg bg-slate-50 border border-slate-200">
+        <span class="text-2xl font-black text-[#EA1D2C] font-mono">02</span>
+        <h3 class="font-extrabold text-slate-900 text-base mt-2">Door-to-Door</h3>
+        <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+          Complete shipping support from China to Bangladesh.
+        </p>
       </div>
 
-      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
-        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">8,500</span>
-        <h3 class="font-bold text-slate-900 text-sm mt-2">Tons Air Cargo Shipped</h3>
-        <p class="text-xs text-slate-500 mt-1">Scheduled allocations on Emirates, Qatar, Saudia, and Turkish airlines.</p>
+      <div class="p-6 rounded-lg bg-slate-50 border border-slate-200">
+        <span class="text-2xl font-black text-[#EA1D2C] font-mono">03</span>
+        <h3 class="font-extrabold text-slate-900 text-base mt-2">Fast Air Shipment</h3>
+        <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+          Reliable air freight for time-sensitive shipments (7–14 days approx.).
+        </p>
       </div>
 
-      <div class="p-6 rounded-xl bg-slate-50 border border-slate-200">
-        <span class="text-3xl font-extrabold text-[#EA1D2C] font-mono tabular-nums">120+</span>
-        <h3 class="font-bold text-slate-900 text-sm mt-2">Certified Logistics Staff</h3>
-        <p class="text-xs text-slate-500 mt-1">Licensed customs agents, dangerous goods specialists, and operations managers.</p>
+      <div class="p-6 rounded-lg bg-slate-50 border border-slate-200">
+        <span class="text-2xl font-black text-[#EA1D2C] font-mono">04</span>
+        <h3 class="font-extrabold text-slate-900 text-base mt-2">Sea Shipment</h3>
+        <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+          Cost-effective sea freight for larger shipments (35–45 days approx.).
+        </p>
       </div>
     </div>
 
-    <!-- Credentials & Memberships -->
-    <div class="p-8 rounded-xl bg-white border border-slate-200 shadow-sm space-y-6">
-      <h2 class="text-xl font-bold text-slate-900">Accreditations & Industry Governance</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-          <p class="font-bold text-slate-900">BAFFA Member</p>
-          <p class="text-slate-500 mt-0.5">Bangladesh Freight Forwarders Association</p>
+    <!-- Core Capabilities -->
+    <div class="p-8 sm:p-12 rounded-lg bg-white border border-slate-200 space-y-8">
+      <div>
+        <span class="text-xs font-bold text-[#EA1D2C] uppercase tracking-wider block font-mono">
+          /OPERATIONAL CAPABILITIES
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-1">
+          Complete Support at Every Shipping Stage
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
+          Whether you are an established importer or a rising online seller, our team provides practical and transparent coordination for your goods.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs font-bold text-slate-800">
+        <div class="flex items-center gap-3 p-4 rounded-md bg-slate-50 border border-slate-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]"></span>
+          China Warehouse Support
         </div>
-        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-          <p class="font-bold text-slate-900">IATA Cargo Agent</p>
-          <p class="text-slate-500 mt-0.5">Direct Airway Bill issuing authority</p>
+        <div class="flex items-center gap-3 p-4 rounded-md bg-slate-50 border border-slate-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]"></span>
+          Safe & Secure Cargo Handling
         </div>
-        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-          <p class="font-bold text-slate-900">FIATA Affiliated</p>
-          <p class="text-slate-500 mt-0.5">International Federation of Freight Forwarders</p>
+        <div class="flex items-center gap-3 p-4 rounded-md bg-slate-50 border border-slate-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]"></span>
+          Door-to-Door Delivery
         </div>
-        <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-          <p class="font-bold text-slate-900">Customs Broker License</p>
-          <p class="text-slate-500 mt-0.5">Chittagong & Dhaka Customs Reg. #182</p>
+        <div class="flex items-center gap-3 p-4 rounded-md bg-slate-50 border border-slate-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]"></span>
+          Customs Clearance Support
+        </div>
+        <div class="flex items-center gap-3 p-4 rounded-md bg-slate-50 border border-slate-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]"></span>
+          Small & Large Shipment Accepted
+        </div>
+        <div class="flex items-center gap-3 p-4 rounded-md bg-slate-50 border border-slate-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]"></span>
+          Dedicated Customer Support
         </div>
       </div>
     </div>

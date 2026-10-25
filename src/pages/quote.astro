@@ -1,0 +1,113 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import QuoteCalculatorIsland from '../components/marketing/QuoteCalculatorIsland';
+import { getSiteOrigin } from '../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/quote`;
+
+const quoteSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${canonicalUrl}#webpage`,
+      "url": canonicalUrl,
+      "name": "Ship for Me | China to Bangladesh Forwarding & Freight Concierge — Go Shipping",
+      "description": "Premium Ship for Me forwarding service from China to Bangladesh. Buy on 1688, Taobao, or direct factory, ship to our Guangzhou/Yiwu warehouse with complete customs clearance and door delivery."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Ship for Me", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="Ship for Me | China to Bangladesh Forwarding & Freight Concierge — Go Shipping"
+  description="Premium Ship for Me forwarding service from China to Bangladesh. Buy on 1688, Taobao, or direct factory, ship to our Guangzhou/Yiwu warehouse with complete customs clearance and door delivery."
+  keywords="ship for me china to bangladesh, 1688 to bangladesh shipping, taobao to bd shipping, china warehouse forwarding bangladesh"
+  currentPath="/quote"
+  image="/og/og-quote.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(quoteSchema)} />
+  </Fragment>
+
+  <!-- Hero Header -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-20 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/" class="hover:underline text-slate-400">Home</a>
+        <span>/</span>
+        <span>Ship for Me Concierge</span>
+      </div>
+      <div class="max-w-3xl space-y-3">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+          Ship for Me — Forwarding Concierge
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          Order directly from 1688, Taobao, Alibaba, or Chinese factories. Ship to our Guangzhou or Yiwu warehouse, and we handle receiving, consolidation, customs clearance, and door-to-door delivery across Bangladesh.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Quote Calculator Island -->
+  <section class="py-12 lg:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+    <div id="quote-calculator">
+      <QuoteCalculatorIsland client:load />
+    </div>
+
+    <!-- Rate Comparison Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/AIR SERVICE ESTIMATE</span>
+        <h3 class="text-xl font-bold text-slate-900 font-['Manrope']">Air Shipment (Express & Standard)</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Best for high-value merchandise, urgent inventory replenishments, sample parcels, and electronics.
+        </p>
+        <div class="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-2 text-xs">
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Transit Duration</span>
+            <span class="font-bold text-slate-900">3–7 Business Days</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Billing Metric</span>
+            <span class="font-bold text-slate-900">Per KG (Chargeable Weight)</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Volumetric Factor</span>
+            <span class="font-bold text-slate-900">1 CBM = 167 KG (L×W×H/6000)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/OCEAN SERVICE ESTIMATE</span>
+        <h3 class="text-xl font-bold text-slate-900 font-['Manrope']">Sea Shipment (FCL & LCL)</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Best for large commercial volumes, raw materials, heavy machinery, furniture, and cost-conscious bulk cargo.
+        </p>
+        <div class="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-2 text-xs">
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Transit Duration</span>
+            <span class="font-bold text-slate-900">35–45 Days Total Door Delivery</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Billing Metric</span>
+            <span class="font-bold text-slate-900">Per CBM (Cubic Meter)</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Minimum Charge</span>
+            <span class="font-bold text-slate-900">1.0 CBM (Shared Container)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

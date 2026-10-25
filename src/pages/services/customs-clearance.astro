@@ -1,0 +1,208 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import { getSiteOrigin } from '../../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/services/customs-clearance`;
+
+const faqItems = [
+  {
+    q: "What ports and customs stations do you clear in Bangladesh?",
+    a: "We operate dedicated C&F customs clearance stations at Hazrat Shahjalal International Airport (DAC) Air Cargo Unit, Chittagong Seaport (CGP) CFS/Off-dock terminals, and Kamalapur Inland Container Depot (ICD) in Dhaka."
+  },
+  {
+    q: "What documents are required for commercial customs clearance?",
+    a: "Standard commercial imports require: Commercial Invoice, Packing List, Bill of Lading (B/L) or Airway Bill (AWB), Certificate of Origin (COO), and Letter of Credit (L/C) or Bank Sale Contract with Import Registration Certificate (IRC)."
+  },
+  {
+    q: "Can you assist with correct HS Code classification?",
+    a: "Yes. Our tariff specialists analyze your product specifications, material compositions, and technical datasheets to ensure correct 8-digit Bangladesh Customs HS Code classification, preventing penalties or misdeclaration delays."
+  },
+  {
+    q: "What if I don't have an import license (IRC)?",
+    a: "If you are an individual importer or online business without an IRC, we provide all-inclusive DDP freight forwarding where customs clearance is conducted under our authorized import framework."
+  }
+];
+
+const serviceSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      "@id": `${siteOrigin}/services/customs-clearance#service`,
+      "name": "Bangladesh Customs Brokerage & Port Clearance Services",
+      "serviceType": "Customs Brokerage",
+      "provider": {
+        "@type": "LogisticsService",
+        "@id": `${siteOrigin}/#organization`,
+        "name": "Go Shipping"
+      },
+      "areaServed": [
+        { "@type": "Country", "name": "Bangladesh" }
+      ],
+      "description": "Professional customs clearance and C&F brokerage services at Dhaka HSIA Airport, Chittagong Port, and Kamalapur ICD for commercial and industrial importers."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Services", "item": `${siteOrigin}/services` },
+        { "@type": "ListItem", "position": 3, "name": "Customs Clearance", "item": canonicalUrl }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": faqItems.map(item => ({
+        "@type": "Question",
+        "name": item.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": item.a
+        }
+      }))
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="Customs Clearance Bangladesh | Port & Airport C&F Brokerage — Go Shipping"
+  description="Professional customs brokerage and clearance support in Bangladesh for air cargo at HSIA Dhaka and sea cargo at Chittagong Port. Fast assessment, HS code classification, and regulatory compliance."
+  keywords="customs clearance bangladesh, c&f agent dhaka airport, chittagong port customs clearance, hs code classification bangladesh, import duty assessment bd, customs brokerage dhaka"
+  currentPath="/services/customs-clearance"
+  image="/og/og-customs-clearance.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+  </Fragment>
+
+  <!-- Hero Banner -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-24 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/services" class="hover:underline text-slate-400">Services</a>
+        <span>/</span>
+        <span>Customs Brokerage</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-8 space-y-4">
+          <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+            Bangladesh Customs Clearance & Brokerage
+          </h1>
+          <p class="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
+            Swift, compliant customs brokerage services at Dhaka Hazrat Shahjalal International Airport (DAC) and Chittagong Seaport (CGP). Expert tariff advisory, accurate HS Code classification, and seamless port handling.
+          </p>
+          <div class="flex flex-wrap gap-4 pt-4 text-xs">
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Stations</span>
+              <span class="font-bold text-white text-sm">DAC Airport & CGP Seaport</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Clearance Speed</span>
+              <span class="font-bold text-white text-sm">24–48 Hours Typical</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Compliance</span>
+              <span class="font-bold text-white text-sm">NBR & ASYCUDA World</span>
+            </div>
+          </div>
+        </div>
+        <div class="lg:col-span-4 flex flex-col gap-3">
+          <a href="/contact" class="w-full text-center py-3 px-6 bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold text-sm rounded-md transition-colors shadow-sm">
+            Contact Customs Desk
+          </a>
+          <a href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20need%20customs%20clearance%20support." target="_blank" rel="noreferrer" class="w-full text-center py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-md transition-colors">
+            WhatsApp C&F Officer
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Service Details -->
+  <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-3">
+        <div class="w-10 h-10 rounded-md bg-red-50 text-[#EA1D2C] flex items-center justify-center font-bold text-lg font-mono">
+          01
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">HS Code Advisory</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Accurate 8-digit tariff code verification to determine precise customs duties (CD), regulatory duties (RD), supplementary duties (SD), VAT, and AIT under the Bangladesh Customs Tariff schedule.
+        </p>
+      </div>
+
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-3">
+        <div class="w-10 h-10 rounded-md bg-red-50 text-[#EA1D2C] flex items-center justify-center font-bold text-lg font-mono">
+          02
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">ASYCUDA World Filing</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Direct digital submission of Bill of Entry through the National Board of Revenue (NBR) ASYCUDA World platform, enabling rapid assessment and minimal processing lead-times.
+        </p>
+      </div>
+
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-3">
+        <div class="w-10 h-10 rounded-md bg-red-50 text-[#EA1D2C] flex items-center justify-center font-bold text-lg font-mono">
+          03
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Port & Terminal Handling</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Coordination with port authorities (CPA, Biman Flight Catering, HSIA Cargo Village) for demurrage minimization, container destuffing, and secure truck dispatch.
+        </p>
+      </div>
+    </div>
+
+    <!-- Required Documentation Checklist -->
+    <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 lg:p-10 space-y-6">
+      <div class="space-y-1">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/DOCUMENTATION</span>
+        <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">Commercial Customs Clearance Checklist</h2>
+        <p class="text-xs text-slate-600">Ensure the following documents are in order for seamless port processing in Bangladesh.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">1. Commercial Invoice</h4>
+          <p class="text-xs text-slate-500">Itemized description, unit price, currency, total value, and terms of trade (FOB/CIF/CFR).</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">2. Packing List</h4>
+          <p class="text-xs text-slate-500">Gross/net weights, carton dimensions, total packages, and individual package contents.</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">3. Transport Document</h4>
+          <p class="text-xs text-slate-500">Original Bill of Lading (for sea freight) or Airway Bill (for air freight) endorsed by bank.</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">4. Certificate of Origin</h4>
+          <p class="text-xs text-slate-500">Chamber of Commerce or CCPIT issued document confirming China origin.</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">5. Letter of Credit / LCA</h4>
+          <p class="text-xs text-slate-500">Bank Letter of Credit copy, LCA form, and insurance policy cover note.</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">6. Corporate Licenses</h4>
+          <p class="text-xs text-slate-500">Importer IRC certificate, e-TIN certificate, and VAT/BIN registration certificate.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="space-y-6 pt-8">
+      <div class="space-y-2">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/KNOWLEDGE BASE</span>
+        <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">Customs Clearance Frequently Asked Questions</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {faqItems.map(item => (
+          <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-2">
+            <h3 class="text-sm font-bold text-slate-900 font-['Manrope']">{item.q}</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">{item.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</PublicLayout>

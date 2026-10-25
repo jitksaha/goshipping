@@ -1,0 +1,225 @@
+---
+import PublicLayout from '../../layouts/PublicLayout.astro';
+import { getSiteOrigin } from '../../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/services/china-warehouse`;
+
+const faqItems = [
+  {
+    q: "Where are your China warehouses located?",
+    a: "We maintain three strategically located consolidation facilities in China: Guangzhou (Baiyun District), Yiwu (near International Trade City District 2), and Shenzhen (Bao'an District, near airport and sea terminals)."
+  },
+  {
+    q: "How much does warehouse storage cost in China?",
+    a: "We offer up to 30 days of free storage for cargo consolidation. This allows you to collect orders from multiple factories, 1688 sellers, or Alibaba suppliers without paying storage fees before shipping to Bangladesh."
+  },
+  {
+    q: "Do you inspect packages when they arrive from Chinese suppliers?",
+    a: "Yes. Our warehouse team performs receiving verification: verifying package counts, weighing cartons, checking outer carton conditions, and taking photos upon request to ensure supplier sent correct goods before export."
+  },
+  {
+    q: "Can you repack or reinforce fragile goods?",
+    a: "Yes. We offer professional repacking services including wooden framing, heavy palletizing, bubble wrapping, and outer strapping to ensure fragile goods withstand international air or ocean transit safely."
+  }
+];
+
+const serviceSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      "@id": `${siteOrigin}/services/china-warehouse#service`,
+      "name": "China Warehousing & Cargo Consolidation Services",
+      "serviceType": "Warehousing & Consolidation",
+      "provider": {
+        "@type": "LogisticsService",
+        "@id": `${siteOrigin}/#organization`,
+        "name": "Go Shipping"
+      },
+      "areaServed": [
+        { "@type": "Country", "name": "China" },
+        { "@type": "Country", "name": "Bangladesh" }
+      ],
+      "description": "Secure receiving, multi-supplier package consolidation, carton inspection, and 30-day free warehousing in Guangzhou, Yiwu, and Shenzhen, China."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Services", "item": `${siteOrigin}/services` },
+        { "@type": "ListItem", "position": 3, "name": "China Warehousing", "item": canonicalUrl }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": faqItems.map(item => ({
+        "@type": "Question",
+        "name": item.q,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": item.a
+        }
+      }))
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="China Warehouses & Consolidation | Guangzhou, Yiwu, Shenzhen Hubs — Go Shipping"
+  description="Secure consolidation warehouse facilities in Guangzhou, Yiwu, and Shenzhen, China. Free receiving, 30-day free storage, parcel inspection, repacking, and export handling."
+  keywords="china warehouse bangladesh, guangzhou consolidation warehouse, yiwu warehouse shipping bd, shenzhen cargo warehouse, china parcel repacking, china to bangladesh consolidation"
+  currentPath="/services/china-warehouse"
+  image="/og/og-china-warehouse.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
+  </Fragment>
+
+  <!-- Hero Banner -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-24 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/services" class="hover:underline text-slate-400">Services</a>
+        <span>/</span>
+        <span>China Facilities</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-8 space-y-4">
+          <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+            China Warehousing & Cargo Consolidation
+          </h1>
+          <p class="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
+            Directly receiving and managing your cargo across our three primary Chinese operations hubs: Guangzhou, Yiwu, and Shenzhen. Enjoy 30 days of free consolidation storage, photo verification, and secure export repacking.
+          </p>
+          <div class="flex flex-wrap gap-4 pt-4 text-xs">
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Free Storage</span>
+              <span class="font-bold text-white text-sm">Up to 30 Days</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Facility Locations</span>
+              <span class="font-bold text-white text-sm">Guangzhou · Yiwu · Shenzhen</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm border border-white/10 px-4 py-2.5 rounded-md">
+              <span class="text-slate-400 block text-[10px] uppercase font-mono">Consolidation</span>
+              <span class="font-bold text-white text-sm">Multi-Supplier Merging</span>
+            </div>
+          </div>
+        </div>
+        <div class="lg:col-span-4 flex flex-col gap-3">
+          <a href="/contact" class="w-full text-center py-3 px-6 bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold text-sm rounded-md transition-colors shadow-sm">
+            Request Warehouse Address
+          </a>
+          <a href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20need%20China%20warehouse%20address." target="_blank" rel="noreferrer" class="w-full text-center py-3 px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-md transition-colors">
+            WhatsApp Warehouse Team
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Warehouse Locations Grid -->
+  <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20">
+    <div class="space-y-2">
+      <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/LOCATIONS</span>
+      <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 font-['Manrope']">Our Strategic China Hubs</h2>
+      <p class="text-xs sm:text-sm text-slate-600 max-w-2xl">Positioned directly adjacent to China's foremost industrial manufacturing centers and export gateways.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <!-- Hub 1: Guangzhou -->
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-[#EA1D2C]">HUB 01 · GUANGZHOU</span>
+          <span class="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700">Air & Sea Gate</span>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Guangzhou Baiyun Hub</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Located in Baiyun District, within close reach of Guangzhou Baiyun International Airport (CAN) and major wholesale markets (Shisanhang, Zhanxi, Baima). Ideal for apparel, cosmetics, footwear, and consumer goods.
+        </p>
+        <div class="pt-2 text-xs text-slate-500 font-mono space-y-1 border-t border-slate-100">
+          <div>CAPACITY: 25,000 SQFT</div>
+          <div>DISPATCH: DAILY AIR & LCL</div>
+        </div>
+      </div>
+
+      <!-- Hub 2: Yiwu -->
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-[#EA1D2C]">HUB 02 · YIWU</span>
+          <span class="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700">Commodity Center</span>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Yiwu Trade City Hub</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Positioned near Yiwu International Trade City District 2 & 4. Specialized in receiving small commodities, hardware, stationery, toys, artificial jewelry, and mixed retail items from Zhejiang factories.
+        </p>
+        <div class="pt-2 text-xs text-slate-500 font-mono space-y-1 border-t border-slate-100">
+          <div>CAPACITY: 20,000 SQFT</div>
+          <div>DISPATCH: WEEKLY FCL / LCL</div>
+        </div>
+      </div>
+
+      <!-- Hub 3: Shenzhen -->
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono font-bold text-[#EA1D2C]">HUB 03 · SHENZHEN</span>
+          <span class="text-[10px] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-700">Tech & Sea Terminal</span>
+        </div>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Shenzhen Bao'an Hub</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Located near Bao'an Airport and Yantian/Shekou deepwater container berths. The primary consolidation node for electronics from Huaqiangbei, LED fixtures, solar gear, and high-tech machinery.
+        </p>
+        <div class="pt-2 text-xs text-slate-500 font-mono space-y-1 border-t border-slate-100">
+          <div>CAPACITY: 30,000 SQFT</div>
+          <div>DISPATCH: DAILY AIR & DIRECT OCEAN</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Value Added Warehouse Services -->
+    <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 lg:p-10 space-y-6">
+      <div class="space-y-1">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/VALUE-ADDED SERVICES</span>
+        <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">Warehouse Operations & Quality Assurance</h2>
+        <p class="text-xs text-slate-600">Every carton received at our China facilities is documented, verified, and protected.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">1. Parcel Intake & Barcoding</h4>
+          <p class="text-xs text-slate-500">Each arriving box is tagged with your unique client code and weighed accurately.</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">2. Photo Verification</h4>
+          <p class="text-xs text-slate-500">High-res photos of package condition and shipping labels sent to you upon request.</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">3. Repacking & Downsizing</h4>
+          <p class="text-xs text-slate-500">We combine multiple loose boxes into one compact carton to eliminate dead volume weight.</p>
+        </div>
+        <div class="bg-white p-4 rounded-md border border-slate-200 space-y-1">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">4. Pallet & Crate Protection</h4>
+          <p class="text-xs text-slate-500">Custom wooden crates and shrink wrapping for fragile glass, ceramics, or heavy machinery.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="space-y-6 pt-8">
+      <div class="space-y-2">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/KNOWLEDGE BASE</span>
+        <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">China Warehousing Frequently Asked Questions</h2>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {faqItems.map(item => (
+          <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-2">
+            <h3 class="text-sm font-bold text-slate-900 font-['Manrope']">{item.q}</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">{item.a}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</PublicLayout>

@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 320" fill="none">
+  <defs>
+    <linearGradient id="rs_body_red" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#EA1D2C"/>
+      <stop offset="70%" stop-color="#D01422"/>
+      <stop offset="100%" stop-color="#A80E1A"/>
+    </linearGradient>
+    <linearGradient id="rs_counterweight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2B353E"/>
+      <stop offset="60%" stop-color="#182127"/>
+      <stop offset="100%" stop-color="#0F151A"/>
+    </linearGradient>
+    <linearGradient id="cab_glass" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#3B82F6" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#1D4ED8" stop-opacity="0.75"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rear Heavy Counterweight Block -->
+  <path d="M20 250 L20 140 Q20 120 40 120 L160 120 L170 250 Z" fill="url(#rs_counterweight)" stroke="#0F172A" stroke-width="3"/>
+  <!-- Counterweight Grooves -->
+  <line x1="35" y1="140" x2="35" y2="230" stroke="#334155" stroke-width="3"/>
+  <line x1="65" y1="140" x2="65" y2="230" stroke="#334155" stroke-width="3"/>
+  <line x1="95" y1="140" x2="95" y2="230" stroke="#334155" stroke-width="3"/>
+  <line x1="125" y1="140" x2="125" y2="230" stroke="#334155" stroke-width="3"/>
+
+  <!-- Stenciled GoShipping Mark on Counterweight -->
+  <rect x="30" y="160" width="100" height="28" rx="4" fill="#11181E" stroke="#334155"/>
+  <text x="80" y="179" fill="#FFFFFF" font-family="'Manrope', sans-serif" font-weight="900" font-size="14" text-anchor="middle" letter-spacing="1">GOSHIPPING</text>
+
+  <!-- Warning Rear Lights -->
+  <rect x="22" y="200" width="8" height="16" rx="2" fill="#EF4444" stroke="#991B1B"/>
+  <rect x="22" y="220" width="8" height="12" rx="2" fill="#F59E0B" stroke="#B45309"/>
+
+  <!-- Main Chassis Frame (GoShipping Red) -->
+  <path d="M160 180 L360 180 L420 220 L480 230 L480 260 L40 260 L40 250 L160 250 Z" fill="url(#rs_body_red)" stroke="#991B1B" stroke-width="2"/>
+
+  <!-- Boom Mounting Tower (Heavy Pivot Stanchion at Rear) -->
+  <path d="M90 120 L110 50 L160 50 L170 120 Z" fill="#1E293B" stroke="#0F172A" stroke-width="3"/>
+  <!-- Main Boom Hinge Pin (Center of rotation for boom: cx=135, cy=65) -->
+  <circle cx="135" cy="65" r="16" fill="#334155" stroke="#0F172A" stroke-width="3"/>
+  <circle cx="135" cy="65" r="8" fill="#CBD5E1" stroke="#64748B" stroke-width="2"/>
+  <circle cx="135" cy="65" r="3" fill="#0F172A"/>
+
+  <!-- Hydraulic Lift Cylinder Mount (Lower Hinge: cx=220, cy=180) -->
+  <circle cx="220" cy="180" r="12" fill="#334155" stroke="#0F172A" stroke-width="2.5"/>
+  <circle cx="220" cy="180" r="5" fill="#94A3B8"/>
+
+  <!-- Driver Operator Cab (Sliding High-Visibility Glass Cabin) -->
+  <g>
+    <!-- Cab Structure -->
+    <path d="M230 180 L230 100 Q230 90 240 90 L320 90 Q330 90 335 100 L350 180 Z" fill="#1E293B" stroke="#0F172A" stroke-width="2.5"/>
+    <!-- Glass Windshield & Windows -->
+    <path d="M240 100 L315 100 L330 145 L240 145 Z" fill="url(#cab_glass)" stroke="#0F172A" stroke-width="1.5"/>
+    <rect x="240" y="150" width="40" height="25" fill="url(#cab_glass)" stroke="#0F172A" stroke-width="1.5"/>
+    <rect x="285" y="150" width="45" height="25" fill="url(#cab_glass)" stroke="#0F172A" stroke-width="1.5"/>
+    <!-- Roof Protection Bars -->
+    <line x1="240" y1="88" x2="325" y2="88" stroke="#F59E0B" stroke-width="3"/>
+    <line x1="260" y1="85" x2="260" y2="90" stroke="#F59E0B" stroke-width="2"/>
+    <line x1="290" y1="85" x2="290" y2="90" stroke="#F59E0B" stroke-width="2"/>
+    <line x1="315" y1="85" x2="315" y2="90" stroke="#F59E0B" stroke-width="2"/>
+    <!-- Safety Amber Beacon -->
+    <rect x="275" y="78" width="12" height="7" rx="2" fill="#F59E0B" stroke="#B45309"/>
+  </g>
+
+  <!-- Front Mudguard & Wheel Arch -->
+  <path d="M380 260 Q430 200 480 260 Z" fill="#0F172A"/>
+  <!-- Rear Mudguard & Wheel Arch -->
+  <path d="M70 260 Q120 200 170 260 Z" fill="#0F172A"/>
+
+  <!-- Access Ladder and Steps -->
+  <g stroke="#CBD5E1" stroke-width="2">
+    <line x1="215" y1="200" x2="215" y2="250"/>
+    <line x1="225" y1="200" x2="225" y2="250"/>
+    <line x1="215" y1="210" x2="225" y2="210"/>
+    <line x1="215" y1="225" x2="225" y2="225"/>
+    <line x1="215" y1="240" x2="225" y2="240"/>
+  </g>
+
+  <!-- Exhaust Pipe / Air Intake Snorkel -->
+  <path d="M175 120 L175 60 L185 60 L185 120" fill="#475569" stroke="#1E293B" stroke-width="1.5"/>
+  <path d="M173 56 L187 56 L185 60 L175 60 Z" fill="#1E293B"/>
+
+  <!-- Work Floodlights on Front Chassis -->
+  <circle cx="440" cy="215" r="6" fill="#FEF08A" stroke="#CA8A04" stroke-width="1.5"/>
+  <circle cx="455" cy="218" r="6" fill="#FEF08A" stroke="#CA8A04" stroke-width="1.5"/>
+
+  <!-- Wheel Cutout Guide Anchors: Rear (cx=120, cy=260, r=45), Front (cx=430, cy=260, r=48) -->
+</svg>

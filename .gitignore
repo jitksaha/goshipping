@@ -1,31 +1,62 @@
-# Build & dist outputs
+# =========================================================================
+# GoShipping — Git Ignore Configuration
+# =========================================================================
+
+# Production Builds & Bundler Caches
 dist/
 .astro/
 .output/
+.cache/
+.vite/
 
 # Dependencies
 node_modules/
+package-lock.json.bak
 
-# Logs & temp files
+# Secrets & Environment Configurations (CRITICAL: Never commit to Git)
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+!.env.example
+
+# Authentication, Session Stores & Security Caches
+.auth_store.json
+.sessions.json
+.deploy-pause
+
+# Logs & Debug Traces
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Environment
-.env.local
-.env.*.local
+# Scratch & Temporary Testing Scripts
+scratch/
+scripts/test_*.mjs
+scripts/temp_*.js
+graphify-out/
 
-# OS
+# Operating System Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# IDE & Editor
-.vscode/
+# IDE, Editor & Tooling Settings
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.bak
+*.tmp

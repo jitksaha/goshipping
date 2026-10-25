@@ -18,7 +18,7 @@ let initialAuditLogs: AuditEntry[] = [
     action: 'QUOTE_PRICING_UPDATED',
     entityType: 'quote',
     entityId: 'qte-4401',
-    details: { revisionNumber: 1, totalAmount: 2700, currency: 'USD' },
+    details: { revisionNumber: 1, totalAmount: 329400, currency: 'BDT' },
     ipAddress: '103.112.54.12',
     createdAt: '2026-10-24T11:30:00Z'
   },

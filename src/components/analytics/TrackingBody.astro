@@ -1,0 +1,45 @@
+---
+import type { TrackingConfig } from '../../server/utils/tracking';
+
+interface Props {
+  config: TrackingConfig;
+}
+
+const { config } = Astro.props;
+---
+
+<!-- Analytics Noscript Fallback Layer -->
+{config.gtmId && (
+  <noscript>
+    <iframe
+      src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(config.gtmId)}`}
+      height="0"
+      width="0"
+      style="display:none;visibility:hidden"
+    ></iframe>
+  </noscript>
+)}
+
+{config.fbPixelId && (
+  <noscript>
+    <img
+      height="1"
+      width="1"
+      style="display:none"
+      alt=""
+      src={`https://www.facebook.com/tr?id=${encodeURIComponent(config.fbPixelId)}&ev=PageView&noscript=1`}
+    />
+  </noscript>
+)}
+
+{config.linkedinPartnerId && (
+  <noscript>
+    <img
+      height="1"
+      width="1"
+      style="display:none"
+      alt=""
+      src={`https://px.ads.linkedin.com/collect/?pid=${encodeURIComponent(config.linkedinPartnerId)}&fmt=gif`}
+    />
+  </noscript>
+)}

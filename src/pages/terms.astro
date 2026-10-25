@@ -1,0 +1,111 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { getSiteOrigin } from '../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/terms`;
+
+const termsSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebPage",
+      "@id": `${canonicalUrl}#webpage`,
+      "url": canonicalUrl,
+      "name": "Terms of Service & Shipping Conditions | Go Shipping Bangladesh",
+      "description": "Standard terms and conditions governing international air and ocean freight forwarding from China to Bangladesh with Go Shipping."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Terms of Service", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="Terms of Service & Shipping Conditions | Go Shipping Bangladesh"
+  description="Terms and conditions governing freight forwarding, customs clearance, transit liability, insurance, and door-to-door delivery with Go Shipping."
+  keywords="terms of service go shipping, shipping terms china to bangladesh, freight conditions, liability notice, cargo carriage contract"
+  currentPath="/terms"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(termsSchema)} />
+  </Fragment>
+
+  <!-- Hero Header -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-20 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/" class="hover:underline text-slate-400">Home</a>
+        <span>/</span>
+        <span>Legal</span>
+      </div>
+      <div class="max-w-3xl space-y-3">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+          Terms of Service & Carriage Conditions
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          Please review the following terms and operational conditions governing all shipments entrusted to Go Shipping for carriage from the People's Republic of China to the People's Republic of Bangladesh.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Terms Content Body -->
+  <section class="py-16 lg:py-24 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 text-slate-700 text-xs sm:text-sm leading-relaxed">
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">1. Scope of Carriage Services</h2>
+      <p>
+        Go Shipping acts as an international freight forwarder coordinating cargo receiving at Chinese consolidation hubs, export declaration, international air or sea transport, Bangladesh port customs clearance, and inland door-to-door delivery.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">2. Weight & Dimension Determination</h2>
+      <p>
+        Air freight charges are calculated based on the higher value between Gross Weight and Volumetric Weight calculated via the standard IATA formula: (Length cm × Width cm × Height cm) ÷ 6,000 (or 167 kg per CBM). Sea freight is billed based on total Cubic Meters (CBM). Our China warehouse scale and dimensional scans serve as the authoritative basis for billing.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">3. Prohibited & Restricted Commodities</h2>
+      <p>
+        The customer strictly warrants that cargo delivered to our facilities does not contain illegal or prohibited items under Chinese or Bangladeshi law, including:
+      </p>
+      <ul class="list-disc pl-5 space-y-1 text-slate-600">
+        <li>Explosives, firearms, ammunition, military goods, and narcotics.</li>
+        <li>Combustible gases, toxic liquids, radioactive materials, and undeclared lithium batteries.</li>
+        <li>Counterfeit currency, obscene materials, and wild animal products.</li>
+        <li>Gold bullion, precious gems, and un-endorsed bearer bonds.</li>
+      </ul>
+      <p class="text-xs text-red-600 font-medium">
+        Any shipment found to contain undeclared contraband will be confiscated by authorities and the customer shall bear full legal and financial liability.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">4. Transit Time Estimates</h2>
+      <p>
+        All published transit schedules (e.g. 3–7 days for Air and 35–45 days for Sea) are approximate operational estimates based on normal operating conditions. Go Shipping shall not be liable for unavoidable delays resulting from airline flight cancellations, adverse maritime weather, national holidays, port berthing congestion, or sovereign customs physical audit holds.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">5. Packaging & Fragile Cargo</h2>
+      <p>
+        Customers and their Chinese suppliers are responsible for adequate internal and external export-grade protective packaging. Fragile merchandise (glassware, ceramics, delicate electronics) must be crated in wooden frames. Go Shipping is not liable for internal breakage resulting from supplier packaging deficiency.
+      </p>
+    </div>
+
+    <div class="space-y-4">
+      <h2 class="text-xl font-bold text-slate-900 font-['Manrope']">6. Governing Law & Jurisdiction</h2>
+      <p>
+        These terms and conditions are governed by and construed in accordance with the laws of the People's Republic of Bangladesh. Any dispute arising out of or in connection with carriage services shall be subject to the exclusive jurisdiction of the competent courts of Dhaka, Bangladesh.
+      </p>
+    </div>
+  </section>
+</PublicLayout>

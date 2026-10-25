@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 90" fill="none">
+  <defs>
+    <linearGradient id="spreader_steel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2B353E"/>
+      <stop offset="50%" stop-color="#182127"/>
+      <stop offset="100%" stop-color="#0F151A"/>
+    </linearGradient>
+    <linearGradient id="spreader_beam" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#EA1D2C"/>
+      <stop offset="100%" stop-color="#B5121F"/>
+    </linearGradient>
+    <linearGradient id="metal_spec" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#718096"/>
+      <stop offset="100%" stop-color="#323F4B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Main Spreader Heavy Beam -->
+  <rect x="20" y="28" width="580" height="28" rx="3" fill="url(#spreader_steel)" stroke="#11181E" stroke-width="2"/>
+  <rect x="30" y="32" width="560" height="4" fill="#475569" opacity="0.6"/>
+
+  <!-- Center Rotator / Mounting Head with Reach Stacker Swivel -->
+  <path d="M270 28 L278 8 L342 8 L350 28 Z" fill="url(#spreader_beam)" stroke="#8B0C15" stroke-width="2"/>
+  <rect x="285" y="2" width="50" height="10" rx="2" fill="#1E293B" stroke="#334155" stroke-width="1.5"/>
+  <circle cx="310" cy="18" r="7" fill="#0F172A" stroke="#EA1D2C" stroke-width="2"/>
+  <circle cx="310" cy="18" r="3" fill="#F8FAFC"/>
+
+  <!-- Hydraulic Extension Cylinders (Left & Right) -->
+  <rect x="60" y="38" width="180" height="10" rx="2" fill="url(#metal_spec)" stroke="#1E293B"/>
+  <rect x="380" y="38" width="180" height="10" rx="2" fill="url(#metal_spec)" stroke="#1E293B"/>
+  <rect x="240" y="41" width="20" height="4" fill="#CBD5E1"/>
+  <rect x="360" y="41" width="20" height="4" fill="#CBD5E1"/>
+
+  <!-- Warning Striped Fenders on Left & Right Spreader Ends -->
+  <g>
+    <!-- Left End Housing -->
+    <rect x="10" y="20" width="30" height="44" rx="4" fill="#EA1D2C" stroke="#991B1B" stroke-width="1.5"/>
+    <!-- Hazard Stripes -->
+    <path d="M12 26 L26 40 M12 36 L26 50 M12 46 L24 58" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+    <!-- Twistlock Flipper Left -->
+    <path d="M8 56 L16 84 L28 84 L24 56 Z" fill="#334155" stroke="#0F172A" stroke-width="1.5"/>
+    <circle cx="20" cy="78" r="3.5" fill="#F59E0B"/>
+  </g>
+
+  <g>
+    <!-- Right End Housing -->
+    <rect x="580" y="20" width="30" height="44" rx="4" fill="#EA1D2C" stroke="#991B1B" stroke-width="1.5"/>
+    <!-- Hazard Stripes -->
+    <path d="M584 26 L598 40 M584 36 L598 50 M584 46 L596 58" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+    <!-- Twistlock Flipper Right -->
+    <path d="M596 56 L604 84 L592 84 L588 56 Z" fill="#334155" stroke="#0F172A" stroke-width="1.5"/>
+    <circle cx="600" cy="78" r="3.5" fill="#F59E0B"/>
+  </g>
+
+  <!-- Twistlock Lower Cones (Ready to engage corner castings of container) -->
+  <polygon points="18,64 24,64 22,72 20,72" fill="#CBD5E1" stroke="#475569"/>
+  <polygon points="596,64 602,64 600,72 598,72" fill="#CBD5E1" stroke="#475569"/>
+
+  <!-- Hydraulic Hoses -->
+  <path d="M290 24 C260 20 200 24 160 38" stroke="#0F172A" stroke-width="2" fill="none"/>
+  <path d="M330 24 C360 20 420 24 460 38" stroke="#0F172A" stroke-width="2" fill="none"/>
+</svg>

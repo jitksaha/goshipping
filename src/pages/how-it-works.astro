@@ -1,0 +1,161 @@
+---
+import PublicLayout from '../layouts/PublicLayout.astro';
+import { getSiteOrigin } from '../server/utils/domain';
+
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/how-it-works`;
+
+const howToSteps = [
+  {
+    step: "01",
+    name: "Share Product & Supplier Information",
+    description: "Contact our team with your cargo details (product category, estimated weight, dimensions, and preferred shipping mode: Air or Sea). We provide an all-inclusive rate and assign your unique China warehouse address & client shipping mark."
+  },
+  {
+    step: "02",
+    name: "Supplier Dispatches to China Hub",
+    description: "Instruct your Chinese factory, 1688, Taobao, or Alibaba vendor to deliver your packages to our Guangzhou, Yiwu, or Shenzhen consolidation warehouse, labeled with your designated shipping mark."
+  },
+  {
+    step: "03",
+    name: "Receiving, Photo Audit & Packing",
+    description: "When your packages arrive, our warehouse staff weighs them, checks carton conditions, and uploads intake telemetry. We provide free 30-day consolidation and reinforce fragile cartons if necessary."
+  },
+  {
+    step: "04",
+    name: "International Air or Ocean Freight",
+    description: "Your consolidated cargo is loaded onto scheduled commercial flights to Dhaka (3–7 days) or container vessels to Chittagong Port (35–45 days). You receive a live consignment tracking number."
+  },
+  {
+    step: "05",
+    name: "Customs Clearance & Duty Assessment",
+    description: "Our licensed customs brokerage team completes all regulatory clearance at Dhaka HSIA Cargo Village or Chittagong Port Customs, paying duties, taxes, and terminal charges."
+  },
+  {
+    step: "06",
+    name: "Doorstep Delivery in Bangladesh",
+    description: "Upon customs release, our logistics fleet delivers the consignment directly to your business address, warehouse, or residence anywhere in Bangladesh."
+  }
+];
+
+const howToSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "HowTo",
+      "name": "How to Ship Products from China to Bangladesh with Go Shipping",
+      "description": "Step-by-step freight forwarding process from China supplier ordering to Bangladesh customs clearance and doorstep delivery.",
+      "step": howToSteps.map((s, index) => ({
+        "@type": "HowToStep",
+        "position": index + 1,
+        "name": s.name,
+        "text": s.description
+      }))
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "How It Works", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
+---
+
+<PublicLayout
+  title="How It Works | 6-Step China to Bangladesh Shipping Guide — Go Shipping"
+  description="Learn how Go Shipping makes importing from China to Bangladesh simple and transparent. From supplier communication and warehouse intake to live tracking and doorstep delivery."
+  keywords="how to import from china to bangladesh, china shipping process bd, china to bangladesh logistics guide, go shipping process, china cargo shipping guide"
+  currentPath="/how-it-works"
+  image="/og/og-how-it-works.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(howToSchema)} />
+  </Fragment>
+
+  <!-- Hero Header -->
+  <section class="bg-[#11181E] text-white py-16 lg:py-24 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center gap-2 text-xs font-mono text-[#EA1D2C] uppercase tracking-wider mb-3">
+        <a href="/" class="hover:underline text-slate-400">Home</a>
+        <span>/</span>
+        <span>Process</span>
+      </div>
+      <div class="max-w-3xl space-y-4">
+        <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Manrope',sans-serif] leading-tight">
+          How Shipping Works: China to Bangladesh
+        </h1>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          We take the complexity out of international trade. Follow our transparent 6-step process to move cargo from any factory or wholesale market in China straight to your door in Bangladesh.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6-Step Process Cards -->
+  <section class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {howToSteps.map((s) => (
+        <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4 hover:border-slate-300 transition-colors flex flex-col justify-between">
+          <div class="space-y-3">
+            <span class="text-xs font-mono font-bold text-[#EA1D2C] block">
+              STEP {s.step}
+            </span>
+            <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">
+              {s.name}
+            </h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              {s.description}
+            </p>
+          </div>
+          <div class="pt-2 text-[11px] text-slate-400 font-mono border-t border-slate-100">
+            STAGE VERIFIED · GOSHIPPING PROTOCOL
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Importer Pro-Tips Section -->
+    <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 lg:p-10 space-y-6">
+      <div class="space-y-1">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/EXPERT TIPS</span>
+        <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">Tips for First-Time Importers from China</h2>
+        <p class="text-xs text-slate-600">Avoid common pitfalls when buying from 1688, Alibaba, or Chinese wholesale markets.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-md border border-slate-200 space-y-1.5">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">1. Always Mark Cartons</h4>
+          <p class="text-xs text-slate-500">Ensure your supplier writes your Client Mark clearly with waterproof ink on every outer box.</p>
+        </div>
+        <div class="bg-white p-5 rounded-md border border-slate-200 space-y-1.5">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">2. Request Compact Packing</h4>
+          <p class="text-xs text-slate-500">Ask suppliers to avoid unnecessary air pockets in cartons to reduce volumetric dimensional weight.</p>
+        </div>
+        <div class="bg-white p-5 rounded-md border border-slate-200 space-y-1.5">
+          <h4 class="text-xs font-bold text-slate-900 font-mono">3. Declare Goods Accurately</h4>
+          <p class="text-xs text-slate-500">Provide exact product descriptions, brand names, and battery/magnet details before dispatch.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Card -->
+    <div class="bg-[#11181E] text-white p-8 lg:p-12 rounded-lg flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="space-y-2">
+        <h3 class="text-2xl font-bold font-['Manrope']">Ready to ship your next China consignment?</h3>
+        <p class="text-xs text-slate-300 max-w-xl">
+          Get a transparent rate calculation or chat directly with our Dhaka logistics coordinators.
+        </p>
+      </div>
+      <div class="flex items-center gap-3 w-full md:w-auto">
+        <a href="/quote" class="px-5 py-2.5 bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold text-xs rounded-md transition-colors whitespace-nowrap text-center">
+          Calculate Shipping Rate
+        </a>
+        <a href="https://wa.me/8801797252627?text=Hello%20Go%20Shipping%2C%20I%20have%20questions%20about%20the%20shipping%20process." target="_blank" rel="noreferrer" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-md transition-colors whitespace-nowrap text-center">
+          WhatsApp Us
+        </a>
+      </div>
+    </div>
+  </section>
+</PublicLayout>

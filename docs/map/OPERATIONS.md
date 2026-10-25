@@ -75,3 +75,16 @@ In Hostinger Control Panel (hPanel) -> Advanced -> Cron Jobs:
   - Returns `status: "online"`, server timestamp, and live MySQL ping status.
 - **Tracking Endpoint**: `GET /api/tracking/GOSH-2026-9812`
   - Returns verified timeline and HTTP 304 on duplicate requests with `If-None-Match`.
+- **User Management & Masquerade Endpoints**:
+  - `GET /api/admin/users`: Lists accounts, roles, active shipment count, and tariff quotes count.
+  - `POST /api/admin/users`: Creates a user profile with role, company, phone, and BIN credentials.
+  - `PUT /api/admin/users/:id`: Modifies user details and contact coordinates.
+  - `PATCH /api/admin/users/:id/status`: Toggles active or suspended account status.
+  - `DELETE /api/admin/users/:id`: Permanently purges user account.
+  - `POST /api/admin/impersonate/:id`: Authenticates Super Admin as the target user without credentials (masquerade session).
+  - `POST /api/auth/exit-impersonation`: Destroys masquerade session and returns Super Admin to `/admin?tab=users`.
+- **Resend Email & Transactional Telemetry Endpoints**:
+  - `POST /api/contact`: Public contact form submission triggering ops lead notification to `ops@goshipping.com.bd`.
+  - `GET /api/admin/email/status`: Returns Resend SDK domain status for `support.goshipping.com.bd`, region, and DKIM/SPF DNS records.
+  - `POST /api/admin/email/verify`: Triggers DNS verification check on Resend API.
+  - `POST /api/admin/email/test`: Dispatches a live diagnostic test email to any recipient.

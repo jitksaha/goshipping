@@ -1,11 +1,43 @@
 ---
 import PublicLayout from '../layouts/PublicLayout.astro';
 import { WarehouseService } from '../server/services/warehouse.service';
+import { getSiteOrigin } from '../server/utils/domain';
 
 const warehouses = await WarehouseService.listWarehouses();
+const siteOrigin = getSiteOrigin(Astro.request);
+const canonicalUrl = `${siteOrigin}/contact`;
+
+const contactSchema = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "ContactPage",
+      "@id": `${canonicalUrl}#contact`,
+      "url": canonicalUrl,
+      "name": "Contact Go Shipping | China & Bangladesh Operations Hubs",
+      "description": "Contact Go Shipping offices in Dhaka and Chittagong, Bangladesh, and warehouse hubs in Guangzhou, Shenzhen, and Yiwu, China. Call +880 1797-252627 or email hello@goshipping.com.bd."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": siteOrigin },
+        { "@type": "ListItem", "position": 2, "name": "Contact", "item": canonicalUrl }
+      ]
+    }
+  ]
+};
 ---
 
-<PublicLayout title="Contact GoShipping | Global Hubs & Customs Operations" currentPath="/contact">
+<PublicLayout
+  title="Contact Go Shipping | China & Bangladesh Operations Hubs"
+  description="Contact Go Shipping offices in Dhaka and Chittagong, Bangladesh, and warehouse hubs in Guangzhou, Shenzhen, and Yiwu, China. Call +880 1797-252627 or email hello@goshipping.com.bd."
+  keywords="Contact Go Shipping, Go Shipping Bangladesh phone number, Guangzhou warehouse address, Dhaka freight forwarding office"
+  currentPath="/contact"
+  image="/og/og-contact.png"
+>
+  <Fragment slot="head">
+    <script type="application/ld+json" set:html={JSON.stringify(contactSchema)} />
+  </Fragment>
   <div class="bg-slate-900 text-white py-16 border-b border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <span class="text-xs font-bold uppercase tracking-wider text-[#EA1D2C]">Global Operations Hubs</span>
@@ -22,7 +54,7 @@ const warehouses = await WarehouseService.listWarehouses();
     <!-- Hub Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {warehouses.map((wh) => (
-        <div class="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+        <div class="p-6 rounded-lg bg-white border border-slate-200 flex flex-col justify-between space-y-4">
           <div>
             <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
               {wh.code}
@@ -41,7 +73,7 @@ const warehouses = await WarehouseService.listWarehouses();
     </div>
 
     <!-- Direct Inquiry Form -->
-    <div class="p-8 rounded-xl bg-slate-50 border border-slate-200 max-w-2xl mx-auto space-y-6">
+    <div class="p-8 rounded-lg bg-slate-50 border border-slate-200 max-w-2xl mx-auto space-y-6">
       <div>
         <h2 class="text-xl font-bold text-slate-900">Send Commercial or Customs Inquiry</h2>
         <p class="text-xs text-slate-500 mt-1">
@@ -49,37 +81,104 @@ const warehouses = await WarehouseService.listWarehouses();
         </p>
       </div>
 
-      <form class="space-y-4 text-xs" onsubmit="event.preventDefault(); alert('Message dispatched to GoShipping Central Desk!');">
+      <form id="contact-inquiry-form" class="space-y-4 text-xs">
+        <div id="contact-alert" class="hidden p-3 rounded-md text-xs font-semibold"></div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">Your Full Name</label>
-            <input type="text" required class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white" />
+            <label for="contact-name" class="block font-semibold text-slate-700 mb-1">Your Full Name *</label>
+            <input id="contact-name" name="name" type="text" required class="w-full h-10 px-3 rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#EA1D2C] focus:border-transparent text-slate-800" placeholder="e.g. Rafiqul Islam" />
           </div>
           <div>
-            <label class="block font-semibold text-slate-700 mb-1">Company Email</label>
-            <input type="email" required class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white" />
+            <label for="contact-email" class="block font-semibold text-slate-700 mb-1">Company Email *</label>
+            <input id="contact-email" name="email" type="email" required class="w-full h-10 px-3 rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#EA1D2C] focus:border-transparent text-slate-800" placeholder="rafiq@enterprise.com.bd" />
           </div>
         </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="contact-phone" class="block font-semibold text-slate-700 mb-1">Phone / WhatsApp</label>
+            <input id="contact-phone" name="phone" type="tel" class="w-full h-10 px-3 rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#EA1D2C] focus:border-transparent text-slate-800" placeholder="+880 1711-XXXXXX" />
+          </div>
+          <div>
+            <label for="contact-company" class="block font-semibold text-slate-700 mb-1">Company / Organization</label>
+            <input id="contact-company" name="company" type="text" class="w-full h-10 px-3 rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#EA1D2C] focus:border-transparent text-slate-800" placeholder="Apex Trading Ltd" />
+          </div>
+        </div>
+
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Inquiry Category</label>
-          <select class="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white">
-            <option>Air Cargo Space Booking / Charter</option>
-            <option>Ocean Container FCL / LCL Booking</option>
-            <option>Customs Clearance & HS Code Tariff Advice</option>
-            <option>Carrier Partnership / Billing Query</option>
+          <label for="contact-category" class="block font-semibold text-slate-700 mb-1">Inquiry Category</label>
+          <select id="contact-category" name="category" class="w-full h-10 px-3 rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#EA1D2C] focus:border-transparent text-slate-800">
+            <option value="Air Cargo Space Booking / Charter">Air Cargo Space Booking / Charter</option>
+            <option value="Ocean Container FCL / LCL Booking">Ocean Container FCL / LCL Booking</option>
+            <option value="Customs Clearance & HS Code Tariff Advice">Customs Clearance &amp; HS Code Tariff Advice</option>
+            <option value="Carrier Partnership / Billing Query">Carrier Partnership / Billing Query</option>
           </select>
         </div>
+
         <div>
-          <label class="block font-semibold text-slate-700 mb-1">Message Details</label>
-          <textarea rows={4} required class="w-full p-3 rounded-lg border border-slate-300 bg-white"></textarea>
+          <label for="contact-message" class="block font-semibold text-slate-700 mb-1">Message Details *</label>
+          <textarea id="contact-message" name="message" rows={4} required class="w-full p-3 rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#EA1D2C] focus:border-transparent text-slate-800" placeholder="Provide consignment details, origin city in China, estimated weight (KG), and destination depot..."></textarea>
         </div>
+
         <button
           type="submit"
-          class="w-full h-11 rounded-lg bg-[#EA1D2C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#D41523] transition-colors-fast"
+          id="contact-submit-btn"
+          class="w-full h-11 rounded-md bg-[#EA1D2C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#D41523] active:bg-[#B91C1C] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#EA1D2C]"
         >
           Send Message to Operations Desk →
         </button>
       </form>
+
+      <script>
+        const form = document.getElementById('contact-inquiry-form') as HTMLFormElement | null;
+        const alertBox = document.getElementById('contact-alert');
+        const submitBtn = document.getElementById('contact-submit-btn') as HTMLButtonElement | null;
+
+        if (form && alertBox && submitBtn) {
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            alertBox.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Transmitting to Operations...';
+
+            const formData = new FormData(form);
+            const payload = {
+              name: formData.get('name'),
+              email: formData.get('email'),
+              phone: formData.get('phone'),
+              company: formData.get('company'),
+              category: formData.get('category'),
+              message: formData.get('message')
+            };
+
+            try {
+              const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+
+              const data = await res.json();
+              if (res.ok && data.success) {
+                alertBox.className = 'p-3 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200';
+                alertBox.textContent = '✓ Message received! An email notification has been dispatched to our 24/7 Operations Desk.';
+                alertBox.classList.remove('hidden');
+                form.reset();
+              } else {
+                throw new Error(data.error || 'Failed to dispatch message');
+              }
+            } catch (err: any) {
+              alertBox.className = 'p-3 rounded-md text-xs font-semibold bg-red-50 text-red-800 border border-red-200';
+              alertBox.textContent = `Submission Error: ${err.message || 'Please contact ops@goshipping.com.bd directly.'}`;
+              alertBox.classList.remove('hidden');
+            } finally {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Send Message to Operations Desk →';
+            }
+          });
+        }
+      </script>
     </div>
   </section>
 </PublicLayout>

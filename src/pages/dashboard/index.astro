@@ -7,5 +7,5 @@ const initialTab = Astro.url.searchParams.get('tab') || 'overview';
 ---
 
 <AppLayout title="Customer Shipping & Quotations Portal" portalType="customer" activeTab={initialTab}>
-  <CustomerDashboardIsland client:load initialTab={initialTab} userEmail={user?.email || ''} />
+  <CustomerDashboardIsland client:load initialTab={initialTab} user={user} />
 </AppLayout>

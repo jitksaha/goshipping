@@ -24,7 +24,6 @@
     font-family: var(--font-manrope);
     overflow-wrap: break-word;
     min-width: 0;
-    color: var(--color-text-primary);
     letter-spacing: -0.025em;
   }
 

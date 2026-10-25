@@ -1,13 +1,24 @@
 import crypto from 'node:crypto';
+import {
+  TRACKING_STATUSES,
+  PHYSICAL_STAGES,
+  TrackingStatusCode,
+  normalizeStatusCode,
+  calculatePhysicalProgress
+} from './tracking-status';
+import { formatBstDateTime } from '../utils/date';
+import { RealtimeService } from './realtime.service';
 
 export interface ShipmentItem {
   id: string;
   shipmentId: string;
+  itemCode: string; // e.g. '#GA5133'
   description: string;
+  packagingType: '40ft_hq' | '20ft_container' | '10ft_container' | 'air_uld' | 'pallet' | 'carton' | string;
   quantity: number;
-  packagingType: string;
   weightKg: number;
   cbm: number;
+  categoryTag: 'General' | 'Commercial' | 'Liquids' | 'Dangerous' | 'Perishable' | 'Electronics';
   declaredValue?: number;
   currency?: string;
 }
@@ -16,208 +27,578 @@ export interface ShipmentEvent {
   id: string;
   shipmentId: string;
   status: string;
+  statusCode: TrackingStatusCode;
+  statusLabel: string;
   title: string;
   description: string;
   locationName: string;
-  eventTime: string;
+  eventTime: string; // ISO UTC
+  occurredAtBst: string; // "25 Oct 2026, 08:15 PM BST"
   lat?: number;
   lng?: number;
-  source: 'warehouse' | 'admin' | 'carrier_api';
+  source: 'warehouse' | 'admin' | 'carrier_api' | 'driver';
+  visibility: 'public' | 'internal';
+  eventVersion: number;
 }
 
 export interface ShipmentRecord {
   id: string;
   trackingNumber: string;
+  productName: string;
   customerId: string;
   customerName: string;
+  recipientName: string;
+  recipientPhone?: string;
+  recipientAddress: string;
   originCountry: string;
   originCity: string;
+  originAddress: string;
+  originLat: number;
+  originLng: number;
   destCountry: string;
   destCity: string;
+  destAddress: string;
+  destLat: number;
+  destLng: number;
   mode: 'air' | 'sea' | 'road';
   serviceLevel: 'standard' | 'express' | 'priority';
-  status:
-    | 'order_created'
-    | 'warehouse_received'
-    | 'in_transit'
-    | 'customs_clearance'
-    | 'out_for_delivery'
-    | 'delivered'
-    | 'exception';
+  status: TrackingStatusCode;
+  statusCode: TrackingStatusCode;
+  statusLabel: string;
+  paymentStatus: 'pending' | 'payment_received';
+  eventVersion: number;
   currentLocation: string;
   currentLat?: number;
   currentLng?: number;
   totalWeightKg: number;
   totalCbm: number;
   totalPieces: number;
-  carrierName?: string;
+  carrierName: string;
   carrierWaybillNumber?: string;
+  voyageOrFlightNumber: string;
+  billOfLadingNumber: string;
+  departureTime: string;
   estimatedDelivery: string;
   actualDelivery?: string;
   bookingReference?: string;
   items: ShipmentItem[];
   events: ShipmentEvent[];
+  physicalProgress: {
+    completedStagesCount: number;
+    totalStagesCount: number;
+    percentage: number;
+    currentPhysicalStageIndex: number;
+    isComplete: boolean;
+  };
   createdAt: string;
   updatedAt: string;
+  lastUpdatedBst: string;
 }
 
-// In-memory operational store with realistic initial data
+// In-memory operational store with authentic, realistic initial data matching the 9 standard statuses
 let initialShipments: ShipmentRecord[] = [
   {
     id: 'shp-9812-dac',
     trackingNumber: 'GOSH-2026-9812',
+    productName: 'High-Density Interlock Cotton Knit Fabrics & Sample Garments',
     customerId: 'usr-customer-01',
     customerName: 'Apex Textiles Ltd',
-    originCountry: 'Bangladesh',
-    originCity: 'Dhaka',
-    destCountry: 'Germany',
-    destCity: 'Frankfurt',
+    recipientName: 'Apex Fashion & Retail Hub',
+    recipientPhone: '+880 1711-002233',
+    recipientAddress: 'Plot 14, Sector 7, Uttara Model Town, Dhaka-1230, Bangladesh',
+    originCountry: 'China',
+    originCity: 'Guangzhou',
+    originAddress: 'Baiyun International Logistics Park, Guangzhou, Guangdong, China',
+    originLat: 23.3924,
+    originLng: 113.2988,
+    destCountry: 'Bangladesh',
+    destCity: 'Dhaka',
+    destAddress: 'Cargo Village, Hazrat Shahjalal International Airport, Dhaka-1229',
+    destLat: 23.8433,
+    destLng: 90.4029,
     mode: 'air',
     serviceLevel: 'express',
-    status: 'in_transit',
-    currentLocation: 'Dubai Cargo Terminal (DXB)',
-    currentLat: 25.2532,
-    currentLng: 55.3657,
+    status: 'awaiting_customs',
+    statusCode: 'awaiting_customs',
+    statusLabel: 'AWAITING CUSTOMS CLEARANCE',
+    paymentStatus: 'payment_received',
+    eventVersion: 5,
+    currentLocation: 'Dhaka Custom House, HSIA',
+    currentLat: 23.8433,
+    currentLng: 90.4029,
     totalWeightKg: 850.5,
     totalCbm: 4.25,
     totalPieces: 42,
-    carrierName: 'Emirates SkyCargo',
-    carrierWaybillNumber: 'EK-176-92819382',
-    estimatedDelivery: '2026-10-27T14:00:00Z',
-    createdAt: '2026-10-22T08:30:00Z',
-    updatedAt: '2026-10-24T18:15:00Z',
+    carrierName: 'Cathay Cargo / GoShipping Air Priority',
+    carrierWaybillNumber: 'CX-068-92819382',
+    voyageOrFlightNumber: 'Flight CX-068',
+    billOfLadingNumber: 'AWB-GOSH-9812-CAN',
+    departureTime: '2026-10-24T05:30:00Z',
+    estimatedDelivery: '2026-10-26T14:00:00Z',
+    createdAt: '2026-10-22T04:00:00Z',
+    updatedAt: '2026-10-25T05:30:00Z',
+    lastUpdatedBst: formatBstDateTime('2026-10-25T05:30:00Z'),
+    physicalProgress: {
+      completedStagesCount: 5,
+      totalStagesCount: 8,
+      percentage: 63,
+      currentPhysicalStageIndex: 4,
+      isComplete: false
+    },
     items: [
       {
         id: 'itm-01',
         shipmentId: 'shp-9812-dac',
-        description: 'Premium Knitwear & Cotton Garments',
-        quantity: 42,
-        packagingType: 'carton',
-        weightKg: 850.5,
-        cbm: 4.25,
-        declaredValue: 24500,
-        currency: 'USD'
+        itemCode: '#AF-9812A',
+        description: 'Air Freight LD3 ULD Container (Interlock Cotton Knit Fabrics & Accessories)',
+        packagingType: 'air_uld',
+        quantity: 24,
+        weightKg: 450.0,
+        cbm: 2.8,
+        categoryTag: 'Commercial',
+        declaredValue: 2989000,
+        currency: 'BDT'
+      },
+      {
+        id: 'itm-02',
+        shipmentId: 'shp-9812-dac',
+        itemCode: '#AF-9812B',
+        description: 'Reinforced Industrial Palletized Cartons (Electronic Testing Sensors)',
+        packagingType: 'pallet',
+        quantity: 18,
+        weightKg: 400.5,
+        cbm: 1.45,
+        categoryTag: 'Electronics',
+        declaredValue: 2220000,
+        currency: 'BDT'
       }
     ],
     events: [
       {
-        id: 'evt-01',
+        id: 'evt-05',
         shipmentId: 'shp-9812-dac',
-        status: 'order_created',
-        title: 'Airway Bill Issued & Booking Confirmed',
-        description: 'Shipment booking validated with automated export customs manifest.',
-        locationName: 'GoShipping Hub, Dhaka (DAC-HUB)',
-        eventTime: '2026-10-22T08:30:00Z',
-        lat: 23.8511,
-        lng: 90.4072,
-        source: 'admin'
-      },
-      {
-        id: 'evt-02',
-        shipmentId: 'shp-9812-dac',
-        status: 'warehouse_received',
-        title: 'Consignment Received & Weighed at Warehouse',
-        description: 'Cargo received in 42 security-sealed cartons. Gross weight: 850.50 KG.',
-        locationName: 'GoShipping Central Hub, Uttara, Dhaka',
-        eventTime: '2026-10-22T14:15:00Z',
-        lat: 23.8759,
-        lng: 90.3795,
-        source: 'warehouse'
-      },
-      {
-        id: 'evt-03',
-        shipmentId: 'shp-9812-dac',
-        status: 'customs_clearance',
-        title: 'Export Customs Cleared at Hazrat Shahjalal Int Airport',
-        description: 'All inspection declarations and export commercial invoices validated.',
-        locationName: 'Dhaka Airport Customs (HSIA)',
-        eventTime: '2026-10-23T11:00:00Z',
+        status: 'awaiting_customs',
+        statusCode: 'awaiting_customs',
+        statusLabel: 'AWAITING CUSTOMS CLEARANCE',
+        title: 'AWAITING CUSTOMS CLEARANCE',
+        description: 'Bill of Entry C-58192 submitted to NBR Customs. Awaiting physical inspection and duty appraisal release.',
+        locationName: 'Dhaka Custom House, HSIA, Bangladesh',
+        eventTime: '2026-10-25T05:30:00Z', // 11:30 AM BST
+        occurredAtBst: '25 Oct 2026, 11:30 AM BST',
         lat: 23.8433,
         lng: 90.4029,
-        source: 'warehouse'
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 5
+      },
+      {
+        id: 'evt-pay-01',
+        shipmentId: 'shp-9812-dac',
+        status: 'payment_received',
+        statusCode: 'payment_received',
+        statusLabel: 'PAYMENT RECEIVED',
+        title: 'PAYMENT RECEIVED',
+        description: 'Commercial invoice freight tariffs and customs clearance advance payment received in full via bank transfer.',
+        locationName: 'GoShipping Corporate Finance & Billing Desk, Dhaka',
+        eventTime: '2026-10-25T03:15:00Z', // 09:15 AM BST
+        occurredAtBst: '25 Oct 2026, 09:15 AM BST',
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 4
       },
       {
         id: 'evt-04',
         shipmentId: 'shp-9812-dac',
-        status: 'in_transit',
-        title: 'Cargo In-Transit via DXB Connecting Flight',
-        description: 'Flight EK583 arrived at Dubai SkyCargo Hub. Transfer to connecting flight EK047 to Frankfurt in progress.',
-        locationName: 'Dubai Cargo Terminal (DXB)',
-        eventTime: '2026-10-24T17:40:00Z',
-        lat: 25.2532,
-        lng: 55.3657,
-        source: 'carrier_api'
+        status: 'arrived_dhaka_airport',
+        statusCode: 'arrived_dhaka_airport',
+        statusLabel: 'ARRIVED DHAKA AIRPORT',
+        title: 'ARRIVED DHAKA AIRPORT',
+        description: 'Cathay Cargo Flight CX-068 landed at HSIA. Aircraft de-boarded and transferred to Cargo Village shed.',
+        locationName: 'HSIA Cargo Village, Dhaka, Bangladesh',
+        eventTime: '2026-10-24T22:30:00Z', // 04:30 AM BST
+        occurredAtBst: '25 Oct 2026, 04:30 AM BST',
+        lat: 23.8433,
+        lng: 90.4029,
+        source: 'carrier_api',
+        visibility: 'public',
+        eventVersion: 3
+      },
+      {
+        id: 'evt-03',
+        shipmentId: 'shp-9812-dac',
+        status: 'dispatched_from_china',
+        statusCode: 'dispatched_from_china',
+        statusLabel: 'DISPATCHED FROM CHINA',
+        title: 'DISPATCHED FROM CHINA',
+        description: 'Export customs appraisal completed. Air freight ULD containers boarded onto flight CX-068 and departed.',
+        locationName: 'Guangzhou Baiyun Airport Hub (CAN), China',
+        eventTime: '2026-10-24T05:30:00Z', // 11:30 AM BST
+        occurredAtBst: '24 Oct 2026, 11:30 AM BST',
+        lat: 23.3924,
+        lng: 113.2988,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 2
+      },
+      {
+        id: 'evt-02',
+        shipmentId: 'shp-9812-dac',
+        status: 'cn_warehouse_received',
+        statusCode: 'cn_warehouse_received',
+        statusLabel: 'CN WAREHOUSE RECEIVED',
+        title: 'CN WAREHOUSE RECEIVED',
+        description: 'Consignment received at Guangzhou hub. 42 packages verified, weighed (850.5 KG), and palletized.',
+        locationName: 'GoShipping Guangzhou Central Receiving Hub, China',
+        eventTime: '2026-10-23T08:15:00Z', // 02:15 PM BST
+        occurredAtBst: '23 Oct 2026, 02:15 PM BST',
+        lat: 23.3800,
+        lng: 113.2800,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 1
+      },
+      {
+        id: 'evt-01',
+        shipmentId: 'shp-9812-dac',
+        status: 'purchased',
+        statusCode: 'purchased',
+        statusLabel: 'PURCHASED',
+        title: 'PURCHASED',
+        description: 'Commercial order confirmed by factory supplier. GoShipping booking created with Airway Bill allocation.',
+        locationName: 'Keqiao Textile Commercial Market, Shaoxing / Guangzhou',
+        eventTime: '2026-10-22T04:00:00Z', // 10:00 AM BST
+        occurredAtBst: '22 Oct 2026, 10:00 AM BST',
+        lat: 23.3924,
+        lng: 113.2988,
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 1
       }
     ]
   },
   {
     id: 'shp-4411-ctg',
     trackingNumber: 'GOSH-2026-4411',
+    productName: 'Heavy Industrial Circular Textile Looms & Rotary Precision Units',
     customerId: 'usr-customer-01',
-    customerName: 'Apex Textiles Ltd',
+    customerName: 'Standard Composite Mills Ltd',
+    recipientName: 'Standard Composite Mills Terminal Receiving',
+    recipientPhone: '+880 1819-334455',
+    recipientAddress: 'Industrial Area, Baizid Bostami Road, Nasirabad, Chittagong, Bangladesh',
     originCountry: 'China',
-    originCity: 'Guangzhou',
+    originCity: 'Shenzhen',
+    originAddress: 'Yantian International Container Terminals, Shenzhen, Guangdong, China',
+    originLat: 22.5750,
+    originLng: 114.2760,
     destCountry: 'Bangladesh',
     destCity: 'Chittagong',
+    destAddress: 'Chittagong Port Authority (CPA) Container Terminal, Chittagong-4100',
+    destLat: 22.3193,
+    destLng: 91.8105,
     mode: 'sea',
     serviceLevel: 'standard',
-    status: 'customs_clearance',
-    currentLocation: 'Chittagong Port Terminal (CTG)',
-    currentLat: 22.3193,
-    currentLng: 91.8105,
-    totalWeightKg: 14200.0,
-    totalCbm: 38.5,
-    totalPieces: 120,
-    carrierName: 'Maersk Line',
-    carrierWaybillNumber: 'MSK-928471928',
-    estimatedDelivery: '2026-10-28T16:00:00Z',
-    createdAt: '2026-10-10T09:00:00Z',
-    updatedAt: '2026-10-24T12:00:00Z',
+    status: 'dispatched_from_china',
+    statusCode: 'dispatched_from_china',
+    statusLabel: 'DISPATCHED FROM CHINA',
+    paymentStatus: 'pending',
+    eventVersion: 3,
+    currentLocation: 'Malacca Strait Maritime Corridor (Underway to Bay of Bengal)',
+    currentLat: 5.4164,
+    currentLng: 100.3327,
+    totalWeightKg: 18450.0,
+    totalCbm: 68.4,
+    totalPieces: 1,
+    carrierName: 'COSCO Shipping Lines / GoShipping Maritime',
+    carrierWaybillNumber: 'COSU-628192810',
+    voyageOrFlightNumber: 'COSCO GLORY (Voyage 042W)',
+    billOfLadingNumber: 'BOL-GOSH-4411-YANT',
+    departureTime: '2026-10-16T02:00:00Z',
+    estimatedDelivery: '2026-11-04T18:00:00Z',
+    createdAt: '2026-10-12T03:00:00Z',
+    updatedAt: '2026-10-16T02:00:00Z',
+    lastUpdatedBst: formatBstDateTime('2026-10-16T02:00:00Z'),
+    physicalProgress: {
+      completedStagesCount: 3,
+      totalStagesCount: 8,
+      percentage: 38,
+      currentPhysicalStageIndex: 2,
+      isComplete: false
+    },
     items: [
       {
-        id: 'itm-02',
+        id: 'itm-03',
         shipmentId: 'shp-4411-ctg',
-        description: 'Raw Synthetic Yarn & Fabric Roll Assortment',
-        quantity: 120,
-        packagingType: 'pallet',
-        weightKg: 14200.0,
-        cbm: 38.5,
-        declaredValue: 68000,
-        currency: 'USD'
+        itemCode: '#SEA-40HQ-88',
+        description: '40ft High Cube Full Container Load (Circular Weaving Looms & Accessories)',
+        packagingType: '40ft_hq',
+        quantity: 1,
+        weightKg: 18450.0,
+        cbm: 68.4,
+        categoryTag: 'Commercial',
+        declaredValue: 8850000,
+        currency: 'BDT'
       }
     ],
     events: [
       {
-        id: 'evt-11',
+        id: 'evt-13',
         shipmentId: 'shp-4411-ctg',
-        status: 'warehouse_received',
-        title: 'Container Loaded at Nansha Port, Guangzhou',
-        description: 'Full container load sealed and boarded vessel MSC CLARA.',
-        locationName: 'Nansha Port, Guangzhou',
-        eventTime: '2026-10-11T10:00:00Z',
-        source: 'carrier_api'
+        status: 'dispatched_from_china',
+        statusCode: 'dispatched_from_china',
+        statusLabel: 'DISPATCHED FROM CHINA',
+        title: 'DISPATCHED FROM CHINA',
+        description: '40HQ container hoisted aboard COSCO GLORY at Yantian Port Berth 4. Vessel cast off and underway.',
+        locationName: 'Yantian International Container Terminal, Shenzhen, China',
+        eventTime: '2026-10-16T02:00:00Z',
+        occurredAtBst: '16 Oct 2026, 08:00 AM BST',
+        lat: 22.5750,
+        lng: 114.2760,
+        source: 'carrier_api',
+        visibility: 'public',
+        eventVersion: 3
       },
       {
         id: 'evt-12',
         shipmentId: 'shp-4411-ctg',
-        status: 'in_transit',
-        title: 'Vessel Departed South China Sea',
-        description: 'Maritime navigation on schedule towards Chittagong Port anchorage.',
-        locationName: 'Strait of Malacca Transit',
-        eventTime: '2026-10-18T16:00:00Z',
-        source: 'carrier_api'
+        status: 'cn_warehouse_received',
+        statusCode: 'cn_warehouse_received',
+        statusLabel: 'CN WAREHOUSE RECEIVED',
+        title: 'CN WAREHOUSE RECEIVED',
+        description: 'FCL container stuffed, security bolt tagged (#GOSH-SEAL-88192), and gate-in confirmed at Yantian yard.',
+        locationName: 'Shenzhen Maritime Logistics Yard, China',
+        eventTime: '2026-10-14T10:30:00Z',
+        occurredAtBst: '14 Oct 2026, 04:30 PM BST',
+        lat: 22.5700,
+        lng: 114.2600,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 2
       },
       {
-        id: 'evt-13',
+        id: 'evt-11',
         shipmentId: 'shp-4411-ctg',
-        status: 'customs_clearance',
-        title: 'Berthing & Import Customs Processing',
-        description: 'Container discharged from vessel. Bill of entry filed with Chittagong Customs House.',
-        locationName: 'Chittagong Port Terminal (CTG)',
-        eventTime: '2026-10-24T10:30:00Z',
-        lat: 22.3193,
-        lng: 91.8105,
-        source: 'warehouse'
+        status: 'purchased',
+        statusCode: 'purchased',
+        statusLabel: 'PURCHASED',
+        title: 'PURCHASED',
+        description: 'Foshan heavy machinery export contract finalized and 40ft HQ slot reserved with carrier.',
+        locationName: 'Foshan Industrial Heavy Machinery Park, Guangdong',
+        eventTime: '2026-10-12T03:00:00Z',
+        occurredAtBst: '12 Oct 2026, 09:00 AM BST',
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 1
+      }
+    ]
+  },
+  {
+    id: 'shp-7733-d2d',
+    trackingNumber: 'GOSH-2026-7733',
+    productName: '10ft Insulated Lithium Power Storage Packs & Heavy Mechanical Tools',
+    customerId: 'usr-customer-01',
+    customerName: 'Dhaka Green Energy Solutions',
+    recipientName: 'Engr. Mahbubul Alam (Operations Director)',
+    recipientPhone: '+880 1912-998877',
+    recipientAddress: 'Tower 49, Motijheel Commercial Area, Dhaka-1000, Bangladesh',
+    originCountry: 'China',
+    originCity: 'Yiwu',
+    originAddress: 'Yiwu International Trade City Logistics Center, Zhejiang, China',
+    originLat: 29.3068,
+    originLng: 120.0751,
+    destCountry: 'Bangladesh',
+    destCity: 'Dhaka',
+    destAddress: 'Motijheel Commercial Area, Dhaka-1000, Bangladesh',
+    destLat: 23.7337,
+    destLng: 90.4178,
+    mode: 'road',
+    serviceLevel: 'priority',
+    status: 'out_for_delivery',
+    statusCode: 'out_for_delivery',
+    statusLabel: 'OUT FOR DELIVERY',
+    paymentStatus: 'payment_received',
+    eventVersion: 8,
+    currentLocation: 'Dhaka Metropolitan Urban Dispatch Unit, Tejgaon',
+    currentLat: 23.7644,
+    currentLng: 90.3957,
+    totalWeightKg: 4050.0,
+    totalCbm: 20.7,
+    totalPieces: 2,
+    carrierName: 'GoShipping Direct Express Urban Fleet',
+    carrierWaybillNumber: 'D2D-7733-YW-DAC',
+    voyageOrFlightNumber: 'Electric Cargo Van TRC-392 (Driver: Rafiqul Islam)',
+    billOfLadingNumber: 'D2D-GOSH-7733-MANIFEST',
+    departureTime: '2026-10-18T04:00:00Z',
+    estimatedDelivery: '2026-10-25T11:00:00Z',
+    createdAt: '2026-10-18T02:00:00Z',
+    updatedAt: '2026-10-25T03:30:00Z',
+    lastUpdatedBst: formatBstDateTime('2026-10-25T03:30:00Z'),
+    physicalProgress: {
+      completedStagesCount: 7,
+      totalStagesCount: 8,
+      percentage: 88,
+      currentPhysicalStageIndex: 6,
+      isComplete: false
+    },
+    items: [
+      {
+        id: 'itm-05',
+        shipmentId: 'shp-7733-d2d',
+        itemCode: '#D2D-10FT-51',
+        description: '10ft Insulated Cargo Container (Lithium Polymer Batteries & E-Scooters)',
+        packagingType: '10ft_container',
+        quantity: 1,
+        weightKg: 3200.0,
+        cbm: 15.5,
+        categoryTag: 'Dangerous',
+        declaredValue: 5124000,
+        currency: 'BDT'
+      },
+      {
+        id: 'itm-06',
+        shipmentId: 'shp-7733-d2d',
+        itemCode: '#D2D-CART-98',
+        description: 'Reinforced Hardware Cartons (Specialty Hand Tools & Fasteners)',
+        packagingType: 'carton',
+        quantity: 1,
+        weightKg: 850.0,
+        cbm: 5.2,
+        categoryTag: 'General',
+        declaredValue: 1195000,
+        currency: 'BDT'
+      }
+    ],
+    events: [
+      {
+        id: 'evt-27',
+        shipmentId: 'shp-7733-d2d',
+        status: 'out_for_delivery',
+        statusCode: 'out_for_delivery',
+        statusLabel: 'OUT FOR DELIVERY',
+        title: 'OUT FOR DELIVERY',
+        description: 'Cargo loaded on GoShipping electric van TRC-392. Final destination handover underway in Motijheel.',
+        locationName: 'Dhaka Metropolitan Urban Dispatch Unit, Tejgaon',
+        eventTime: '2026-10-25T03:30:00Z', // 09:30 AM BST
+        occurredAtBst: '25 Oct 2026, 09:30 AM BST',
+        lat: 23.7644,
+        lng: 90.3957,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 8
+      },
+      {
+        id: 'evt-pay-2',
+        shipmentId: 'shp-7733-d2d',
+        status: 'payment_received',
+        statusCode: 'payment_received',
+        statusLabel: 'PAYMENT RECEIVED',
+        title: 'PAYMENT RECEIVED',
+        description: 'All invoices, customs levies and delivery handling cleared through GoShipping online corporate portal.',
+        locationName: 'GoShipping Corporate Finance & Billing Desk, Dhaka',
+        eventTime: '2026-10-25T02:00:00Z', // 08:00 AM BST
+        occurredAtBst: '25 Oct 2026, 08:00 AM BST',
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 7
+      },
+      {
+        id: 'evt-26',
+        shipmentId: 'shp-7733-d2d',
+        status: 'bd_warehouse_received',
+        statusCode: 'bd_warehouse_received',
+        statusLabel: 'BD WAREHOUSE RECEIVED',
+        title: 'BD WAREHOUSE RECEIVED',
+        description: 'Customs cleared cargo received at GoShipping Dhaka central sorting hub. Route sorted for Motijheel.',
+        locationName: 'GoShipping Sorting Hub, Tejgaon, Dhaka',
+        eventTime: '2026-10-24T11:30:00Z', // 05:30 PM BST
+        occurredAtBst: '24 Oct 2026, 05:30 PM BST',
+        lat: 23.7644,
+        lng: 90.3957,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 6
+      },
+      {
+        id: 'evt-25',
+        shipmentId: 'shp-7733-d2d',
+        status: 'awaiting_customs',
+        statusCode: 'awaiting_customs',
+        statusLabel: 'AWAITING CUSTOMS CLEARANCE',
+        title: 'AWAITING CUSTOMS CLEARANCE',
+        description: 'Customs assessment completed at Dhaka Kamalapur ICD. Assessment notice paid and out-pass issued.',
+        locationName: 'Kamalapur Inland Container Depot (ICD), Dhaka',
+        eventTime: '2026-10-24T04:00:00Z', // 10:00 AM BST
+        occurredAtBst: '24 Oct 2026, 10:00 AM BST',
+        lat: 23.7314,
+        lng: 90.4265,
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 5
+      },
+      {
+        id: 'evt-24',
+        shipmentId: 'shp-7733-d2d',
+        status: 'arrived_dhaka_airport',
+        statusCode: 'arrived_dhaka_airport',
+        statusLabel: 'ARRIVED DHAKA AIRPORT',
+        title: 'ARRIVED DHAKA AIRPORT',
+        description: 'Trans-border express linehaul arrived at Dhaka transit entry customs gate.',
+        locationName: 'Dhaka Transit Entry Terminal, Bangladesh',
+        eventTime: '2026-10-23T12:00:00Z', // 06:00 PM BST
+        occurredAtBst: '23 Oct 2026, 06:00 PM BST',
+        lat: 23.8433,
+        lng: 90.4029,
+        source: 'carrier_api',
+        visibility: 'public',
+        eventVersion: 4
+      },
+      {
+        id: 'evt-23',
+        shipmentId: 'shp-7733-d2d',
+        status: 'dispatched_from_china',
+        statusCode: 'dispatched_from_china',
+        statusLabel: 'DISPATCHED FROM CHINA',
+        title: 'DISPATCHED FROM CHINA',
+        description: 'Cross-border container truck convoy departed Yiwu hub under bonded linehaul seal.',
+        locationName: 'Yiwu International Logistics Terminal, China',
+        eventTime: '2026-10-21T04:00:00Z', // 10:00 AM BST
+        occurredAtBst: '21 Oct 2026, 10:00 AM BST',
+        lat: 29.3068,
+        lng: 120.0751,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 3
+      },
+      {
+        id: 'evt-22',
+        shipmentId: 'shp-7733-d2d',
+        status: 'cn_warehouse_received',
+        statusCode: 'cn_warehouse_received',
+        statusLabel: 'CN WAREHOUSE RECEIVED',
+        title: 'CN WAREHOUSE RECEIVED',
+        description: 'Cargo checked into Yiwu warehouse. Palletized and measured (20.7 CBM, 4,050 KG).',
+        locationName: 'GoShipping Yiwu Receiving Warehouse, China',
+        eventTime: '2026-10-19T08:00:00Z', // 02:00 PM BST
+        occurredAtBst: '19 Oct 2026, 02:00 PM BST',
+        lat: 29.3068,
+        lng: 120.0751,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 2
+      },
+      {
+        id: 'evt-21',
+        shipmentId: 'shp-7733-d2d',
+        status: 'purchased',
+        statusCode: 'purchased',
+        statusLabel: 'PURCHASED',
+        title: 'PURCHASED',
+        description: 'Supplier contract verified in Yiwu International Trade City Market.',
+        locationName: 'Yiwu Trade City District 2 Market',
+        eventTime: '2026-10-18T02:00:00Z', // 08:00 AM BST
+        occurredAtBst: '18 Oct 2026, 08:00 AM BST',
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 1
       }
     ]
   }
@@ -229,6 +610,8 @@ export class ShipmentService {
    */
   static async listShipments(params?: {
     customerId?: string;
+    customerName?: string;
+    customerEmail?: string;
     status?: string;
     mode?: string;
     query?: string;
@@ -236,10 +619,17 @@ export class ShipmentService {
     let results = [...initialShipments];
 
     if (params?.customerId) {
-      results = results.filter((s) => s.customerId === params.customerId);
+      const cId = params.customerId;
+      const cName = params.customerName?.toLowerCase();
+      results = results.filter(
+        (s) =>
+          s.customerId === cId ||
+          (cName && s.customerName.toLowerCase() === cName)
+      );
     }
     if (params?.status && params.status !== 'all') {
-      results = results.filter((s) => s.status === params.status);
+      const normalized = normalizeStatusCode(params.status);
+      results = results.filter((s) => s.statusCode === normalized || s.status === params.status);
     }
     if (params?.mode && params.mode !== 'all') {
       results = results.filter((s) => s.mode === params.mode);
@@ -249,133 +639,371 @@ export class ShipmentService {
       results = results.filter(
         (s) =>
           s.trackingNumber.toLowerCase().includes(q) ||
-          s.customerName.toLowerCase().includes(q) ||
           s.originCity.toLowerCase().includes(q) ||
           s.destCity.toLowerCase().includes(q) ||
-          (s.carrierWaybillNumber && s.carrierWaybillNumber.toLowerCase().includes(q))
+          s.productName.toLowerCase().includes(q) ||
+          s.carrierName.toLowerCase().includes(q) ||
+          s.voyageOrFlightNumber.toLowerCase().includes(q)
       );
     }
 
-    return results.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return results;
   }
 
   /**
-   * Get single shipment by ID or Tracking number
+   * Get single shipment by tracking number or id
    */
   static async getByTrackingNumber(trackingNumber: string): Promise<ShipmentRecord | null> {
-    const formatted = trackingNumber.trim().toUpperCase();
+    const clean = trackingNumber.trim().toUpperCase();
     const found = initialShipments.find(
-      (s) => s.trackingNumber.toUpperCase() === formatted || s.id === formatted
+      (s) => s.trackingNumber.toUpperCase() === clean || s.id.toLowerCase() === trackingNumber.toLowerCase()
     );
-    return found || null;
+    return found ? { ...found } : null;
   }
 
   /**
-   * Create a new shipment
+   * Create master shipment
    */
   static async createShipment(data: {
-    customerId: string;
+    customerId?: string;
     customerName: string;
+    productName?: string;
+    recipientName?: string;
+    recipientPhone?: string;
+    recipientAddress?: string;
     originCountry: string;
     originCity: string;
+    originAddress?: string;
+    originLat?: number;
+    originLng?: number;
     destCountry: string;
     destCity: string;
+    destAddress?: string;
+    destLat?: number;
+    destLng?: number;
     mode: 'air' | 'sea' | 'road';
     serviceLevel: 'standard' | 'express' | 'priority';
     totalWeightKg: number;
     totalCbm: number;
     totalPieces: number;
-    items?: Omit<ShipmentItem, 'id' | 'shipmentId'>[];
+    items?: Array<{
+      description: string;
+      itemCode?: string;
+      packagingType?: string;
+      quantity?: number;
+      weightKg?: number;
+      cbm?: number;
+      categoryTag?: 'General' | 'Commercial' | 'Liquids' | 'Dangerous' | 'Perishable' | 'Electronics';
+      declaredValue?: number;
+      currency?: string;
+    }>;
     estimatedDelivery?: string;
     carrierName?: string;
+    voyageOrFlightNumber?: string;
+    billOfLadingNumber?: string;
   }): Promise<ShipmentRecord> {
     const id = `shp-${Date.now().toString(36)}`;
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const trackingNumber = `GOSH-${new Date().getFullYear()}-${randomSuffix}`;
     const now = new Date().toISOString();
 
+    const originLat =
+      data.originLat ||
+      (data.originCity.toLowerCase().includes('guangzhou')
+        ? 23.3924
+        : data.originCity.toLowerCase().includes('yiwu')
+        ? 29.3068
+        : 22.5431);
+    const originLng =
+      data.originLng ||
+      (data.originCity.toLowerCase().includes('guangzhou')
+        ? 113.2988
+        : data.originCity.toLowerCase().includes('yiwu')
+        ? 120.0751
+        : 114.0579);
+    const destLat = data.destLat || (data.destCity.toLowerCase().includes('chittagong') ? 22.3193 : 23.8433);
+    const destLng = data.destLng || (data.destCity.toLowerCase().includes('chittagong') ? 91.8105 : 90.4029);
+
+    const defaultItems: ShipmentItem[] =
+      data.items && data.items.length > 0
+        ? data.items.map((it, idx) => ({
+            id: `itm-${id}-${idx}`,
+            shipmentId: id,
+            itemCode: it.itemCode || `#ITM-${1000 + idx}`,
+            description: it.description,
+            packagingType: it.packagingType || 'carton',
+            quantity: it.quantity || 1,
+            weightKg: it.weightKg || data.totalWeightKg,
+            cbm: it.cbm || data.totalCbm,
+            categoryTag: it.categoryTag || 'Commercial',
+            declaredValue: it.declaredValue,
+            currency: it.currency || 'BDT'
+          }))
+        : [
+            {
+              id: `itm-${id}-0`,
+              shipmentId: id,
+              itemCode: `#GOSH-${randomSuffix}`,
+              description: data.productName || `${data.mode.toUpperCase()} Commercial Cargo Consignment`,
+              packagingType: data.mode === 'sea' ? '40ft_hq' : data.mode === 'air' ? 'air_uld' : 'pallet',
+              quantity: data.totalPieces,
+              weightKg: data.totalWeightKg,
+              cbm: data.totalCbm,
+              categoryTag: 'Commercial',
+              declaredValue: 2450000,
+              currency: 'BDT'
+            }
+          ];
+
+    const initialEvent: ShipmentEvent = {
+      id: `evt-${id}-init`,
+      shipmentId: id,
+      status: 'purchased',
+      statusCode: 'purchased',
+      statusLabel: 'PURCHASED',
+      title: 'PURCHASED',
+      description: `Commercial consignment registered and booked from ${data.originCity}, ${data.originCountry} to ${data.destCity}, ${data.destCountry}.`,
+      locationName: `${data.originCity} Operations Hub, ${data.originCountry}`,
+      eventTime: now,
+      occurredAtBst: formatBstDateTime(now),
+      lat: originLat,
+      lng: originLng,
+      source: 'admin',
+      visibility: 'public',
+      eventVersion: 1
+    };
+
     const newShipment: ShipmentRecord = {
       id,
       trackingNumber,
-      customerId: data.customerId,
+      productName: data.productName || 'Commercial Freight Cargo',
+      customerId: data.customerId || 'usr-customer-01',
       customerName: data.customerName,
+      recipientName: data.recipientName || `${data.customerName} Receiving Hub`,
+      recipientPhone: data.recipientPhone || '+880 1711-000000',
+      recipientAddress: data.recipientAddress || `${data.destCity}, Bangladesh`,
       originCountry: data.originCountry,
       originCity: data.originCity,
+      originAddress: data.originAddress || `${data.originCity} International Terminal`,
+      originLat,
+      originLng,
       destCountry: data.destCountry,
       destCity: data.destCity,
+      destAddress: data.destAddress || `${data.destCity} Cargo Receiving Station`,
+      destLat,
+      destLng,
       mode: data.mode,
       serviceLevel: data.serviceLevel,
-      status: 'order_created',
-      currentLocation: `${data.originCity} Hub`,
+      status: 'purchased',
+      statusCode: 'purchased',
+      statusLabel: 'PURCHASED',
+      paymentStatus: 'pending',
+      eventVersion: 1,
+      currentLocation: `${data.originCity} Receiving Hub`,
+      currentLat: originLat,
+      currentLng: originLng,
       totalWeightKg: data.totalWeightKg,
       totalCbm: data.totalCbm,
       totalPieces: data.totalPieces,
-      carrierName: data.carrierName || 'GoShipping Express Lines',
-      estimatedDelivery: data.estimatedDelivery || new Date(Date.now() + 5 * 86400000).toISOString(),
+      carrierName: data.carrierName || 'GoShipping Logistics Lines',
+      voyageOrFlightNumber:
+        data.voyageOrFlightNumber ||
+        (data.mode === 'air' ? 'Flight GS-701' : data.mode === 'sea' ? 'Vessel GS OCEAN-12' : 'Truck TRC-101'),
+      billOfLadingNumber: data.billOfLadingNumber || `BL-${trackingNumber}`,
+      departureTime: now,
+      estimatedDelivery: data.estimatedDelivery || new Date(Date.now() + 6 * 86400000).toISOString(),
       createdAt: now,
       updatedAt: now,
-      items: (data.items || []).map((it, idx) => ({
-        id: `itm-${id}-${idx}`,
-        shipmentId: id,
-        ...it
-      })),
-      events: [
-        {
-          id: `evt-${id}-init`,
-          shipmentId: id,
-          status: 'order_created',
-          title: 'Shipment Created and Booked',
-          description: `Consignment booked from ${data.originCity}, ${data.originCountry} to ${data.destCity}, ${data.destCountry}.`,
-          locationName: `${data.originCity} Operations Hub`,
-          eventTime: now,
-          source: 'admin'
-        }
-      ]
+      lastUpdatedBst: formatBstDateTime(now),
+      items: defaultItems,
+      events: [initialEvent],
+      physicalProgress: {
+        completedStagesCount: 1,
+        totalStagesCount: 8,
+        percentage: 13,
+        currentPhysicalStageIndex: 0,
+        isComplete: false
+      }
     };
 
     initialShipments.unshift(newShipment);
+
+    // Broadcast new consignment
+    RealtimeService.broadcastShipmentUpdate({
+      trackingNumber: newShipment.trackingNumber,
+      shipmentId: newShipment.id,
+      status: newShipment.status,
+      statusCode: newShipment.statusCode,
+      statusLabel: newShipment.statusLabel,
+      paymentStatus: newShipment.paymentStatus,
+      version: newShipment.eventVersion,
+      updatedAt: newShipment.updatedAt,
+      latestEvent: initialEvent
+    }).catch(() => {});
+
     return newShipment;
   }
 
   /**
-   * Add verified tracking event
+   * Update shipment status and atomically record a new verified tracking event
+   */
+  static async updateStatus(
+    shipmentId: string,
+    data: {
+      status: TrackingStatusCode | string;
+      title?: string;
+      description?: string;
+      locationName?: string;
+      lat?: number;
+      lng?: number;
+      source?: 'warehouse' | 'admin' | 'carrier_api' | 'driver';
+      eventTime?: string; // ISO string if specified by admin
+      notes?: string;
+      visibility?: 'public' | 'internal';
+      paymentStatus?: 'pending' | 'payment_received';
+    }
+  ): Promise<ShipmentRecord | null> {
+    const shipment = initialShipments.find((s) => s.id === shipmentId || s.trackingNumber === shipmentId);
+    if (!shipment) return null;
+
+    const normalizedCode = normalizeStatusCode(data.status);
+    const statusDef = TRACKING_STATUSES[normalizedCode];
+    const nowIso = new Date().toISOString();
+    const eventTimeIso = data.eventTime ? new Date(data.eventTime).toISOString() : nowIso;
+    const eventBst = formatBstDateTime(eventTimeIso);
+
+    // Increment optimistic version
+    shipment.eventVersion += 1;
+
+    // Check if this is PAYMENT RECEIVED milestone
+    if (normalizedCode === 'payment_received' || data.paymentStatus === 'payment_received') {
+      shipment.paymentStatus = 'payment_received';
+      // CRITICAL REQUIREMENT: PAYMENT RECEIVED is independent. It does NOT overwrite the current physical stage!
+    } else {
+      // Physical stage transition
+      shipment.status = normalizedCode;
+      shipment.statusCode = normalizedCode;
+      shipment.statusLabel = statusDef.label;
+      if (data.locationName) {
+        shipment.currentLocation = data.locationName;
+      } else if (statusDef.defaultLocation) {
+        shipment.currentLocation = statusDef.defaultLocation;
+      }
+      if (data.lat !== undefined) shipment.currentLat = data.lat;
+      if (data.lng !== undefined) shipment.currentLng = data.lng;
+    }
+
+    const eventId = `evt-${crypto.randomBytes(4).toString('hex')}`;
+    const newEvent: ShipmentEvent = {
+      id: eventId,
+      shipmentId: shipment.id,
+      status: normalizedCode,
+      statusCode: normalizedCode,
+      statusLabel: statusDef.label,
+      title: data.title || statusDef.label,
+      description: data.description || statusDef.defaultDescription,
+      locationName: data.locationName || statusDef.defaultLocation,
+      eventTime: eventTimeIso,
+      occurredAtBst: eventBst,
+      lat: data.lat,
+      lng: data.lng,
+      source: data.source || 'admin',
+      visibility: data.visibility || 'public',
+      eventVersion: shipment.eventVersion
+    };
+
+    // Add event at top of events list
+    shipment.events.unshift(newEvent);
+    shipment.updatedAt = nowIso;
+    shipment.lastUpdatedBst = formatBstDateTime(nowIso);
+
+    // Recalculate physical progress from actual events
+    shipment.physicalProgress = calculatePhysicalProgress(shipment.status, shipment.events);
+
+    // Publish to real-time synchronization channels
+    RealtimeService.broadcastShipmentUpdate({
+      trackingNumber: shipment.trackingNumber,
+      shipmentId: shipment.id,
+      status: shipment.status,
+      statusCode: shipment.statusCode,
+      statusLabel: shipment.statusLabel,
+      paymentStatus: shipment.paymentStatus,
+      version: shipment.eventVersion,
+      updatedAt: shipment.updatedAt,
+      latestEvent: {
+        id: newEvent.id,
+        statusCode: newEvent.statusCode,
+        statusLabel: newEvent.statusLabel,
+        title: newEvent.title,
+        description: newEvent.description,
+        locationName: newEvent.locationName,
+        eventTime: newEvent.eventTime
+      }
+    }).catch((err) => {
+      console.warn('[ShipmentService] Realtime broadcast error:', err.message);
+    });
+
+    return shipment;
+  }
+
+  /**
+   * Legacy wrapper: Add event
    */
   static async addEvent(
     shipmentId: string,
     eventData: {
-      status: ShipmentRecord['status'];
+      status: string;
       title: string;
       description: string;
       locationName: string;
       lat?: number;
       lng?: number;
       source?: 'warehouse' | 'admin' | 'carrier_api';
+      eventTime?: string;
     }
   ): Promise<ShipmentRecord | null> {
-    const shipment = initialShipments.find((s) => s.id === shipmentId || s.trackingNumber === shipmentId);
+    return this.updateStatus(shipmentId, eventData);
+  }
+
+  /**
+   * Delete a shipment (Admin function)
+   */
+  static async deleteShipment(id: string): Promise<boolean> {
+    const index = initialShipments.findIndex((s) => s.id === id || s.trackingNumber === id);
+    if (index === -1) return false;
+    initialShipments.splice(index, 1);
+    return true;
+  }
+
+  /**
+   * Update shipment details (Admin function)
+   */
+  static async updateShipment(
+    id: string,
+    updates: Partial<ShipmentRecord>
+  ): Promise<ShipmentRecord | null> {
+    const shipment = initialShipments.find((s) => s.id === id || s.trackingNumber === id);
     if (!shipment) return null;
 
-    const now = new Date().toISOString();
-    const newEvent: ShipmentEvent = {
-      id: `evt-${crypto.randomBytes(4).toString('hex')}`,
-      shipmentId: shipment.id,
-      status: eventData.status,
-      title: eventData.title,
-      description: eventData.description,
-      locationName: eventData.locationName,
-      lat: eventData.lat,
-      lng: eventData.lng,
-      eventTime: now,
-      source: eventData.source || 'warehouse'
-    };
-
-    shipment.events.unshift(newEvent);
-    shipment.status = eventData.status;
-    shipment.currentLocation = eventData.locationName;
-    if (eventData.lat) shipment.currentLat = eventData.lat;
-    if (eventData.lng) shipment.currentLng = eventData.lng;
-    shipment.updatedAt = now;
-
+    Object.assign(shipment, updates, { updatedAt: new Date().toISOString() });
+    shipment.lastUpdatedBst = formatBstDateTime(shipment.updatedAt);
     return shipment;
+  }
+
+  /**
+   * Delete tracking event
+   */
+  static async deleteEvent(shipmentId: string, eventId: string): Promise<boolean> {
+    const shipment = initialShipments.find((s) => s.id === shipmentId || s.trackingNumber === shipmentId);
+    if (!shipment) return false;
+
+    const eventIndex = shipment.events.findIndex((e) => e.id === eventId);
+    if (eventIndex === -1) return false;
+
+    shipment.events.splice(eventIndex, 1);
+    shipment.updatedAt = new Date().toISOString();
+    shipment.lastUpdatedBst = formatBstDateTime(shipment.updatedAt);
+    shipment.physicalProgress = calculatePhysicalProgress(shipment.status, shipment.events);
+    return true;
   }
 }
