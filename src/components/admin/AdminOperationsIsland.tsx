@@ -1,3 +1,4 @@
+import SearchableSelect, { type SearchableSelectOption } from "./SearchableSelect";
 import React, { useState, useEffect, useMemo } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
@@ -37,6 +38,45 @@ export interface OrderItemForm {
   cbm: number;
   declaredValue?: number;
 }
+
+
+const PACKAGE_TYPE_OPTIONS: SearchableSelectOption[] = [
+  { value: 'air_uld', label: 'Air ULD (LD3 / Contour Container)', badge: 'Air' },
+  { value: 'carton', label: 'Carton (Corrugated Export Box)', badge: 'Common' },
+  { value: 'wooden_crate', label: 'Wooden Crate (Heavy / Fragile Cargo)' },
+  { value: 'pallet', label: 'Pallet (Plastic / Heat-Treated Wood)' },
+  { value: 'container_20ft', label: '20ft FCL Container', badge: 'Sea' },
+  { value: 'container_40ft', label: '40ft HQ Container', badge: 'Sea' },
+  { value: 'gunny_bag', label: 'Gunny / Poly Bag', badge: 'Parcel' },
+  { value: 'drum', label: 'Steel / Plastic Drum Container' },
+  { value: 'loose', label: 'Loose Cargo (Unpackaged)' }
+];
+
+const CATEGORY_OPTIONS: SearchableSelectOption[] = [
+  { value: 'Commercial', label: 'Commercial Cargo (General Goods)' },
+  { value: 'Garments', label: 'Garments & Fashion Apparel' },
+  { value: 'Textiles', label: 'Fabric Rolls & Raw Textiles' },
+  { value: 'Electronics', label: 'Consumer Electronics & Gadgets' },
+  { value: 'Liquids', label: 'Liquids & Cosmetics (Permitted)' },
+  { value: 'Dangerous', label: 'Dangerous Goods (Battery / DG)' },
+  { value: 'Perishable', label: 'Perishable & Cold Chain' },
+  { value: 'Machinery', label: 'Industrial Machinery & Spare Parts' }
+];
+
+const ORIGIN_OPTIONS: SearchableSelectOption[] = [
+  { value: 'Guangzhou', label: 'Guangzhou (CAN Hub)', badge: 'China' },
+  { value: 'Yiwu', label: 'Yiwu (YIW Trade City Hub)', badge: 'China' },
+  { value: 'Shenzhen', label: 'Shenzhen (SZX Port & Airport)', badge: 'China' },
+  { value: 'Shanghai', label: 'Shanghai (PVG Pudong Hub)', badge: 'China' },
+  { value: 'Hong Kong', label: 'Hong Kong (HKG Freight Hub)', badge: 'China' }
+];
+
+const DESTINATION_OPTIONS: SearchableSelectOption[] = [
+  { value: 'Dhaka', label: 'Dhaka (HSIA Airport Hub / Kurmitola)', badge: 'BD' },
+  { value: 'Chittagong', label: 'Chittagong (Seaport CFS / Patenga)', badge: 'BD' },
+  { value: 'Tejgaon', label: 'Dhaka Central (Tejgaon ICD)', badge: 'BD' },
+  { value: 'Savar', label: 'Dhaka North (DEPZ Savar Hub)', badge: 'BD' }
+];
 
 export default function AdminOperationsIsland({ initialTab = 'overview' }: { initialTab?: string }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -244,9 +284,33 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     });
   }, [users, customerSearchQuery]);
 
+  const allCustomerOptions = useMemo(() => {
+    const customerUsers = users.filter((u) => u.role === 'customer' || !u.role);
+    const combined = [...customerUsers, ...customers.filter((c) => !customerUsers.some((u) => u.id === c.id))];
+    if (combined.length > 0) return combined;
+    return [
+      { id: 'usr-customer-01', fullName: 'Farhan Ahmed', companyName: 'Apex Textiles Ltd', email: 'farhan@apextextiles.com', phone: '+880 1711-223344', role: 'customer', address: 'Export Processing Zone, Savar, Dhaka 1349, Bangladesh' },
+      { id: 'usr-customer-02', fullName: 'Shakil Mahmud', companyName: 'Standard Composite Mills', email: 'shakil@standardcomposite.com', phone: '+880 1819-334455', role: 'customer', address: 'Industrial Area, Baizid Bostami Road, Chittagong, Bangladesh' },
+      { id: 'usr-customer-03', fullName: 'Tasnim Hasan', companyName: 'Meghna Knitwear Cargo', email: 'tasnim@meghnaknit.com', phone: '+880 1912-445566', role: 'customer', address: 'Plot 14, Sector 7, Uttara Model Town, Dhaka 1230, Bangladesh' }
+    ];
+  }, [users, customers]);
+
+  const customerSelectOptions = useMemo<SearchableSelectOption[]>(() => {
+    return allCustomerOptions.map((cust) => ({
+      value: cust.id,
+      label: cust.companyName ? `${cust.companyName} (${cust.fullName})` : cust.fullName,
+      sublabel: `${cust.email} · ${cust.phone || 'No phone recorded'}`,
+      badge: cust.role || 'customer'
+    }));
+  }, [allCustomerOptions]);
+
   const currentSelectedCustomer = useMemo(() => {
-    return users.find((u) => u.id === selectedCustomerId) || customers.find((c) => c.id === selectedCustomerId);
-  }, [users, customers, selectedCustomerId]);
+    return (
+      users.find((u) => u.id === selectedCustomerId) ||
+      customers.find((c) => c.id === selectedCustomerId) ||
+      allCustomerOptions.find((c) => c.id === selectedCustomerId)
+    );
+  }, [users, customers, selectedCustomerId, allCustomerOptions]);
 
   const selectCustomerForOrder = (target: any) => {
     setSelectedCustomerId(target.id);
@@ -1685,99 +1749,35 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   {orderCustomerMode === 'existing' ? (
-                    <div className="space-y-3.5">
-                      <div className="relative">
-                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                          Search Customer Account
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={customerSearchQuery}
-                            onChange={(e) => {
-                              setCustomerSearchQuery(e.target.value);
-                              setIsCustomerDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsCustomerDropdownOpen(true)}
-                            placeholder="Type customer name, company, email, phone or BIN number..."
-                            className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                          <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                          </svg>
-                        </div>
+                    <div className="space-y-3 pt-1">
+                      <SearchableSelect
+                        label="Customer Account"
+                        required
+                        value={selectedCustomerId}
+                        onChange={(newVal) => {
+                          const found = allCustomerOptions.find((c) => c.id === newVal);
+                          if (found) selectCustomerForOrder(found);
+                        }}
+                        options={customerSelectOptions}
+                        placeholder="Click to select or search customer (e.g. Apex Textiles Ltd)..."
+                        searchPlaceholder="Type customer name, company, email, phone or BIN number..."
+                      />
 
-                        {/* Customer Search Auto-Suggest Dropdown */}
-                        {isCustomerDropdownOpen && (
-                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-30 max-h-60 overflow-y-auto divide-y divide-slate-100">
-                            {filteredCustomersForOrder.length === 0 ? (
-                              <div className="p-4 text-center text-slate-400 text-xs">
-                                No matching customers found. Click "+ Register New Client" to add.
-                              </div>
-                            ) : (
-                              filteredCustomersForOrder.map((cust) => (
-                                <button
-                                  key={cust.id}
-                                  type="button"
-                                  onClick={() => selectCustomerForOrder(cust)}
-                                  className={`w-full px-4 py-3 text-left flex items-start justify-between hover:bg-slate-50 transition-none cursor-pointer ${
-                                    selectedCustomerId === cust.id ? 'bg-red-50/50 text-slate-900' : 'text-slate-700'
-                                  }`}
-                                >
-                                  <div>
-                                    <div className="font-semibold text-xs text-slate-900 flex items-center gap-2">
-                                      <span>{cust.companyName || cust.fullName}</span>
-                                      {cust.companyName && (
-                                        <span className="text-[11px] font-normal text-slate-500">
-                                          ({cust.fullName})
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                                      {cust.email} · {cust.phone || 'No phone recorded'}
-                                    </div>
-                                  </div>
-                                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 font-mono text-slate-600 uppercase">
-                                    {cust.role}
-                                  </span>
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Current Selected Customer Card */}
+                      {/* Display auto-filled customer coordinates badge */}
                       {currentSelectedCustomer && (
-                        <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
-                                {currentSelectedCustomer.companyName || currentSelectedCustomer.fullName}
-                              </span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                Assigned Client
-                              </span>
-                            </div>
-                            <div className="text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
-                              <span><strong>Contact:</strong> {currentSelectedCustomer.fullName}</span>
-                              <span><strong>Email:</strong> {currentSelectedCustomer.email}</span>
-                              <span><strong>Phone:</strong> {currentSelectedCustomer.phone || newRecipientPhone}</span>
-                            </div>
-                            {currentSelectedCustomer.address && (
-                              <div className="text-[11px] text-slate-500">
-                                <strong>Default Address:</strong> {currentSelectedCustomer.address}
-                              </div>
-                            )}
+                        <div className="px-3.5 py-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span className="font-bold text-slate-900">
+                              {currentSelectedCustomer.companyName || currentSelectedCustomer.fullName}
+                            </span>
+                            <span className="text-emerald-800 font-mono text-[11px]">
+                              ({currentSelectedCustomer.email} · {currentSelectedCustomer.phone || 'No phone'})
+                            </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setIsCustomerDropdownOpen(true)}
-                            className="px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer shrink-0 transition-none"
-                          >
-                            Change Client
-                          </button>
+                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
+                            Auto-filled into Delivery Address
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1902,7 +1902,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <select
                         value={newOriginCity}
                         onChange={(e) => setNewOriginCity(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                       >
                         <option value="Guangzhou">Guangzhou (CAN)</option>
                         <option value="Yiwu">Yiwu (YIW)</option>
@@ -1919,7 +1919,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <select
                         value={newDestCity}
                         onChange={(e) => setNewDestCity(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                       >
                         <option value="Dhaka">Dhaka (HSIA / Hub)</option>
                         <option value="Chittagong">Chittagong (Port)</option>
@@ -2086,45 +2086,28 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           />
                         </div>
 
-                        {/* Package Type, Category, Quantity */}
+                        {/* Package Type, Category, Quantity (Searchable Selectors with Generous Right Padding) */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Package Type
-                            </label>
-                            <select
+                            <SearchableSelect
+                              label="Package Type"
                               value={item.packagingType}
-                              onChange={(e) => updateOrderItem(item.id, 'packagingType', e.target.value)}
-                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900"
-                            >
-                              <option value="air_uld">Air ULD</option>
-                              <option value="carton">Carton</option>
-                              <option value="wooden_crate">Wooden Crate</option>
-                              <option value="pallet">Pallet</option>
-                              <option value="container_20ft">20ft Container</option>
-                              <option value="container_40ft">40ft Container</option>
-                              <option value="gunny_bag">Gunny / Poly Bag</option>
-                              <option value="drum">Steel / Plastic Drum</option>
-                              <option value="loose">Loose Cargo</option>
-                            </select>
+                              onChange={(val) => updateOrderItem(item.id, 'packagingType', val)}
+                              options={PACKAGE_TYPE_OPTIONS}
+                              placeholder="Select package..."
+                              searchPlaceholder="Search package type..."
+                            />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Product Category
-                            </label>
-                            <select
+                            <SearchableSelect
+                              label="Product Category"
                               value={item.categoryTag}
-                              onChange={(e) => updateOrderItem(item.id, 'categoryTag', e.target.value as any)}
-                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900"
-                            >
-                              <option value="Commercial">Commercial Cargo</option>
-                              <option value="General">General Merchandise</option>
-                              <option value="Electronics">Electronics</option>
-                              <option value="Liquids">Liquids &amp; Cosmetics</option>
-                              <option value="Dangerous">Dangerous Goods</option>
-                              <option value="Perishable">Perishable</option>
-                            </select>
+                              onChange={(val) => updateOrderItem(item.id, 'categoryTag', val as any)}
+                              options={CATEGORY_OPTIONS}
+                              placeholder="Select category..."
+                              searchPlaceholder="Search category..."
+                            />
                           </div>
 
                           <div>
