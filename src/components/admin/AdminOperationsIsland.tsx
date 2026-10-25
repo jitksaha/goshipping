@@ -1022,42 +1022,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             </svg>
           </button>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif] truncate">
-                {headerDetails.title}
-              </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 font-mono">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span>Active Console</span>
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 truncate hidden md:block">
-              {headerDetails.subtitle}
-            </p>
-          </div>
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif] truncate">
+            {headerDetails.title}
+          </h1>
         </div>
 
         {/* Right Action Controls */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-          <a
-            href="/tracking"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-none shadow-2xs"
-            title="Open Live Public Tracker"
-          >
-            <svg className="w-3.5 h-3.5 text-[#EA1D2C] stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-            <span>Live Tracker</span>
-            <span className="text-[10px] text-slate-400">↗</span>
-          </a>
-
           <button
             onClick={() => loadData()}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-none cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-none cursor-pointer shadow-2xs"
             title="Refresh operational data"
           >
             <svg className={`w-3.5 h-3.5 stroke-[2] text-slate-500 ${loading ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1069,24 +1044,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <span className="hidden sm:inline">Sync</span>
           </button>
 
-          {/* Update Live Status Button */}
-          <button
-            onClick={() => {
-              if (shipments.length > 0 && !selectedShipmentId) {
-                setSelectedShipmentId(shipments[0].trackingNumber);
-              }
-              setShowMilestoneModal(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-none cursor-pointer shadow-2xs"
-            title="Update Live Tracker Status & Milestone"
-          >
-            <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
-            <span>Update Live Status</span>
-          </button>
-
-          {/* + New Tracking Order Button */}
+          {/* + New Order Button */}
           <button
             onClick={() => {
               setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
@@ -1099,21 +1057,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>New Tracking Order</span>
+            <span>+ New Order</span>
           </button>
-
-          <a
-            href="/logout"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50/50 transition-none cursor-pointer"
-            title="Log out of Admin Portal"
-          >
-            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            <span className="hidden sm:inline">Logout</span>
-          </a>
         </div>
       </header>
 

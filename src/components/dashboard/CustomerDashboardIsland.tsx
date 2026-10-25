@@ -319,20 +319,9 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
             </svg>
           </button>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif] truncate">
-                {headerInfo.title}
-              </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 font-mono shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span>Active Portal</span>
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 truncate hidden md:block">
-              {headerInfo.subtitle}
-            </p>
-          </div>
+          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif] truncate">
+            {headerInfo.title}
+          </h1>
         </div>
 
         {/* Right Action Controls */}
@@ -340,7 +329,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
           <button
             onClick={() => loadData()}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-none"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
             title="Refresh portal records"
           >
             <svg className={`w-3.5 h-3.5 stroke-[2] text-slate-500 ${loading ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -349,7 +338,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
               <path d="M16 16h5v5" />
             </svg>
-            <span>Sync</span>
+            <span className="hidden sm:inline">Sync</span>
           </button>
 
           <button
@@ -360,21 +349,8 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>Request Quote</span>
+            <span>Get a Quote</span>
           </button>
-
-          <a
-            href="/logout"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:text-red-600 hover:border-red-200 hover:bg-red-50/50 transition-none"
-            title="Log out of Customer Portal"
-          >
-            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            <span className="hidden sm:inline">Logout</span>
-          </a>
         </div>
       </header>
 
