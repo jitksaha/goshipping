@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
 import type { WarehouseRecord } from '../../server/services/warehouse.service';
-import { TRACKING_STATUSES, normalizeStatusCode, type TrackingStatusCode } from '../../server/services/tracking-status';
+import { TRACKING_STATUSES, normalizeStatusCode, calculatePhysicalProgress, type TrackingStatusCode } from '../../server/services/tracking-status';
 
 interface CustomerItem {
   id: string;
@@ -422,12 +422,32 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setShipments((prev) =>
       prev.map((s) => {
         if (s.id === id || s.trackingNumber === id) {
+          const updatedEvents = [
+            {
+              id: `evt-opt-${Date.now()}`,
+              shipmentId: s.id,
+              status: norm,
+              statusCode: norm,
+              statusLabel: newLabel,
+              title: newLabel,
+              description: statusDef?.defaultDescription || 'Status updated',
+              locationName: statusDef?.defaultLocation || s.currentLocation,
+              eventTime: new Date().toISOString(),
+              occurredAtBst: 'Just now',
+              source: 'admin' as const,
+              visibility: 'public' as const,
+              eventVersion: (s.eventVersion || 1) + 1
+            },
+            ...s.events
+          ];
           return {
             ...s,
             status: norm,
             statusCode: norm,
             statusLabel: newLabel,
-            currentLocation: statusDef?.defaultLocation || s.currentLocation
+            currentLocation: statusDef?.defaultLocation || s.currentLocation,
+            events: updatedEvents,
+            physicalProgress: calculatePhysicalProgress(norm, updatedEvents)
           };
         }
         return s;
@@ -442,6 +462,33 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         newStatus: norm,
         statusLabel: newLabel
       });
+
+      // Cross-tab & in-window 0ms instant synchronizations
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('goshipping-status-updated', {
+            detail: { trackingNumber: target.trackingNumber, newStatus: norm, statusLabel: newLabel }
+          })
+        );
+        try {
+          const bc = new BroadcastChannel('goshipping_tracking_sync');
+          bc.postMessage({
+            type: 'SHIPMENT_STATUS_UPDATED',
+            trackingNumber: target.trackingNumber,
+            newStatus: norm,
+            statusLabel: newLabel,
+            timestamp: Date.now()
+          });
+          bc.close();
+        } catch (e) {}
+
+        try {
+          localStorage.setItem(
+            'goshipping_live_sync',
+            JSON.stringify({ code: target.trackingNumber, status: norm, time: Date.now() })
+          );
+        } catch (e) {}
+      }
     }
 
     // 2. Persist to API
@@ -1067,7 +1114,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Select Shipment</label>
                       <select
                         value={quickShipmentId || (shipments[0]?.id || '')}
-                        onChange={(e) => setQuickShipmentId(e.target.value)}
+                        onChange={(e) => {
+                          const newId = e.target.value;
+                          setQuickShipmentId(newId);
+                          const found = shipments.find((s) => s.id === newId || s.trackingNumber === newId);
+                          if (found) {
+                            setQuickTargetStage(normalizeStatusCode(found.status));
+                          }
+                        }}
                         className="w-full h-8 px-2 text-[11px] font-mono font-bold rounded-md border border-slate-300 bg-slate-50 text-slate-900"
                       >
                         {shipments.map((s) => (

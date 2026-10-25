@@ -70,6 +70,7 @@ export default function LiveTrackingIsland({
       }
 
       const res = await fetch(url.toString(), {
+        cache: 'no-store',
         headers: isSilentPoll && lastHashRef.current ? { 'If-None-Match': `"${lastHashRef.current}"` } : {}
       });
 
@@ -198,6 +199,50 @@ export default function LiveTrackingIsland({
     };
     window.addEventListener('select-tracking-code', handleSelectTracking);
     return () => window.removeEventListener('select-tracking-code', handleSelectTracking);
+  }, [trackingData?.trackingNumber]);
+
+  // 7. Instant 0ms Cross-Tab and In-Window Live Sync (BroadcastChannel + CustomEvent + Storage)
+  useEffect(() => {
+    if (!trackingData?.trackingNumber) return;
+    const targetCode = trackingData.trackingNumber;
+
+    // A. BroadcastChannel cross-tab listener (instant 0ms)
+    let bc: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      bc = new BroadcastChannel('goshipping_tracking_sync');
+      bc.onmessage = (evt) => {
+        if (evt.data?.trackingNumber === targetCode) {
+          fetchTracking(targetCode, true);
+        }
+      };
+    }
+
+    // B. CustomEvent in-window listener
+    const handleWindowStatusUpdate = (evt: any) => {
+      if (evt.detail?.trackingNumber === targetCode) {
+        fetchTracking(targetCode, true);
+      }
+    };
+    window.addEventListener('goshipping-status-updated', handleWindowStatusUpdate);
+
+    // C. Cross-tab storage fallback
+    const handleStorage = (evt: StorageEvent) => {
+      if (evt.key === 'goshipping_live_sync' && evt.newValue) {
+        try {
+          const parsed = JSON.parse(evt.newValue);
+          if (parsed.code === targetCode) {
+            fetchTracking(targetCode, true);
+          }
+        } catch (e) {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      if (bc) bc.close();
+      window.removeEventListener('goshipping-status-updated', handleWindowStatusUpdate);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, [trackingData?.trackingNumber]);
 
   const handleSearch = (e: React.FormEvent) => {

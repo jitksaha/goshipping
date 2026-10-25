@@ -289,7 +289,9 @@ app.get('/tracking/:trackingNumber', async (c) => {
   }
 
   c.header('ETag', `"${data.lastHash}"`);
-  c.header('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
+  c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+  c.header('Pragma', 'no-cache');
+  c.header('Expires', '0');
   return c.json({ success: true, tracking: data });
 });
 

@@ -48,7 +48,7 @@ export class RealtimeService {
       pusherKey: provider === 'pusher' ? process.env.PUSHER_KEY : undefined,
       pusherCluster: provider === 'pusher' ? process.env.PUSHER_CLUSTER || 'ap1' : undefined,
       ablyKey: provider === 'ably' ? (process.env.ABLY_API_KEY ? process.env.ABLY_API_KEY.split(':')[0] : undefined) : undefined,
-      pollIntervalMs: Number(process.env.TRACKING_POLL_INTERVAL_MS) || 12000,
+      pollIntervalMs: Number(process.env.TRACKING_POLL_INTERVAL_MS) || 3000,
       backgroundPollPause: process.env.BACKGROUND_POLL_PAUSE !== 'false'
     };
   }
