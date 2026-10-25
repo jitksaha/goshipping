@@ -130,6 +130,26 @@ const user = Astro.locals.user as AuthUser;
                 <span class="px-1.5 py-0.2 rounded text-[10px] bg-[#EA1D2C] text-white font-mono font-bold shrink-0">Live</span>
               </a>
 
+              {/* 2b. Create Order (Dedicated Page) */}
+              <a
+                href="/admin?tab=new_order"
+                data-tab="new_order"
+                class={`dashboard-nav-link flex items-center justify-between px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
+                  activeTab === 'new_order'
+                    ? 'bg-red-50 text-[#EA1D2C] font-semibold border-[#EA1D2C]'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                }`}
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <svg class="w-4 h-4 stroke-[2.2] shrink-0 text-[#EA1D2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span class="truncate">Create Order</span>
+                </div>
+                <span class="px-1.5 py-0.2 rounded text-[10px] bg-red-100 text-[#EA1D2C] font-mono font-bold shrink-0">+ New</span>
+              </a>
+
               {/* 3. Quote */}
               <a
                 href="/admin?tab=quotes"

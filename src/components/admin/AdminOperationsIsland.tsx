@@ -27,6 +27,17 @@ interface AuditItem {
   details?: any;
 }
 
+export interface OrderItemForm {
+  id: string;
+  description: string;
+  packagingType: string;
+  categoryTag: 'Commercial' | 'General' | 'Electronics' | 'Liquids' | 'Dangerous' | 'Perishable';
+  quantity: number;
+  weightKg: number;
+  cbm: number;
+  declaredValue?: number;
+}
+
 export default function AdminOperationsIsland({ initialTab = 'overview' }: { initialTab?: string }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [shipments, setShipments] = useState<ShipmentRecord[]>([]);
@@ -82,7 +93,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   // New Consignment Form State
   const [newCustName, setNewCustName] = useState('Apex Textiles Ltd');
   const [newRecipientName, setNewRecipientName] = useState('Apex Fashion Retail Hub');
-  const [newRecipientAddress, setNewRecipientAddress] = useState('Plot 14, Uttara, Dhaka, Bangladesh');
+  const [newRecipientAddress, setNewRecipientAddress] = useState('Export Processing Zone, Savar, Dhaka 1349, Bangladesh');
   const [newOriginCountry, setNewOriginCountry] = useState('China');
   const [newOriginCity, setNewOriginCity] = useState('Guangzhou');
   const [newDestCountry, setNewDestCountry] = useState('Bangladesh');
@@ -91,12 +102,85 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newServiceLevel, setNewServiceLevel] = useState<'standard' | 'express' | 'priority'>('express');
   const [newCarrier, setNewCarrier] = useState('Cathay Cargo / GoShipping Air');
   const [newVoyage, setNewVoyage] = useState('Flight CX-068');
-  const [newWeight, setNewWeight] = useState('850');
-  const [newCbm, setNewCbm] = useState('4.25');
-  const [newPieces, setNewPieces] = useState('24');
-  const [newItemDesc, setNewItemDesc] = useState('Air Freight LD3 ULD (Commercial Fabrics & Samples)');
-  const [newItemType, setNewItemType] = useState('air_uld');
-  const [newItemTag, setNewItemTag] = useState<'General' | 'Commercial' | 'Liquids' | 'Dangerous' | 'Perishable' | 'Electronics'>('Commercial');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('Direct door-to-door delivery. Call recipient 2 hours before gate arrival.');
+
+  // Dynamic Multi-Product Line Items
+  const [orderItems, setOrderItems] = useState<OrderItemForm[]>([
+    {
+      id: 'item-1',
+      description: 'Air Freight LD3 ULD (Commercial Fabrics & Samples)',
+      packagingType: 'air_uld',
+      categoryTag: 'Commercial',
+      quantity: 24,
+      weightKg: 850,
+      cbm: 4.25,
+      declaredValue: 2440000
+    }
+  ]);
+
+  const addOrderItem = () => {
+    const nextId = `item-${Date.now().toString(36)}-${orderItems.length + 1}`;
+    setOrderItems((prev) => [
+      ...prev,
+      {
+        id: nextId,
+        description: '',
+        packagingType: 'carton',
+        categoryTag: 'Commercial',
+        quantity: 1,
+        weightKg: 10,
+        cbm: 0.05,
+        declaredValue: 0
+      }
+    ]);
+  };
+
+  const removeOrderItem = (id: string) => {
+    if (orderItems.length <= 1) {
+      alert('At least one product item is required for the consignment.');
+      return;
+    }
+    setOrderItems((prev) => prev.filter((it) => it.id !== id));
+  };
+
+  const duplicateOrderItem = (item: OrderItemForm) => {
+    const nextId = `item-${Date.now().toString(36)}-${orderItems.length + 1}`;
+    setOrderItems((prev) => [
+      ...prev,
+      {
+        ...item,
+        id: nextId,
+        description: item.description ? `${item.description} (Copy)` : ''
+      }
+    ]);
+  };
+
+  const updateOrderItem = (id: string, field: keyof OrderItemForm, value: any) => {
+    setOrderItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, [field]: value } : it))
+    );
+  };
+
+  // Live Auto-Calculated Totals across all products
+  const orderTotals = useMemo(() => {
+    const totalPieces = orderItems.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0);
+    const totalWeight = orderItems.reduce((acc, it) => acc + (Number(it.weightKg) || 0), 0);
+    const totalCbm = orderItems.reduce((acc, it) => acc + (Number(it.cbm) || 0), 0);
+    const totalDeclaredValue = orderItems.reduce((acc, it) => acc + (Number(it.declaredValue) || 0), 0);
+    const volumetricWeight = Math.round(totalCbm * 167);
+    const chargeableWeight = Math.max(totalWeight, volumetricWeight);
+
+    return {
+      totalItems: orderItems.length,
+      totalPieces,
+      totalWeight: Number(totalWeight.toFixed(2)),
+      totalCbm: Number(totalCbm.toFixed(2)),
+      volumetricWeight,
+      chargeableWeight: Number(chargeableWeight.toFixed(2)),
+      totalDeclaredValue
+    };
+  }, [orderItems]);
+
   const [submittingConsignment, setSubmittingConsignment] = useState(false);
 
   // Live Tracking Quick Control & Feedback
@@ -503,26 +587,25 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           originCity: newOriginCity,
           destCountry: newDestCountry,
           destCity: newDestCity,
+          destAddress: finalRecipientAddress,
           mode: newMode,
           serviceLevel: newServiceLevel,
           carrierName: newCarrier,
           voyageOrFlightNumber: newVoyage,
-          totalWeightKg: parseFloat(newWeight) || 500,
-          totalCbm: parseFloat(newCbm) || 2.5,
-          totalPieces: parseInt(newPieces, 10) || 1,
-          items: [
-            {
-              itemCode: `#ITM-${Math.floor(1000 + Math.random() * 9000)}`,
-              description: newItemDesc,
-              packagingType: newItemType,
-              quantity: parseInt(newPieces, 10) || 1,
-              weightKg: parseFloat(newWeight) || 500,
-              cbm: parseFloat(newCbm) || 2.5,
-              categoryTag: newItemTag,
-              declaredValue: 2440000,
-              currency: 'BDT'
-            }
-          ]
+          totalWeightKg: orderTotals.totalWeight || 500,
+          totalCbm: orderTotals.totalCbm || 2.5,
+          totalPieces: orderTotals.totalPieces || 1,
+          items: orderItems.map((it, idx) => ({
+            itemCode: `#ITM-${1000 + idx}`,
+            description: it.description.trim() || 'Commercial Cargo Item',
+            packagingType: it.packagingType,
+            quantity: Number(it.quantity) || 1,
+            weightKg: Number(it.weightKg) || 10,
+            cbm: Number(it.cbm) || 0.05,
+            categoryTag: it.categoryTag,
+            declaredValue: Number(it.declaredValue) || undefined,
+            currency: 'BDT'
+          }))
         })
       });
 
@@ -557,7 +640,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       setNewCustomerCompany('');
       setNewCustomerAddress('');
       setNewInitialStatus('purchased');
-      loadData();
+      showToast(`Order ${data.shipment.trackingNumber} created with ${orderItems.length} products!`, 'success');
+      loadData(false);
+      switchTab('orders');
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -1024,6 +1109,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           title: 'Email Service & Status',
           subtitle: 'Email delivery status, notification logs, and settings'
         };
+      case 'new_order':
+        return {
+          title: 'Create Consignment Order',
+          subtitle: 'Add multiple cargo products, configure linehaul route, and initialize live tracking'
+        };
       case 'overview':
       default:
         return {
@@ -1118,61 +1208,78 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <span className="hidden sm:inline">Update Status</span>
           </button>
 
-          {/* 3. + New Order Button (Opens New Order Drawer) */}
-          <button
-            type="button"
-            onClick={() => {
-              setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
-              setShowConsignmentModal(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
-            title="Create New Order"
-          >
-            <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            <span>+ New Order</span>
-          </button>
+          {/* 3. + New Order Button / Back to Orders Button */}
+          {activeTab === 'new_order' ? (
+            <button
+              type="button"
+              onClick={() => switchTab('orders')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
+              title="Return to Orders list"
+            >
+              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+              </svg>
+              <span>Back to Orders</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                switchTab('new_order');
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
+              title="Create New Consignment Order"
+            >
+              <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span>+ New Order</span>
+            </button>
+          )}
         </div>
       </header>
 
       {/* Main Content Workspace */}
       <main className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
-        {/* KPI COUNTER CARDS (Visible across all tabs for live context) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Shipments</span>
-            <div className="text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums">
-              {activeConsignmentsCount || shipments.length}
+        {/* KPI COUNTER CARDS (Visible across overview, orders, quotes, etc.) */}
+        {activeTab !== 'new_order' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Shipments</span>
+              <div className="text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums">
+                {activeConsignmentsCount || shipments.length}
+              </div>
+              <p className="text-xs text-slate-500">China ⇄ Bangladesh shipments</p>
             </div>
-            <p className="text-xs text-slate-500">China ⇄ Bangladesh shipments</p>
-          </div>
 
-          <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Air Freight in Transit</span>
-            <div className="text-2xl font-bold text-sky-600 font-['Manrope',sans-serif] tabular-nums">
-              {inTransitAirCount || 1}
+            <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Air Freight in Transit</span>
+              <div className="text-2xl font-bold text-sky-600 font-['Manrope',sans-serif] tabular-nums">
+                {inTransitAirCount || 1}
+              </div>
+              <p className="text-xs text-slate-500">Active flights with tracking</p>
             </div>
-            <p className="text-xs text-slate-500">Active flights with tracking</p>
-          </div>
 
-          <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Sea Freight in Transit</span>
-            <div className="text-2xl font-bold text-indigo-600 font-['Manrope',sans-serif] tabular-nums">
-              {seaContainersCount || 2}
+            <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Sea Freight in Transit</span>
+              <div className="text-2xl font-bold text-indigo-600 font-['Manrope',sans-serif] tabular-nums">
+                {seaContainersCount || 2}
+              </div>
+              <p className="text-xs text-slate-500">Cargo ships & port arrivals</p>
             </div>
-            <p className="text-xs text-slate-500">Cargo ships & port arrivals</p>
-          </div>
 
-          <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pending Quotes</span>
-            <div className="text-2xl font-bold text-amber-600 font-['Manrope',sans-serif] tabular-nums">
-              {pendingQuotesCount}
+            <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
+              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Pending Quotes</span>
+              <div className="text-2xl font-bold text-amber-600 font-['Manrope',sans-serif] tabular-nums">
+                {pendingQuotesCount}
+              </div>
+              <p className="text-xs text-slate-500">Waiting for price review</p>
             </div>
-            <p className="text-xs text-slate-500">Waiting for price review</p>
           </div>
-        </div>
+        )}
 
         {/* ========================================================= */}
         {/* TAB: OVERVIEW (Default Dashboard Command Center)           */}
@@ -1614,6 +1721,931 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           </div>
         )}
 
+        {/* ========================================================= */}
+        {/* TAB: CREATE NEW CONSIGNMENT ORDER (DEDICATED FULL PAGE)   */}
+        {/* ========================================================= */}
+        {activeTab === 'new_order' && (
+          <div className="space-y-6 max-w-7xl mx-auto pb-12 font-['Inter',sans-serif]">
+            {/* Top Page Header & Breadcrumb */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-xl border border-slate-200/90 shadow-2xs">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-[#EA1D2C] border border-red-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C] animate-pulse"></span>
+                    Consignment Dispatch Page
+                  </span>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-[11px] font-mono text-slate-500">Live Multi-Product Manifest</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tracking-tight">
+                  Create Consignment Order
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Assign client, configure international shipping route, add multiple cargo products, and generate live tracking code.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => switchTab('orders')}
+                  className="px-3.5 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-none cursor-pointer inline-flex items-center gap-1.5 shadow-2xs"
+                >
+                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                  </svg>
+                  <span>Back to Orders</span>
+                </button>
+              </div>
+            </div>
+
+            <form onSubmit={handleCreateConsignment} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              
+              {/* LEFT COLUMN: 4 FORM SECTIONS (lg:col-span-8) */}
+              <div className="lg:col-span-8 space-y-6">
+
+                {/* 1. CUSTOMER ACCOUNT & CLIENT ASSIGNMENT */}
+                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                        1. Customer Assignment
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Link order to an existing registered customer or onboard a new client
+                      </p>
+                    </div>
+
+                    {/* Toggle: Existing vs New */}
+                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setOrderCustomerMode('existing')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-none cursor-pointer ${
+                          orderCustomerMode === 'existing'
+                            ? 'bg-white text-slate-900 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Existing Client
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOrderCustomerMode('new')}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-none cursor-pointer ${
+                          orderCustomerMode === 'new'
+                            ? 'bg-white text-[#EA1D2C] shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        + Register New Client
+                      </button>
+                    </div>
+                  </div>
+
+                  {orderCustomerMode === 'existing' ? (
+                    <div className="space-y-3.5">
+                      <div className="relative">
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Search Customer Account
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={customerSearchQuery}
+                            onChange={(e) => {
+                              setCustomerSearchQuery(e.target.value);
+                              setIsCustomerDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsCustomerDropdownOpen(true)}
+                            placeholder="Type customer name, company, email, phone or BIN number..."
+                            className="w-full h-10 pl-9 pr-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                          <svg className="w-4 h-4 text-slate-400 absolute left-3 top-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          </svg>
+                        </div>
+
+                        {/* Customer Search Auto-Suggest Dropdown */}
+                        {isCustomerDropdownOpen && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl z-30 max-h-60 overflow-y-auto divide-y divide-slate-100">
+                            {filteredCustomersForOrder.length === 0 ? (
+                              <div className="p-4 text-center text-slate-400 text-xs">
+                                No matching customers found. Click "+ Register New Client" to add.
+                              </div>
+                            ) : (
+                              filteredCustomersForOrder.map((cust) => (
+                                <button
+                                  key={cust.id}
+                                  type="button"
+                                  onClick={() => selectCustomerForOrder(cust)}
+                                  className={`w-full px-4 py-3 text-left flex items-start justify-between hover:bg-slate-50 transition-none cursor-pointer ${
+                                    selectedCustomerId === cust.id ? 'bg-red-50/50 text-slate-900' : 'text-slate-700'
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="font-semibold text-xs text-slate-900 flex items-center gap-2">
+                                      <span>{cust.companyName || cust.fullName}</span>
+                                      {cust.companyName && (
+                                        <span className="text-[11px] font-normal text-slate-500">
+                                          ({cust.fullName})
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                                      {cust.email} · {cust.phone || 'No phone recorded'}
+                                    </div>
+                                  </div>
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 font-mono text-slate-600 uppercase">
+                                    {cust.role}
+                                  </span>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Current Selected Customer Card */}
+                      {currentSelectedCustomer && (
+                        <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                                {currentSelectedCustomer.companyName || currentSelectedCustomer.fullName}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                Assigned Client
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
+                              <span><strong>Contact:</strong> {currentSelectedCustomer.fullName}</span>
+                              <span><strong>Email:</strong> {currentSelectedCustomer.email}</span>
+                              <span><strong>Phone:</strong> {currentSelectedCustomer.phone || newRecipientPhone}</span>
+                            </div>
+                            {currentSelectedCustomer.address && (
+                              <div className="text-[11px] text-slate-500">
+                                <strong>Default Address:</strong> {currentSelectedCustomer.address}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsCustomerDropdownOpen(true)}
+                            className="px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer shrink-0 transition-none"
+                          >
+                            Change Client
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* On-The-Fly New Customer Registration Form */
+                    <div className="space-y-4 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerFullName}
+                            onChange={(e) => {
+                              setNewCustomerFullName(e.target.value);
+                              if (!newRecipientName) setNewRecipientName(e.target.value);
+                            }}
+                            placeholder="e.g. Tarek Rahman"
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Company Name (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerCompany}
+                            onChange={(e) => setNewCustomerCompany(e.target.value)}
+                            placeholder="e.g. Prime Apparels BD Ltd"
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Email Address (for Live Status Alerts) *
+                          </label>
+                          <input
+                            type="email"
+                            value={newCustomerEmail}
+                            onChange={(e) => setNewCustomerEmail(e.target.value)}
+                            placeholder="client@company.com"
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Phone / WhatsApp *
+                          </label>
+                          <input
+                            type="tel"
+                            value={newCustomerPhone}
+                            onChange={(e) => {
+                              setNewCustomerPhone(e.target.value);
+                              setNewRecipientPhone(e.target.value);
+                            }}
+                            placeholder="+880 1711-XXXXXX"
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Default Delivery Address
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerAddress}
+                            onChange={(e) => {
+                              setNewCustomerAddress(e.target.value);
+                              setNewRecipientAddress(e.target.value);
+                            }}
+                            placeholder="Plot 12, Sector 3, Uttara, Dhaka"
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Initial Portal Password
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerPassword}
+                            onChange={(e) => setNewCustomerPassword(e.target.value)}
+                            placeholder="password123"
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. ROUTE & SHIPPING METHOD (Matches Image 1) */}
+                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                  <div className="pb-3 border-b border-slate-100">
+                    <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                      2. Route &amp; Shipping Method
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Specify origin China hub, Bangladesh destination, carrier, and flight/voyage details
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Origin (China)
+                      </label>
+                      <select
+                        value={newOriginCity}
+                        onChange={(e) => setNewOriginCity(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      >
+                        <option value="Guangzhou">Guangzhou (CAN)</option>
+                        <option value="Yiwu">Yiwu (YIW)</option>
+                        <option value="Shenzhen">Shenzhen (SZX)</option>
+                        <option value="Shanghai">Shanghai (PVG)</option>
+                        <option value="Hong Kong">Hong Kong (HKG)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Destination (BD)
+                      </label>
+                      <select
+                        value={newDestCity}
+                        onChange={(e) => setNewDestCity(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      >
+                        <option value="Dhaka">Dhaka (HSIA / Hub)</option>
+                        <option value="Chittagong">Chittagong (Port)</option>
+                        <option value="Tejgaon">Dhaka (Tejgaon)</option>
+                        <option value="Savar">Dhaka (DEPZ)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Shipping Method
+                      </label>
+                      <select
+                        value={newMode}
+                        onChange={(e) => {
+                          const m = e.target.value as any;
+                          setNewMode(m);
+                          if (m === 'air') {
+                            setNewCarrier('Cathay Cargo / GoShipping Air');
+                            setNewVoyage('Flight CX-068');
+                          } else if (m === 'sea') {
+                            setNewCarrier('COSCO Shipping Line');
+                            setNewVoyage('Voyage CS-912');
+                          } else {
+                            setNewCarrier('Cross-Border Fleet Transport');
+                            setNewVoyage('Truck T-448');
+                          }
+                        }}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      >
+                        <option value="air">Air Freight</option>
+                        <option value="sea">Sea Freight</option>
+                        <option value="road">Road Freight</option>
+                        <option value="hand_carry">Hand Carry</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Carrier Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newCarrier}
+                        onChange={(e) => setNewCarrier(e.target.value)}
+                        placeholder="e.g. Cathay Cargo / GoShipping Air"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Flight / Ship Number
+                      </label>
+                      <input
+                        type="text"
+                        value={newVoyage}
+                        onChange={(e) => setNewVoyage(e.target.value)}
+                        placeholder="e.g. Flight CX-068"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. CARGO DETAILS & MULTIPLE PRODUCTS INVENTORY (Matches Image 2 + Multi-product) */}
+                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                          3. Cargo Details &amp; Multi-Product Inventory
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-[#EA1D2C] border border-red-200">
+                          {orderItems.length} {orderItems.length === 1 ? 'Product' : 'Products'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Add every product item in this shipment. A customer can order multiple different products together.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addOrderItem}
+                      className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-none cursor-pointer inline-flex items-center gap-1.5 shadow-2xs shrink-0"
+                    >
+                      <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      <span>+ Add Product</span>
+                    </button>
+                  </div>
+
+                  {/* Dynamic Product Cards */}
+                  <div className="space-y-4">
+                    {orderItems.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="p-4 sm:p-5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/70 transition-none space-y-3.5 shadow-2xs"
+                      >
+                        {/* Item Card Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-md bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center font-mono">
+                              #{index + 1}
+                            </span>
+                            <span className="text-xs font-bold text-slate-800 font-['Manrope',sans-serif]">
+                              {item.description ? item.description.slice(0, 40) : `Product Item ${index + 1}`}
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                              {item.categoryTag}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => duplicateOrderItem(item)}
+                              className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-medium transition-none cursor-pointer inline-flex items-center gap-1"
+                              title="Duplicate this item"
+                            >
+                              <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <rect width="13" height="13" x="9" y="9" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                              </svg>
+                              <span className="hidden sm:inline">Duplicate</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => removeOrderItem(item.id)}
+                              disabled={orderItems.length <= 1}
+                              className={`p-1.5 rounded border transition-none cursor-pointer ${
+                                orderItems.length <= 1
+                                  ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
+                                  : 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
+                              }`}
+                              title={orderItems.length <= 1 ? 'Minimum 1 product required' : 'Remove product item'}
+                            >
+                              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Product Description */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Product Description *
+                          </label>
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) => updateOrderItem(item.id, 'description', e.target.value)}
+                            placeholder="e.g. Air Freight LD3 ULD (Commercial Fabrics & Samples)"
+                            required
+                            className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        {/* Package Type, Category, Quantity */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Package Type
+                            </label>
+                            <select
+                              value={item.packagingType}
+                              onChange={(e) => updateOrderItem(item.id, 'packagingType', e.target.value)}
+                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900"
+                            >
+                              <option value="air_uld">Air ULD</option>
+                              <option value="carton">Carton</option>
+                              <option value="wooden_crate">Wooden Crate</option>
+                              <option value="pallet">Pallet</option>
+                              <option value="container_20ft">20ft Container</option>
+                              <option value="container_40ft">40ft Container</option>
+                              <option value="gunny_bag">Gunny / Poly Bag</option>
+                              <option value="drum">Steel / Plastic Drum</option>
+                              <option value="loose">Loose Cargo</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Product Category
+                            </label>
+                            <select
+                              value={item.categoryTag}
+                              onChange={(e) => updateOrderItem(item.id, 'categoryTag', e.target.value as any)}
+                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900"
+                            >
+                              <option value="Commercial">Commercial Cargo</option>
+                              <option value="General">General Merchandise</option>
+                              <option value="Electronics">Electronics</option>
+                              <option value="Liquids">Liquids &amp; Cosmetics</option>
+                              <option value="Dangerous">Dangerous Goods</option>
+                              <option value="Perishable">Perishable</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Quantity (Pieces / Cartons) *
+                            </label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateOrderItem(item.id, 'quantity', parseInt(e.target.value, 10) || 1)}
+                              required
+                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Weight, Volume, Declared Value */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Weight (KG) *
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0.1"
+                              value={item.weightKg}
+                              onChange={(e) => updateOrderItem(item.id, 'weightKg', parseFloat(e.target.value) || 0)}
+                              required
+                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Volume (CBM) *
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0.001"
+                              value={item.cbm}
+                              onChange={(e) => updateOrderItem(item.id, 'cbm', parseFloat(e.target.value) || 0)}
+                              required
+                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1">
+                              Declared Value (BDT)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              value={item.declaredValue || ''}
+                              onChange={(e) => updateOrderItem(item.id, 'declaredValue', parseFloat(e.target.value) || 0)}
+                              placeholder="e.g. 50000"
+                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add Product Large Action Bar */}
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={addOrderItem}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl border-2 border-dashed border-red-300 hover:border-[#EA1D2C] bg-red-50/50 hover:bg-red-50 text-[#EA1D2C] font-bold text-xs transition-none cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      <span>+ Add Another Product Item</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <span>Quick presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addOrderItem();
+                          setTimeout(() => {
+                            setOrderItems((prev) => {
+                              const copy = [...prev];
+                              const target = copy[copy.length - 1];
+                              if (target) {
+                                target.description = 'Cotton Knit Fabrics (Cartons)';
+                                target.packagingType = 'carton';
+                                target.categoryTag = 'Commercial';
+                                target.quantity = 10;
+                                target.weightKg = 150;
+                                target.cbm = 0.8;
+                              }
+                              return copy;
+                            });
+                          }, 0);
+                        }}
+                        className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium cursor-pointer"
+                      >
+                        + Cotton Cartons
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addOrderItem();
+                          setTimeout(() => {
+                            setOrderItems((prev) => {
+                              const copy = [...prev];
+                              const target = copy[copy.length - 1];
+                              if (target) {
+                                target.description = 'Electronic PCB & Accessories';
+                                target.packagingType = 'carton';
+                                target.categoryTag = 'Electronics';
+                                target.quantity = 5;
+                                target.weightKg = 45;
+                                target.cbm = 0.25;
+                              }
+                              return copy;
+                            });
+                          }, 0);
+                        }}
+                        className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium cursor-pointer"
+                      >
+                        + Electronics
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Live Auto-Calculated Cargo Totals Bar */}
+                  <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-xs space-y-2">
+                    <div className="flex items-center justify-between text-xs border-b border-slate-700 pb-2">
+                      <span className="font-semibold text-slate-300 uppercase tracking-wider text-[10px]">
+                        Manifest Totals Summary
+                      </span>
+                      <span className="text-emerald-400 font-mono text-[11px] font-semibold">
+                        Auto-Summed across {orderTotals.totalItems} products
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                      <div>
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Packages</div>
+                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums">
+                          {orderTotals.totalPieces} <span className="text-xs font-normal text-slate-400">pcs</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Gross Weight</div>
+                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums">
+                          {orderTotals.totalWeight} <span className="text-xs font-normal text-slate-400">KG</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Volume</div>
+                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums">
+                          {orderTotals.totalCbm} <span className="text-xs font-normal text-slate-400">CBM</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[10px] text-amber-400 uppercase font-semibold">Chargeable Weight</div>
+                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums text-amber-300">
+                          {orderTotals.chargeableWeight} <span className="text-xs font-normal text-slate-400">KG</span>
+                        </div>
+                        <div className="text-[9px] text-slate-400 font-mono">
+                          Max(Gross, {orderTotals.volumetricWeight} Vol)
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. DELIVERY ADDRESS IN BANGLADESH (Matches Image 3) */}
+                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                  <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                        4. Delivery Address in Bangladesh
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Final destination doorstep and recipient dispatch coordinates
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-medium text-slate-400">Full Address / Doorstep</span>
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={newRecipientAddress}
+                      onChange={(e) => setNewRecipientAddress(e.target.value)}
+                      placeholder="e.g. Export Processing Zone, Savar, Dhaka 1349, Bangladesh"
+                      required
+                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Recipient Contact Name
+                      </label>
+                      <input
+                        type="text"
+                        value={newRecipientName}
+                        onChange={(e) => setNewRecipientName(e.target.value)}
+                        placeholder="e.g. Apex Fashion Retail Hub"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Recipient Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={newRecipientPhone}
+                        onChange={(e) => setNewRecipientPhone(e.target.value)}
+                        placeholder="+880 1711-002233"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Special Handling &amp; Delivery Instructions
+                    </label>
+                    <textarea
+                      value={deliveryInstructions}
+                      onChange={(e) => setDeliveryInstructions(e.target.value)}
+                      rows={2}
+                      placeholder="e.g. Direct door-to-door delivery. Call recipient 2 hours before gate arrival."
+                      className="w-full p-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none"
+                    />
+                  </div>
+                </div>
+
+              </div>
+
+              {/* RIGHT COLUMN: STICKY MANIFEST SUMMARY & DISPATCH (lg:col-span-4) */}
+              <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-4">
+
+                {/* Live Manifest Review Card */}
+                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                      Consignment Manifest
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Ready to Dispatch
+                    </span>
+                  </div>
+
+                  {/* Tracking Code Generator Box */}
+                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                        Tracking Number
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
+                        className="text-[11px] font-medium text-[#EA1D2C] hover:underline cursor-pointer flex items-center gap-1"
+                      >
+                        <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <polyline points="23 4 23 10 17 10" />
+                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                        <span>Regenerate</span>
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={newCustomTrackingNumber}
+                      onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
+                      placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
+                      required
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
+
+                  {/* Initial Status Selector */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Initial Physical Stage
+                    </label>
+                    <select
+                      value={newInitialStatus}
+                      onChange={(e) => setNewInitialStatus(e.target.value)}
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="purchased">1. PURCHASED (Default Initial)</option>
+                      <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
+                      <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
+                      <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
+                      <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE</option>
+                      <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
+                      <option value="out_for_delivery">7. OUT FOR DELIVERY</option>
+                      <option value="delivered">8. DELIVERED</option>
+                    </select>
+                  </div>
+
+                  {/* Summary Breakdown */}
+                  <div className="divide-y divide-slate-100 text-xs">
+                    <div className="py-2 flex items-center justify-between">
+                      <span className="text-slate-500">Route</span>
+                      <span className="font-semibold text-slate-900">{newOriginCity}, CN → {newDestCity}, BD</span>
+                    </div>
+
+                    <div className="py-2 flex items-center justify-between">
+                      <span className="text-slate-500">Mode &amp; Carrier</span>
+                      <span className="font-semibold text-slate-900">{newMode.toUpperCase()} ({newVoyage})</span>
+                    </div>
+
+                    <div className="py-2 flex items-center justify-between">
+                      <span className="text-slate-500">Customer</span>
+                      <span className="font-semibold text-slate-900 truncate max-w-[160px]">
+                        {orderCustomerMode === 'new' ? (newCustomerCompany || newCustomerFullName || 'New Customer') : (currentSelectedCustomer?.companyName || currentSelectedCustomer?.fullName || 'Assigned')}
+                      </span>
+                    </div>
+
+                    <div className="py-2 flex items-center justify-between">
+                      <span className="text-slate-500">Total Products</span>
+                      <span className="font-semibold text-slate-900">{orderTotals.totalItems} distinct items</span>
+                    </div>
+
+                    <div className="py-2 flex items-center justify-between">
+                      <span className="text-slate-500">Total Packages</span>
+                      <span className="font-semibold text-slate-900">{orderTotals.totalPieces} pcs</span>
+                    </div>
+
+                    <div className="py-2 flex items-center justify-between">
+                      <span className="text-slate-500">Gross Weight</span>
+                      <span className="font-semibold text-slate-900">{orderTotals.totalWeight} KG</span>
+                    </div>
+
+                    <div className="py-2 flex items-center justify-between">
+                      <span className="text-slate-500">Volume</span>
+                      <span className="font-semibold text-slate-900">{orderTotals.totalCbm} CBM</span>
+                    </div>
+
+                    <div className="py-2.5 flex items-center justify-between bg-red-50/60 px-2 rounded-lg mt-1">
+                      <span className="font-bold text-[#EA1D2C]">Chargeable Weight</span>
+                      <span className="font-bold text-base text-[#EA1D2C] tabular-nums">
+                        {orderTotals.chargeableWeight} KG
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Primary Dispatch Button */}
+                  <div className="pt-2 space-y-2">
+                    <button
+                      type="submit"
+                      disabled={submittingConsignment}
+                      className="w-full py-3 px-4 rounded-xl bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      {submittingConsignment ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                          </svg>
+                          <span>Creating Consignment...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Create &amp; Dispatch Order</span>
+                          <span className="font-bold">→</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => switchTab('orders')}
+                      className="w-full py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-none cursor-pointer text-center"
+                    >
+                      Cancel &amp; Return to Orders
+                    </button>
+                  </div>
+
+                  {/* NBR & Customs Compliance Note */}
+                  <div className="pt-2 text-[10px] text-slate-400 text-center leading-relaxed">
+                    National Board of Revenue (NBR) Mushak 6.3 compliant manifest generation. Real-time telemetry initialized.
+                  </div>
+                </div>
+
+              </div>
+
+            </form>
+          </div>
+        )}
         {/* ========================================================= */}
         {/* TAB: ORDERS & LIVE TRACKING TELEMETRY                      */}
         {/* ========================================================= */}
@@ -3489,574 +4521,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <span>Update Status Now →</span>
                   )}
                 </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* 02. RIGHT SIDE DRAWER: CREATE NEW TRACKING CONSIGNMENT    */}
-      {/* ========================================================= */}
-      {showConsignmentModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden font-['Inter',sans-serif]">
-          {/* Backdrop overlay */}
-          <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200"
-            onClick={() => {
-              setShowConsignmentModal(false);
-              setIsCustomerDropdownOpen(false);
-            }}
-          />
-
-          {/* Slide-over Drawer Panel */}
-          <div className="fixed inset-y-0 right-0 max-w-full flex">
-            <div className="w-screen max-w-full sm:max-w-[600px] lg:max-w-[620px] bg-white border-l border-slate-200 shadow-2xl flex flex-col h-full transform transition ease-out duration-200">
-              
-              {/* 1. Drawer Header (Sticky Top) */}
-              <div className="px-6 py-4 border-b border-slate-200/90 flex items-center justify-between shrink-0 bg-white">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2.5">
-                    <h2 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                      Create New Order
-                    </h2>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-[#EA1D2C] ring-1 ring-red-200/60">
-                      Live Order
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Enter shipment details, assign a tracking code, and select a customer.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowConsignmentModal(false);
-                    setIsCustomerDropdownOpen(false);
-                  }}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-none cursor-pointer"
-                  title="Close (Esc)"
-                >
-                  <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-
-              {/* 2. Drawer Body (Scrollable Form) */}
-              <form id="drawer-consignment-form" onSubmit={handleCreateConsignment} className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs bg-slate-50/40">
-                
-                {/* A. Tracking Code & Initial Status Card */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-xs font-medium text-slate-700">
-                          Tracking Number
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
-                          className="inline-flex items-center gap-1 text-[11px] font-medium text-[#EA1D2C] hover:text-[#c41523] cursor-pointer"
-                        >
-                          <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <polyline points="23 4 23 10 17 10" />
-                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                          </svg>
-                          <span>Regenerate</span>
-                        </button>
-                      </div>
-                      <input
-                        type="text"
-                        value={newCustomTrackingNumber}
-                        onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
-                        placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
-                        required
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50/50 font-mono text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-300 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-slate-700 block mb-1.5">
-                        Current Status
-                      </label>
-                      <select
-                        value={newInitialStatus}
-                        onChange={(e) => setNewInitialStatus(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
-                      >
-                        <option value="purchased">PURCHASED</option>
-                        <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
-                        <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
-                        <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
-                        <option value="awaiting_customs">AWAITING CUSTOMS</option>
-                        <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
-                        <option value="payment_received">PAYMENT RECEIVED</option>
-                        <option value="out_for_delivery">OUT FOR DELIVERY</option>
-                        <option value="delivered">DELIVERED</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* B. Customer Profile Selection Card */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-medium text-slate-800 block">
-                        Customer Information
-                      </span>
-                      <span className="text-[11px] text-slate-500">
-                        Select an existing customer or add a new one
-                      </span>
-                    </div>
-                    <div className="inline-flex rounded-lg border border-slate-200/90 bg-slate-100 p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setOrderCustomerMode('existing')}
-                        className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-none ${
-                          orderCustomerMode === 'existing'
-                            ? 'bg-white text-slate-900 shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Existing Client
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOrderCustomerMode('new');
-                          setIsCustomerDropdownOpen(false);
-                        }}
-                        className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-none ${
-                          orderCustomerMode === 'new'
-                            ? 'bg-white text-[#EA1D2C] shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        + New Client
-                      </button>
-                    </div>
-                  </div>
-
-                  {orderCustomerMode === 'existing' ? (
-                    <div className="space-y-2.5">
-                      {/* Search ComboBox */}
-                      <div className="relative">
-                        <div className="relative flex items-center">
-                          <div className="absolute left-3 text-slate-400 pointer-events-none">
-                            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <circle cx="11" cy="11" r="8"/>
-                              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                            </svg>
-                          </div>
-                          <input
-                            type="text"
-                            value={customerSearchQuery}
-                            onChange={(e) => {
-                              setCustomerSearchQuery(e.target.value);
-                              setIsCustomerDropdownOpen(true);
-                            }}
-                            onFocus={() => setIsCustomerDropdownOpen(true)}
-                            placeholder="Search client by name, company, email or phone..."
-                            className="w-full h-9 pl-9 pr-8 rounded-lg border border-slate-200 bg-white text-xs text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-300 focus:outline-none"
-                          />
-                          {customerSearchQuery && (
-                            <button
-                              type="button"
-                              onClick={() => setCustomerSearchQuery('')}
-                              className="absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Search Dropdown */}
-                        {isCustomerDropdownOpen && (
-                          <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg divide-y divide-slate-100">
-                            {filteredCustomersForOrder.length === 0 ? (
-                              <div className="p-3 text-center text-slate-500 text-xs">
-                                No clients matching "{customerSearchQuery}".
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOrderCustomerMode('new');
-                                    setNewCustomerFullName(customerSearchQuery);
-                                    setIsCustomerDropdownOpen(false);
-                                  }}
-                                  className="block mx-auto mt-1 text-[11px] font-bold text-[#EA1D2C] hover:underline cursor-pointer"
-                                >
-                                  + Create new client with this name
-                                </button>
-                              </div>
-                            ) : (
-                              filteredCustomersForOrder.map((u) => {
-                                const isSelected = u.id === selectedCustomerId;
-                                return (
-                                  <button
-                                    key={u.id}
-                                    type="button"
-                                    onClick={() => selectCustomerForOrder(u)}
-                                    className={`w-full text-left p-2.5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-none ${
-                                      isSelected ? 'bg-red-50/60' : ''
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0 ${
-                                        isSelected ? 'bg-[#EA1D2C] text-white' : 'bg-slate-100 text-slate-700'
-                                      }`}>
-                                        {(u.fullName || u.companyName || 'U').substring(0, 2).toUpperCase()}
-                                      </div>
-                                      <div className="truncate">
-                                        <div className="flex items-center gap-1.5">
-                                          <span className="font-semibold text-slate-900 text-xs truncate">
-                                            {u.fullName}
-                                          </span>
-                                          {u.companyName && (
-                                            <span className="text-[10px] text-slate-500 truncate">
-                                              ({u.companyName})
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="text-[10px] text-slate-400 font-mono truncate">
-                                          {u.email} {u.phone ? `• ${u.phone}` : ''}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    {isSelected && (
-                                      <span className="text-[10px] text-[#EA1D2C] font-bold shrink-0">Selected ✓</span>
-                                    )}
-                                  </button>
-                                );
-                              })
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Selected Profile Card */}
-                      {currentSelectedCustomer && (
-                        <div className="p-3.5 rounded-lg border border-slate-200/90 bg-slate-50/70 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-lg bg-slate-900 text-white font-medium text-xs flex items-center justify-center shrink-0">
-                              {(currentSelectedCustomer.fullName || currentSelectedCustomer.companyName || 'C').substring(0, 2).toUpperCase()}
-                            </div>
-                            <div className="truncate space-y-0.5">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-slate-900 text-xs truncate">
-                                  {currentSelectedCustomer.fullName}
-                                </span>
-                                {currentSelectedCustomer.companyName && (
-                                  <span className="text-[11px] text-slate-500 truncate font-normal">
-                                    ({currentSelectedCustomer.companyName})
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[11px] text-slate-500 font-mono truncate">
-                                {currentSelectedCustomer.email} {currentSelectedCustomer.phone ? `· ${currentSelectedCustomer.phone}` : ''}
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setIsCustomerDropdownOpen(true)}
-                            className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-md hover:bg-slate-50 shrink-0 cursor-pointer transition-none"
-                          >
-                            Change
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* New Customer Mode */
-                    <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Contact Name *</label>
-                          <input
-                            type="text"
-                            value={newCustomerFullName}
-                            onChange={(e) => {
-                              setNewCustomerFullName(e.target.value);
-                              setNewRecipientName(e.target.value);
-                            }}
-                            placeholder="Full Name"
-                            required={orderCustomerMode === 'new'}
-                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Company / Organization</label>
-                          <input
-                            type="text"
-                            value={newCustomerCompany}
-                            onChange={(e) => {
-                              setNewCustomerCompany(e.target.value);
-                              setNewCustName(e.target.value);
-                            }}
-                            placeholder="Business / Trade Name"
-                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Email (Login / Alerts) *</label>
-                          <input
-                            type="email"
-                            value={newCustomerEmail}
-                            onChange={(e) => setNewCustomerEmail(e.target.value)}
-                            placeholder="email@company.com"
-                            required={orderCustomerMode === 'new'}
-                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Phone / WhatsApp *</label>
-                          <input
-                            type="text"
-                            value={newCustomerPhone}
-                            onChange={(e) => {
-                              setNewCustomerPhone(e.target.value);
-                              setNewRecipientPhone(e.target.value);
-                            }}
-                            placeholder="+880 1..."
-                            required={orderCustomerMode === 'new'}
-                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-medium text-slate-600 block mb-1">Delivery Address</label>
-                        <input
-                          type="text"
-                          value={newCustomerAddress}
-                          onChange={(e) => {
-                            setNewCustomerAddress(e.target.value);
-                            setNewRecipientAddress(e.target.value);
-                          }}
-                          placeholder="Plot / Street, Area, City"
-                          className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* C. Corridor & Transport Card */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
-                  <span className="text-xs font-medium text-slate-800 block">
-                    Route &amp; Shipping Method
-                  </span>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Origin (China)</label>
-                      <select
-                        value={newOriginCity}
-                        onChange={(e) => setNewOriginCity(e.target.value)}
-                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
-                      >
-                        <option value="Guangzhou">Guangzhou (CAN)</option>
-                        <option value="Shenzhen">Shenzhen (SZX)</option>
-                        <option value="Yiwu">Yiwu Trade Hub</option>
-                        <option value="Hong Kong">Hong Kong (HKG)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Destination (BD)</label>
-                      <select
-                        value={newDestCity}
-                        onChange={(e) => setNewDestCity(e.target.value)}
-                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
-                      >
-                        <option value="Dhaka">Dhaka (HSIA / Hub)</option>
-                        <option value="Chittagong">Chittagong (CFS)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Shipping Method</label>
-                      <select
-                        value={newMode}
-                        onChange={(e) => setNewMode(e.target.value as any)}
-                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
-                      >
-                        <option value="air">Air Freight</option>
-                        <option value="sea">Ocean (FCL/LCL)</option>
-                        <option value="hand_carry">Hand Carry</option>
-                        <option value="road">Road Freight</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Carrier Name</label>
-                      <input
-                        type="text"
-                        value={newCarrier}
-                        onChange={(e) => setNewCarrier(e.target.value)}
-                        required
-                        placeholder="e.g. Biman Cargo, Cathay Cargo, Maersk"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Flight / Ship Number</label>
-                      <input
-                        type="text"
-                        value={newVoyage}
-                        onChange={(e) => setNewVoyage(e.target.value)}
-                        required
-                        placeholder="e.g. BG-089 / V-2026A"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white font-mono text-xs focus:border-slate-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* D. Cargo Specifications Card (2x2 Balanced Grid) */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
-                  <span className="text-xs font-medium text-slate-800 block">
-                    Cargo Details
-                  </span>
-
-                  <div>
-                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Product Description *</label>
-                    <input
-                      type="text"
-                      value={newItemDesc}
-                      onChange={(e) => setNewItemDesc(e.target.value)}
-                      placeholder="e.g. Export Apparel, Electronic Components, Industrial Hardware..."
-                      required
-                      className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Balanced 2x2 Grid for generous width */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Package Type</label>
-                      <select
-                        value={newItemType}
-                        onChange={(e) => setNewItemType(e.target.value)}
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
-                      >
-                        <option value="carton">Cartons</option>
-                        <option value="pallet">Pallet</option>
-                        <option value="air_uld">Air ULD</option>
-                        <option value="40ft_hq">40ft HQ</option>
-                        <option value="20ft_container">20ft FCL</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Product Category</label>
-                      <select
-                        value={newItemTag}
-                        onChange={(e) => setNewItemTag(e.target.value as any)}
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
-                      >
-                        <option value="Commercial">Commercial Cargo</option>
-                        <option value="General">General Goods</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Liquids">Chemicals &amp; Liquids</option>
-                        <option value="Dangerous">Dangerous Goods</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Weight (KG) *</label>
-                      <input
-                        type="number"
-                        value={newWeight}
-                        onChange={(e) => setNewWeight(e.target.value)}
-                        required
-                        placeholder="0.00"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Volume (CBM) *</label>
-                      <input
-                        type="text"
-                        value={newCbm}
-                        onChange={(e) => setNewCbm(e.target.value)}
-                        required
-                        placeholder="0.00"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* E. Delivery Destination Card */}
-                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-slate-800">Delivery Address in Bangladesh</label>
-                    <span className="text-[11px] text-slate-400">Full Address / Doorstep</span>
-                  </div>
-                  <input
-                    type="text"
-                    value={newRecipientAddress}
-                    onChange={(e) => setNewRecipientAddress(e.target.value)}
-                    required
-                    placeholder="e.g. House 14, Road 7, Sector 3, Uttara, Dhaka - 1230"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
-                  />
-                </div>
-              </form>
-
-              {/* 3. Drawer Footer (Sticky Bottom) */}
-              <div className="px-6 h-16 border-t border-slate-200/90 bg-white flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-xs text-slate-600 font-mono font-medium">
-                    {newCustomTrackingNumber || 'GOSH-2026-XXXX'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowConsignmentModal(false);
-                      setIsCustomerDropdownOpen(false);
-                    }}
-                    className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 font-medium hover:bg-slate-50 transition-none cursor-pointer text-xs"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    form="drawer-consignment-form"
-                    disabled={submittingConsignment}
-                    className="h-9 px-5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-medium cursor-pointer text-xs flex items-center gap-2 shadow-2xs transition-none"
-                  >
-                    {submittingConsignment ? (
-                      <>
-                        <svg className="w-3.5 h-3.5 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                        </svg>
-                        <span>Creating Order...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Create Order</span>
-                        <span className="font-bold">→</span>
-                      </>
-                    )}
-                  </button>
-                </div>
               </div>
 
             </div>
