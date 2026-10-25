@@ -276,8 +276,8 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
       case 'request-quote':
       case 'calculator':
         return {
-          title: 'Ship for Me — Consignment & Quotation Booking',
-          subtitle: 'Submit commercial cargo details for official China warehouse intake & tariff quotation'
+          title: 'Ship for Me — Cargo Booking',
+          subtitle: 'Commercial cargo details for China warehouse intake & tariff quotation'
         };
       case 'documents':
         return {
@@ -302,8 +302,8 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden font-['Inter',sans-serif]">
       {/* Top Application Header Bar */}
-      <header className="h-16 bg-white border-b border-slate-200/90 px-6 sm:px-8 flex items-center justify-between flex-shrink-0 z-10">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="h-16 bg-white border-b border-slate-200/90 px-4 sm:px-6 lg:px-8 flex items-center justify-between flex-shrink-0 z-10">
+        <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
           {/* Mobile Sidebar Hamburger Toggle */}
           <button
             type="button"
@@ -319,12 +319,20 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
             </svg>
           </button>
 
-          <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif] whitespace-nowrap">
-            {headerInfo.title}
-          </h1>
-          <span className="hidden md:inline-block text-xs text-slate-500 font-medium border-l border-slate-200 pl-3 truncate">
-            {headerInfo.subtitle}
-          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-['Manrope',sans-serif] truncate">
+                {headerInfo.title}
+              </h1>
+              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 font-mono shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Active Portal</span>
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 truncate hidden md:block">
+              {headerInfo.subtitle}
+            </p>
+          </div>
         </div>
 
         {/* Right Action Controls */}
