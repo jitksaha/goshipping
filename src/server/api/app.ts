@@ -273,26 +273,33 @@ app.get('/realtime/config', (c) => {
   return c.json({ success: true, config: RealtimeService.getClientConfig() });
 });
 
-// 05. Public Tracking Lookup (Adaptive polling + unchanged conditional response)
+// 05. Public Tracking Lookup (Unified search by Tracking Code, Email, or Phone Number)
 app.get('/tracking/:trackingNumber', async (c) => {
   const trackingNumber = c.req.param('trackingNumber');
   const clientHash = c.req.header('if-none-match') || c.req.query('lastHash');
 
-  const { modified, data } = await TrackingService.getPublicTracking(trackingNumber, clientHash);
+  const { modified, data, matchingShipments, totalFound, searchType } =
+    await TrackingService.searchPublicTracking(trackingNumber, clientHash);
 
   if (!modified && clientHash) {
     return c.body(null, 304);
   }
 
   if (!data) {
-    return c.json({ error: 'Shipment with specified tracking number not found' }, 404);
+    return c.json({ error: 'No shipment found matching tracking code, email, or phone number' }, 404);
   }
 
   c.header('ETag', `"${data.lastHash}"`);
   c.header('Cache-Control', 'no-cache, no-store, must-revalidate');
   c.header('Pragma', 'no-cache');
   c.header('Expires', '0');
-  return c.json({ success: true, tracking: data });
+  return c.json({
+    success: true,
+    tracking: data,
+    matchingShipments: matchingShipments || [],
+    totalFound: totalFound || 1,
+    searchType: searchType || 'tracking_code'
+  });
 });
 
 // 06. Shipments: List
@@ -337,6 +344,8 @@ const CreateShipmentSchema = z.object({
   trackingNumber: z.string().optional(),
   customerId: z.string().default('usr-customer-01'),
   customerName: z.string().min(2),
+  customerEmail: z.string().optional(),
+  customerPhone: z.string().optional(),
   recipientName: z.string().optional(),
   recipientPhone: z.string().optional(),
   recipientAddress: z.string().optional(),

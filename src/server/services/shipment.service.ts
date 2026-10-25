@@ -8,6 +8,28 @@ import {
 } from './tracking-status';
 import { formatBstDateTime } from '../utils/date';
 import { RealtimeService } from './realtime.service';
+import { getAllAccounts } from '../auth/session';
+
+export function normalizePhoneDigits(phone?: string | null): string {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '');
+}
+
+export function isPhoneMatch(query: string, target?: string | null): boolean {
+  if (!target) return false;
+  const qDigits = normalizePhoneDigits(query);
+  const tDigits = normalizePhoneDigits(target);
+  if (!qDigits || qDigits.length < 6 || !tDigits || tDigits.length < 6) return false;
+
+  if (qDigits === tDigits) return true;
+
+  // In Bangladesh: standard 10 or 11 digits: e.g. 01711002233 vs 8801711002233
+  const qLast10 = qDigits.slice(-10);
+  const tLast10 = tDigits.slice(-10);
+  if (qLast10.length === 10 && tLast10.length === 10 && qLast10 === tLast10) return true;
+
+  return tDigits.endsWith(qDigits) || qDigits.endsWith(tDigits) || tDigits.includes(qDigits) || qDigits.includes(tDigits);
+}
 
 export interface ShipmentItem {
   id: string;
@@ -47,8 +69,11 @@ export interface ShipmentRecord {
   productName: string;
   customerId: string;
   customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
   recipientName: string;
   recipientPhone?: string;
+  recipientEmail?: string;
   recipientAddress: string;
   originCountry: string;
   originCity: string;
@@ -103,6 +128,8 @@ let initialShipments: ShipmentRecord[] = [
     productName: 'High-Density Interlock Cotton Knit Fabrics & Sample Garments',
     customerId: 'usr-customer-01',
     customerName: 'Apex Textiles Ltd',
+    customerEmail: 'client@apextextiles.com',
+    customerPhone: '+880 1711 000000',
     recipientName: 'Apex Fashion & Retail Hub',
     recipientPhone: '+880 1711-002233',
     recipientAddress: 'Plot 14, Sector 7, Uttara Model Town, Dhaka-1230, Bangladesh',
@@ -282,6 +309,8 @@ let initialShipments: ShipmentRecord[] = [
     productName: 'Heavy Industrial Circular Textile Looms & Rotary Precision Units',
     customerId: 'usr-customer-01',
     customerName: 'Standard Composite Mills Ltd',
+    customerEmail: 'client@apextextiles.com',
+    customerPhone: '+880 1711 000000',
     recipientName: 'Standard Composite Mills Terminal Receiving',
     recipientPhone: '+880 1819-334455',
     recipientAddress: 'Industrial Area, Baizid Bostami Road, Nasirabad, Chittagong, Bangladesh',
@@ -397,6 +426,8 @@ let initialShipments: ShipmentRecord[] = [
     productName: '10ft Insulated Lithium Power Storage Packs & Heavy Mechanical Tools',
     customerId: 'usr-customer-01',
     customerName: 'Dhaka Green Energy Solutions',
+    customerEmail: 'client@apextextiles.com',
+    customerPhone: '+880 1711 000000',
     recipientName: 'Engr. Mahbubul Alam (Operations Director)',
     recipientPhone: '+880 1912-998877',
     recipientAddress: 'Tower 49, Motijheel Commercial Area, Dhaka-1000, Bangladesh',
@@ -652,14 +683,110 @@ export class ShipmentService {
   }
 
   /**
-   * Get single shipment by tracking number or id
+   * Unified tracking search by Tracking Code, Email, or Phone Number
+   */
+  static async searchShipmentsUnified(query: string): Promise<{
+    shipments: ShipmentRecord[];
+    searchType: 'tracking_code' | 'email' | 'phone';
+  }> {
+    const raw = query.trim();
+    if (!raw) {
+      return { shipments: [], searchType: 'tracking_code' };
+    }
+
+    const cleanUpper = raw.toUpperCase();
+    const cleanLower = raw.toLowerCase();
+    const digitsOnly = normalizePhoneDigits(raw);
+
+    const isEmail = cleanLower.includes('@');
+    const isPhone = !isEmail && digitsOnly.length >= 6 && /^[\d\s+\-()]{6,}$/.test(raw);
+    const searchType: 'tracking_code' | 'email' | 'phone' = isEmail ? 'email' : isPhone ? 'phone' : 'tracking_code';
+
+    // Look up accounts matching email or phone
+    const accounts = getAllAccounts();
+    const matchedAccountIds = new Set<string>();
+
+    if (isEmail) {
+      for (const acc of accounts) {
+        if (acc.email && acc.email.toLowerCase() === cleanLower) {
+          matchedAccountIds.add(acc.id);
+        }
+      }
+    } else if (isPhone) {
+      for (const acc of accounts) {
+        if (acc.phone && isPhoneMatch(raw, acc.phone)) {
+          matchedAccountIds.add(acc.id);
+        }
+      }
+    }
+
+    const matchedShipments = initialShipments.filter((s) => {
+      // 1. Direct tracking number / identifiers match
+      if (
+        s.trackingNumber.toUpperCase() === cleanUpper ||
+        s.id.toLowerCase() === cleanLower ||
+        (s.carrierWaybillNumber && s.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
+        (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper)
+      ) {
+        return true;
+      }
+
+      // 2. Partial tracking number match (if query is not email and not phone, min 4 chars)
+      if (!isEmail && !isPhone && raw.length >= 4) {
+        if (s.trackingNumber.toUpperCase().includes(cleanUpper)) {
+          return true;
+        }
+      }
+
+      // 3. Email match
+      if (isEmail) {
+        if (s.customerEmail && s.customerEmail.toLowerCase() === cleanLower) return true;
+        if (s.recipientEmail && s.recipientEmail.toLowerCase() === cleanLower) return true;
+        if (matchedAccountIds.has(s.customerId)) return true;
+      }
+
+      // 4. Phone match
+      if (isPhone) {
+        if (isPhoneMatch(raw, s.customerPhone)) return true;
+        if (isPhoneMatch(raw, s.recipientPhone)) return true;
+        if (matchedAccountIds.has(s.customerId)) return true;
+      }
+
+      return false;
+    });
+
+    // Fallback: if searchType was tracking_code but didn't match, check phone or email
+    if (matchedShipments.length === 0 && !isEmail && digitsOnly.length >= 8) {
+      const phoneFallbackMatches = initialShipments.filter(
+        (s) =>
+          isPhoneMatch(raw, s.customerPhone) ||
+          isPhoneMatch(raw, s.recipientPhone) ||
+          accounts.some(
+            (acc) =>
+              (acc.phone && isPhoneMatch(raw, acc.phone) && acc.id === s.customerId) ||
+              matchedAccountIds.has(s.customerId)
+          )
+      );
+      if (phoneFallbackMatches.length > 0) {
+        return { shipments: phoneFallbackMatches, searchType: 'phone' };
+      }
+    }
+
+    return { shipments: matchedShipments, searchType };
+  }
+
+  /**
+   * Get single shipment by tracking number, id, email, or phone
    */
   static async getByTrackingNumber(trackingNumber: string): Promise<ShipmentRecord | null> {
     const clean = trackingNumber.trim().toUpperCase();
-    const found = initialShipments.find(
+    const direct = initialShipments.find(
       (s) => s.trackingNumber.toUpperCase() === clean || s.id.toLowerCase() === trackingNumber.toLowerCase()
     );
-    return found ? { ...found } : null;
+    if (direct) return { ...direct };
+
+    const { shipments } = await this.searchShipmentsUnified(trackingNumber);
+    return shipments.length > 0 ? { ...shipments[0] } : null;
   }
 
   /**
@@ -669,9 +796,12 @@ export class ShipmentService {
     trackingNumber?: string;
     customerId?: string;
     customerName: string;
+    customerEmail?: string;
+    customerPhone?: string;
     productName?: string;
     recipientName?: string;
     recipientPhone?: string;
+    recipientEmail?: string;
     recipientAddress?: string;
     originCountry: string;
     originCity: string;
@@ -783,8 +913,11 @@ export class ShipmentService {
       productName: data.productName || 'Commercial Freight Cargo',
       customerId: data.customerId || 'usr-customer-01',
       customerName: data.customerName,
+      customerEmail: data.customerEmail,
+      customerPhone: data.customerPhone,
       recipientName: data.recipientName || `${data.customerName} Receiving Hub`,
       recipientPhone: data.recipientPhone || '+880 1711-000000',
+      recipientEmail: data.recipientEmail,
       recipientAddress: data.recipientAddress || `${data.destCity}, Bangladesh`,
       originCountry: data.originCountry,
       originCity: data.originCity,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { PublicTrackingResponse } from '../../server/services/tracking.service';
+import type { PublicTrackingResponse, MatchingShipmentSummary } from '../../server/services/tracking.service';
 import type { ShipmentItem } from '../../server/services/shipment.service';
 import {
   TRACKING_STATUSES,
@@ -20,6 +20,9 @@ export default function LiveTrackingIsland({
 }: Props) {
   const [query, setQuery] = useState(initialTrackingNumber);
   const [trackingData, setTrackingData] = useState<PublicTrackingResponse | null>(null);
+  const [matchingShipments, setMatchingShipments] = useState<MatchingShipmentSummary[]>([]);
+  const [lastSearchedQuery, setLastSearchedQuery] = useState('');
+  const [searchType, setSearchType] = useState<'tracking_code' | 'email' | 'phone'>('tracking_code');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -81,12 +84,26 @@ export default function LiveTrackingIsland({
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Tracking number not found');
+        throw new Error(errJson.error || 'No shipment found matching tracking code, email, or phone number');
       }
 
       const data = await res.json();
       if (data.tracking) {
         const newTracking: PublicTrackingResponse = data.tracking;
+
+        if (data.matchingShipments && Array.isArray(data.matchingShipments) && data.matchingShipments.length > 1) {
+          setMatchingShipments(data.matchingShipments);
+        } else {
+          setMatchingShipments([]);
+        }
+
+        if (data.searchType) {
+          setSearchType(data.searchType);
+        }
+
+        if (!isSilentPoll) {
+          setLastSearchedQuery(code);
+        }
 
         // Detect if this is an automated live status update
         const prev = prevTrackingRef.current;
@@ -135,8 +152,9 @@ export default function LiveTrackingIsland({
       }
     } catch (err: any) {
       if (!isSilentPoll) {
-        setError(err.message || 'Unable to retrieve tracking details');
+        setError(err.message || 'No shipment found matching tracking code, email, or phone number');
         setTrackingData(null);
+        setMatchingShipments([]);
       }
     } finally {
       if (!isSilentPoll) setLoading(false);
@@ -342,7 +360,7 @@ export default function LiveTrackingIsland({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter your GoShipping Tracking Code or AWB (e.g. GOSH-XXXX-XXXX)..."
+              placeholder="Enter Tracking Code, Email, or Phone Number (e.g. GOSH-XXXX, client@apextextiles.com, 01711...)"
               className="w-full h-10 pl-10 pr-4 text-xs font-mono font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]/20 transition-none outline-none"
             />
           </div>
@@ -396,18 +414,22 @@ export default function LiveTrackingIsland({
           </div>
         </form>
 
-        {/* Verification indicator & tracking guidance */}
+        {/* Unified Search Quick Guidance & Sync indicator */}
         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
-            <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 stroke-[2] text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-              <span>Direct carrier synchronization</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Track by:</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]"></span>
+              Tracking Code (AWB/BL)
             </span>
-            <span className="hidden sm:inline">·</span>
-            <span className="hidden sm:inline">Real-time customs clearance &amp; flight/vessel waypoints</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              Email
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Phone Number
+            </span>
           </div>
 
           {/* Sync indicator */}
@@ -427,6 +449,76 @@ export default function LiveTrackingIsland({
           </div>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 01.B MULTIPLE SHIPMENTS FOUND SELECTOR (Unified Search: Email / Phone)     */}
+      {/* ========================================================================= */}
+      {matchingShipments.length > 1 && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-red-100 text-[#EA1D2C] dark:bg-red-950/60 dark:text-red-300 flex items-center justify-center font-bold text-xs shrink-0">
+                {matchingShipments.length}
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
+                  {matchingShipments.length} Shipments Found for "{lastSearchedQuery || query}"
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Select any shipment below to inspect its live status, timeline milestones, and GPS details.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase">
+              {searchType === 'email' ? 'Email Match' : searchType === 'phone' ? 'Phone Match' : 'Search Matches'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+            {matchingShipments.map((s) => {
+              const isSelected = trackingData?.trackingNumber === s.trackingNumber;
+              return (
+                <button
+                  key={s.trackingNumber}
+                  type="button"
+                  onClick={() => {
+                    setQuery(s.trackingNumber);
+                    fetchTracking(s.trackingNumber);
+                    if (typeof window !== 'undefined') {
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('code', s.trackingNumber);
+                      window.history.replaceState({}, '', url.toString());
+                    }
+                  }}
+                  className={`p-3 rounded-lg border text-left transition-none cursor-pointer flex flex-col justify-between gap-2 ${
+                    isSelected
+                      ? 'border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/40 ring-1 ring-[#EA1D2C] shadow-2xs'
+                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-bold text-xs text-[#EA1D2C]">
+                      {s.trackingNumber}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">
+                      {s.mode.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-[11.5px] font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
+                    {s.productName}
+                  </div>
+                  <div className="flex items-center justify-between text-[10.5px] pt-1.5 border-t border-slate-100 dark:border-slate-700/60 text-slate-500">
+                    <span>{s.originCity} → {s.destCity}</span>
+                    <span className={`font-semibold ${isSelected ? 'text-[#EA1D2C]' : 'text-slate-700 dark:text-slate-300'}`}>
+                      {s.statusLabel}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* ERROR STATE                                                               */}
@@ -460,25 +552,25 @@ export default function LiveTrackingIsland({
             </svg>
           </div>
           <div className="max-w-md mx-auto space-y-1.5">
-            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:white font-['Manrope',sans-serif]">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
               Track Your Shipment
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Please enter your tracking code or shipping number in the search box above to view real-time cargo status and location updates.
+              Enter your Tracking Code, account Email, or Phone Number in the search box above to view real-time cargo status and location updates.
             </p>
           </div>
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Live Location Updates
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]"></span>
+              By Tracking Code (AWB/BL)
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              Customs Clearance Updates
+              By Account Email
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-              Final Destination Handover
+            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              By Phone Number
             </span>
           </div>
         </div>

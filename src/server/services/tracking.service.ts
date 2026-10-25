@@ -66,71 +66,98 @@ export interface PublicTrackingResponse {
   }>;
 }
 
+export interface MatchingShipmentSummary {
+  trackingNumber: string;
+  productName: string;
+  status: TrackingStatusCode;
+  statusCode: TrackingStatusCode;
+  statusLabel: string;
+  originCity: string;
+  destCity: string;
+  mode: 'air' | 'sea' | 'road' | 'hand_carry';
+  totalWeightKg: number;
+  totalPieces: number;
+  createdAt: string;
+  lastUpdatedBst: string;
+}
+
 export class TrackingService {
   /**
-   * Public tracking lookup: strictly sanitizes confidential customer info
+   * Unified public tracking lookup: search by tracking number, customer/recipient email, or phone.
+   * Strictly sanitizes confidential customer info according to public tracking privacy rules.
    */
-  static async getPublicTracking(trackingNumber: string, clientHash?: string): Promise<{
+  static async searchPublicTracking(query: string, clientHash?: string): Promise<{
     modified: boolean;
     data: PublicTrackingResponse | null;
+    matchingShipments: MatchingShipmentSummary[];
+    totalFound: number;
+    searchType: 'tracking_code' | 'email' | 'phone';
   }> {
-    const shipment = await ShipmentService.getByTrackingNumber(trackingNumber);
-    if (!shipment) {
-      return { modified: false, data: null };
+    const { shipments, searchType } = await ShipmentService.searchShipmentsUnified(query);
+    if (!shipments || shipments.length === 0) {
+      return { modified: false, data: null, matchingShipments: [], totalFound: 0, searchType };
     }
 
+    const primaryShipment = shipments[0];
+
     // Generate lightweight content hash for conditional 304/unchanged responses
-    const latestEventId = shipment.events[0]?.id || 'none';
-    const contentHash = `${shipment.status}-${shipment.paymentStatus}-${shipment.eventVersion}-${shipment.updatedAt}-${latestEventId}`;
+    const latestEventId = primaryShipment.events[0]?.id || 'none';
+    const contentHash = `${primaryShipment.status}-${primaryShipment.paymentStatus}-${primaryShipment.eventVersion}-${primaryShipment.updatedAt}-${latestEventId}`;
 
     if (clientHash && clientHash.replace(/"/g, '') === contentHash) {
-      return { modified: false, data: null };
+      return {
+        modified: false,
+        data: null,
+        matchingShipments: [],
+        totalFound: shipments.length,
+        searchType
+      };
     }
 
     // GPS/map is only presented when verified coordinates exist from a capable carrier or warehouse
-    const hasLiveGps = Boolean(shipment.currentLat && shipment.currentLng);
+    const hasLiveGps = Boolean(primaryShipment.currentLat && primaryShipment.currentLng);
 
     const publicData: PublicTrackingResponse = {
-      trackingNumber: shipment.trackingNumber,
-      productName: shipment.productName || 'Commercial Cargo Consignment',
-      originCountry: shipment.originCountry,
-      originCity: shipment.originCity,
-      originAddress: shipment.originAddress,
-      originLat: shipment.originLat,
-      originLng: shipment.originLng,
-      destCountry: shipment.destCountry,
-      destCity: shipment.destCity,
-      destAddress: shipment.destAddress,
-      destLat: shipment.destLat,
-      destLng: shipment.destLng,
-      mode: shipment.mode,
-      serviceLevel: shipment.serviceLevel,
-      status: shipment.status,
-      statusCode: shipment.statusCode || shipment.status,
-      statusLabel: shipment.statusLabel || TRACKING_STATUSES[shipment.status]?.label || shipment.status.toUpperCase(),
-      paymentStatus: shipment.paymentStatus || 'pending',
-      eventVersion: shipment.eventVersion || 1,
-      currentLocation: shipment.currentLocation,
+      trackingNumber: primaryShipment.trackingNumber,
+      productName: primaryShipment.productName || 'Commercial Cargo Consignment',
+      originCountry: primaryShipment.originCountry,
+      originCity: primaryShipment.originCity,
+      originAddress: primaryShipment.originAddress,
+      originLat: primaryShipment.originLat,
+      originLng: primaryShipment.originLng,
+      destCountry: primaryShipment.destCountry,
+      destCity: primaryShipment.destCity,
+      destAddress: primaryShipment.destAddress,
+      destLat: primaryShipment.destLat,
+      destLng: primaryShipment.destLng,
+      mode: primaryShipment.mode,
+      serviceLevel: primaryShipment.serviceLevel,
+      status: primaryShipment.status,
+      statusCode: primaryShipment.statusCode || primaryShipment.status,
+      statusLabel: primaryShipment.statusLabel || TRACKING_STATUSES[primaryShipment.status]?.label || primaryShipment.status.toUpperCase(),
+      paymentStatus: primaryShipment.paymentStatus || 'pending',
+      eventVersion: primaryShipment.eventVersion || 1,
+      currentLocation: primaryShipment.currentLocation,
       hasLiveGps,
-      currentLat: hasLiveGps ? shipment.currentLat : undefined,
-      currentLng: hasLiveGps ? shipment.currentLng : undefined,
-      carrierName: shipment.carrierName,
-      voyageOrFlightNumber: shipment.voyageOrFlightNumber,
-      billOfLadingNumber: shipment.billOfLadingNumber,
-      departureTime: shipment.departureTime,
-      totalPieces: shipment.totalPieces,
-      totalWeightKg: shipment.totalWeightKg,
-      totalCbm: shipment.totalCbm,
-      estimatedDelivery: shipment.estimatedDelivery,
-      actualDelivery: shipment.actualDelivery,
-      recipientName: shipment.recipientName,
-      recipientAddress: shipment.recipientAddress,
-      items: shipment.items,
-      updatedAt: shipment.updatedAt,
-      lastUpdatedBst: shipment.lastUpdatedBst || formatBstDateTime(shipment.updatedAt),
+      currentLat: hasLiveGps ? primaryShipment.currentLat : undefined,
+      currentLng: hasLiveGps ? primaryShipment.currentLng : undefined,
+      carrierName: primaryShipment.carrierName,
+      voyageOrFlightNumber: primaryShipment.voyageOrFlightNumber,
+      billOfLadingNumber: primaryShipment.billOfLadingNumber,
+      departureTime: primaryShipment.departureTime,
+      totalPieces: primaryShipment.totalPieces,
+      totalWeightKg: primaryShipment.totalWeightKg,
+      totalCbm: primaryShipment.totalCbm,
+      estimatedDelivery: primaryShipment.estimatedDelivery,
+      actualDelivery: primaryShipment.actualDelivery,
+      recipientName: primaryShipment.recipientName,
+      recipientAddress: primaryShipment.recipientAddress,
+      items: primaryShipment.items,
+      updatedAt: primaryShipment.updatedAt,
+      lastUpdatedBst: primaryShipment.lastUpdatedBst || formatBstDateTime(primaryShipment.updatedAt),
       lastHash: contentHash,
-      physicalProgress: shipment.physicalProgress,
-      events: shipment.events.map((evt) => ({
+      physicalProgress: primaryShipment.physicalProgress,
+      events: primaryShipment.events.map((evt) => ({
         id: evt.id,
         status: evt.status,
         statusCode: evt.statusCode || (evt.status as TrackingStatusCode),
@@ -148,6 +175,38 @@ export class TrackingService {
       }))
     };
 
-    return { modified: true, data: publicData };
+    const matchingShipments: MatchingShipmentSummary[] = shipments.map((s) => ({
+      trackingNumber: s.trackingNumber,
+      productName: s.productName,
+      status: s.status,
+      statusCode: s.statusCode || s.status,
+      statusLabel: s.statusLabel || TRACKING_STATUSES[s.status]?.label || s.status.toUpperCase(),
+      originCity: s.originCity,
+      destCity: s.destCity,
+      mode: s.mode,
+      totalWeightKg: s.totalWeightKg,
+      totalPieces: s.totalPieces,
+      createdAt: s.createdAt,
+      lastUpdatedBst: s.lastUpdatedBst || formatBstDateTime(s.updatedAt)
+    }));
+
+    return {
+      modified: true,
+      data: publicData,
+      matchingShipments,
+      totalFound: shipments.length,
+      searchType
+    };
+  }
+
+  /**
+   * Legacy method for direct tracking number queries
+   */
+  static async getPublicTracking(trackingNumber: string, clientHash?: string): Promise<{
+    modified: boolean;
+    data: PublicTrackingResponse | null;
+  }> {
+    const res = await this.searchPublicTracking(trackingNumber, clientHash);
+    return { modified: res.modified, data: res.data };
   }
 }

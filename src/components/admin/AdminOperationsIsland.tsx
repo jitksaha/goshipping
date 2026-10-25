@@ -445,6 +445,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         ? newCustomTrackingNumber.trim().toUpperCase()
         : `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+      const finalCustomerEmail =
+        orderCustomerMode === 'new'
+          ? newCustomerEmail.trim().toLowerCase()
+          : currentSelectedCustomer?.email;
+      const finalCustomerPhone =
+        orderCustomerMode === 'new'
+          ? newCustomerPhone.trim()
+          : currentSelectedCustomer?.phone;
+
       const res = await fetch('/api/shipments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -452,6 +461,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           trackingNumber: trackingCodeToUse,
           customerId: finalCustomerId || 'usr-customer-01',
           customerName: finalCustName,
+          customerEmail: finalCustomerEmail,
+          customerPhone: finalCustomerPhone,
           recipientName: finalRecipientName,
           recipientPhone: finalRecipientPhone,
           recipientAddress: finalRecipientAddress,
