@@ -88,3 +88,35 @@ In Hostinger Control Panel (hPanel) -> Advanced -> Cron Jobs:
   - `GET /api/admin/email/status`: Returns Resend SDK domain status for `support.goshipping.com.bd`, region, and DKIM/SPF DNS records.
   - `POST /api/admin/email/verify`: Triggers DNS verification check on Resend API.
   - `POST /api/admin/email/test`: Dispatches a live diagnostic test email to any recipient.
+
+---
+
+## 6. Hostinger SSH Deployment Playbook
+
+For automated or remote terminal deployment to Hostinger Cloud / VPS:
+
+### Connection Parameters
+- **Host / IP**: `195.35.62.136`
+- **SSH Port**: `65002`
+- **SSH User**: `u398667964`
+- **SSH Password**: `[REDACTED]` (Stored securely in local environment / secrets vault)
+
+### Quick Connection
+```bash
+ssh -p 65002 u398667964@195.35.62.136
+```
+
+### Standard Deployment Runbook (When Ready to Deploy)
+1. **Local Build**:
+   ```bash
+   npm run build
+   ```
+2. **Synchronize Code / Artifacts**:
+   ```bash
+   rsync -avz -e 'ssh -p 65002' --exclude 'node_modules' --exclude '.git' ./dist/ package.json u398667964@195.35.62.136:~/public_html/
+   ```
+3. **Remote Dependency & Restart**:
+   ```bash
+   ssh -p 65002 u398667964@195.35.62.136 "cd ~/public_html && npm install --omit=dev && pm2 restart goshipping || node ./dist/server/entry.mjs"
+   ```
+
