@@ -227,6 +227,10 @@ export default function QuoteCalculatorIsland({
               onClick={() => {
                 setSubmittedQuote(null);
                 setGuestName(defaultGuestName);
+                setOriginCountry('China');
+                setOriginCity('Guangzhou');
+                setDestCountry('Bangladesh');
+                setDestCity('Dhaka');
               }}
               className="px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-none cursor-pointer"
             >
