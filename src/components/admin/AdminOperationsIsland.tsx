@@ -938,14 +938,21 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     switch (tab) {
       case 'shipments':
       case 'tracking':
+      case 'orders':
         return {
-          title: 'Live Tracking & Orders Desk (লাইভ ট্র্যাকার ও অর্ডার কন্ট্রোল)',
+          title: 'Live Tracking & Orders Desk',
           subtitle: 'Air, Sea & P2P freight waybills, carrier telemetry and live tracking stage management'
         };
       case 'quotes':
         return {
           title: 'Commercial Rate Quotations',
           subtitle: 'Inquiries pricing queue, tariff revisions and conversion engine'
+        };
+      case 'invoices':
+      case 'invoice':
+        return {
+          title: 'Commercial Invoices & Tax Desk',
+          subtitle: 'Client freight billing, customs duties, collection receipts and PDF statements'
         };
       case 'warehouses':
         return {
@@ -1080,7 +1087,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>+ New Tracking Order</span>
+            <span>New Tracking Order</span>
           </button>
 
           <a
@@ -1177,7 +1184,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    <span>+ Create Tracking Order (নতুন অর্ডার)</span>
+                    <span>Create Tracking Order</span>
                   </button>
                 </div>
               </div>
@@ -1627,7 +1634,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>+ New Order / Consignment (নতুন অর্ডার)</span>
+                  <span>New Consignment</span>
                 </button>
               </div>
             </div>
@@ -1679,7 +1686,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   value={shipmentSearch}
                   onChange={(e) => setShipmentSearch(e.target.value)}
                   placeholder="Search tracking, client name, route, or flight..."
-                  className="w-full h-8 pl-8 pr-3 text-xs rounded-md border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400"
+                  className="w-full h-9 pl-8 pr-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
                 />
               </div>
 
@@ -1687,7 +1694,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <select
                   value={shipmentModeFilter}
                   onChange={(e) => setShipmentModeFilter(e.target.value)}
-                  className="h-8 px-2.5 rounded-md border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer"
+                  className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer focus:border-slate-400 focus:outline-none"
                 >
                   <option value="all">All Freight Modes</option>
                   <option value="air">Air Priority</option>
@@ -1699,7 +1706,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <select
                   value={shipmentStatusFilter}
                   onChange={(e) => setShipmentStatusFilter(e.target.value)}
-                  className="h-8 px-2.5 rounded-md border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer"
+                  className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer focus:border-slate-400 focus:outline-none"
                 >
                   <option value="all">All Statuses</option>
                   <option value="purchased">PURCHASED</option>
@@ -3314,22 +3321,22 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           />
 
           {/* Slide-over Drawer Panel */}
-          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-lg lg:max-w-xl bg-white border-l border-slate-200 shadow-2xl flex flex-col h-full transform transition ease-out duration-200">
+          <div className="fixed inset-y-0 right-0 max-w-full flex">
+            <div className="w-screen max-w-full sm:max-w-[600px] lg:max-w-[620px] bg-white border-l border-slate-200 shadow-2xl flex flex-col h-full transform transition ease-out duration-200">
               
               {/* 1. Drawer Header (Sticky Top) */}
-              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-white">
+              <div className="px-6 py-4 border-b border-slate-200/90 flex items-center justify-between shrink-0 bg-white">
                 <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
                       New Consignment &amp; Order
                     </h2>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-[#EA1D2C] border border-red-200">
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-[#EA1D2C] ring-1 ring-red-200/60">
                       Live Dispatch
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Register freight, assign waybill, and link customer profile.
+                  <p className="text-xs text-slate-500">
+                    Register freight consignment, assign tracking code, and link customer.
                   </p>
                 </div>
                 <button
@@ -3338,10 +3345,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     setShowConsignmentModal(false);
                     setIsCustomerDropdownOpen(false);
                   }}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-none cursor-pointer"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-none cursor-pointer"
                   title="Close (Esc)"
                 >
-                  <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
@@ -3349,68 +3356,79 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
 
               {/* 2. Drawer Body (Scrollable Form) */}
-              <form id="drawer-consignment-form" onSubmit={handleCreateConsignment} className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-xs">
+              <form id="drawer-consignment-form" onSubmit={handleCreateConsignment} className="flex-1 overflow-y-auto px-6 py-5 space-y-4 text-xs bg-slate-50/40">
                 
-                {/* A. Waybill Code & Initial Live Status */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border border-red-100 bg-red-50/40">
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="font-semibold text-slate-700 text-xs">
-                        Waybill Code
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
-                        className="text-[10px] text-[#EA1D2C] hover:underline font-bold cursor-pointer"
-                      >
-                        ↻ Regenerate
-                      </button>
+                {/* A. Waybill Code & Initial Live Status Card */}
+                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-slate-700">
+                          Waybill / Tracking Code
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
+                          className="inline-flex items-center gap-1 text-[11px] font-medium text-[#EA1D2C] hover:text-[#c41523] cursor-pointer"
+                        >
+                          <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                          </svg>
+                          <span>Regenerate</span>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={newCustomTrackingNumber}
+                        onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
+                        placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
+                        required
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50/50 font-mono text-xs font-semibold text-slate-900 focus:bg-white focus:border-slate-400 focus:ring-1 focus:ring-slate-300 focus:outline-none"
+                      />
                     </div>
-                    <input
-                      type="text"
-                      value={newCustomTrackingNumber}
-                      onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
-                      placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
-                      required
-                      className="w-full h-9 px-3 rounded-md border border-red-200 bg-white font-mono font-bold text-slate-900 text-sm focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="font-semibold text-slate-700 text-xs mb-1 block">
-                      Initial Tracker Stage
-                    </label>
-                    <select
-                      value={newInitialStatus}
-                      onChange={(e) => setNewInitialStatus(e.target.value)}
-                      className="w-full h-9 px-2.5 rounded-md border border-red-200 bg-white font-semibold text-xs text-slate-900 cursor-pointer"
-                    >
-                      <option value="purchased">PURCHASED (Supplier)</option>
-                      <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
-                      <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
-                      <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
-                      <option value="awaiting_customs">AWAITING CUSTOMS</option>
-                      <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
-                      <option value="payment_received">PAYMENT RECEIVED</option>
-                      <option value="out_for_delivery">OUT FOR DELIVERY</option>
-                      <option value="delivered">DELIVERED</option>
-                    </select>
+                    <div>
+                      <label className="text-xs font-medium text-slate-700 block mb-1.5">
+                        Initial Tracker Stage
+                      </label>
+                      <select
+                        value={newInitialStatus}
+                        onChange={(e) => setNewInitialStatus(e.target.value)}
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
+                      >
+                        <option value="purchased">PURCHASED (Supplier)</option>
+                        <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
+                        <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
+                        <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
+                        <option value="awaiting_customs">AWAITING CUSTOMS</option>
+                        <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
+                        <option value="payment_received">PAYMENT RECEIVED</option>
+                        <option value="out_for_delivery">OUT FOR DELIVERY</option>
+                        <option value="delivered">DELIVERED</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {/* B. Customer Profile Selection (Instant & Powerful) */}
-                <div className="space-y-2.5">
+                {/* B. Customer Profile Selection Card */}
+                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-slate-800 text-xs">
-                      Customer Profile
-                    </span>
-                    <div className="inline-flex rounded-md border border-slate-200 bg-slate-100 p-0.5">
+                    <div>
+                      <span className="text-xs font-medium text-slate-800 block">
+                        Customer Profile
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Link consignment to account or create new client
+                      </span>
+                    </div>
+                    <div className="inline-flex rounded-lg border border-slate-200/90 bg-slate-100 p-0.5">
                       <button
                         type="button"
                         onClick={() => setOrderCustomerMode('existing')}
-                        className={`px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer transition-none ${
+                        className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-none ${
                           orderCustomerMode === 'existing'
-                            ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                            ? 'bg-white text-slate-900 shadow-2xs'
                             : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
@@ -3422,9 +3440,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           setOrderCustomerMode('new');
                           setIsCustomerDropdownOpen(false);
                         }}
-                        className={`px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer transition-none ${
+                        className={`px-3 py-1 rounded-md text-xs font-medium cursor-pointer transition-none ${
                           orderCustomerMode === 'new'
-                            ? 'bg-white text-[#EA1D2C] shadow-2xs font-bold'
+                            ? 'bg-white text-[#EA1D2C] shadow-2xs'
                             : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
@@ -3434,7 +3452,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   {orderCustomerMode === 'existing' ? (
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       {/* Search ComboBox */}
                       <div className="relative">
                         <div className="relative flex items-center">
@@ -3453,7 +3471,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             }}
                             onFocus={() => setIsCustomerDropdownOpen(true)}
                             placeholder="Search client by name, company, email or phone..."
-                            className="w-full h-9 pl-9 pr-8 rounded-md border border-slate-300 bg-white text-xs text-slate-900 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] focus:outline-hidden"
+                            className="w-full h-9 pl-9 pr-8 rounded-lg border border-slate-200 bg-white text-xs text-slate-900 focus:border-slate-400 focus:ring-1 focus:ring-slate-300 focus:outline-none"
                           />
                           {customerSearchQuery && (
                             <button
@@ -3531,34 +3549,31 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                       {/* Selected Profile Card */}
                       {currentSelectedCustomer && (
-                        <div className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 flex items-center justify-between">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                              {(currentSelectedCustomer.fullName || 'C').substring(0, 2).toUpperCase()}
+                        <div className="p-3.5 rounded-lg border border-slate-200/90 bg-slate-50/70 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-lg bg-slate-900 text-white font-medium text-xs flex items-center justify-center shrink-0">
+                              {(currentSelectedCustomer.fullName || currentSelectedCustomer.companyName || 'C').substring(0, 2).toUpperCase()}
                             </div>
-                            <div className="truncate">
+                            <div className="truncate space-y-0.5">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900 text-xs truncate">
+                                <span className="font-semibold text-slate-900 text-xs truncate">
                                   {currentSelectedCustomer.fullName}
                                 </span>
                                 {currentSelectedCustomer.companyName && (
-                                  <span className="text-[11px] text-slate-600 truncate">
-                                    • {currentSelectedCustomer.companyName}
+                                  <span className="text-[11px] text-slate-500 truncate font-normal">
+                                    ({currentSelectedCustomer.companyName})
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[10px] text-slate-500 font-mono truncate">
-                                {currentSelectedCustomer.phone || 'No phone'} · {currentSelectedCustomer.email}
-                              </div>
-                              <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                                {newRecipientAddress || currentSelectedCustomer.address || 'Dhaka, Bangladesh'}
+                              <div className="text-[11px] text-slate-500 font-mono truncate">
+                                {currentSelectedCustomer.email} {currentSelectedCustomer.phone ? `· ${currentSelectedCustomer.phone}` : ''}
                               </div>
                             </div>
                           </div>
                           <button
                             type="button"
                             onClick={() => setIsCustomerDropdownOpen(true)}
-                            className="text-[11px] text-[#EA1D2C] hover:underline font-semibold shrink-0 ml-2 cursor-pointer"
+                            className="px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-md hover:bg-slate-50 shrink-0 cursor-pointer transition-none"
                           >
                             Change
                           </button>
@@ -3567,10 +3582,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
                   ) : (
                     /* New Customer Mode */
-                    <div className="p-3.5 rounded-lg border border-red-200 bg-red-50/30 space-y-2.5">
-                      <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/60 space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Contact Name *</label>
+                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Contact Name *</label>
                           <input
                             type="text"
                             value={newCustomerFullName}
@@ -3580,11 +3595,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             }}
                             placeholder="Full Name"
                             required={orderCustomerMode === 'new'}
-                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Company Name</label>
+                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Company / Organization</label>
                           <input
                             type="text"
                             value={newCustomerCompany}
@@ -3593,25 +3608,25 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                               setNewCustName(e.target.value);
                             }}
                             placeholder="Business / Trade Name"
-                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Email (Login) *</label>
+                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Email (Login / Alerts) *</label>
                           <input
                             type="email"
                             value={newCustomerEmail}
                             onChange={(e) => setNewCustomerEmail(e.target.value)}
                             placeholder="email@company.com"
                             required={orderCustomerMode === 'new'}
-                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
                           />
                         </div>
                         <div>
-                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Phone / WhatsApp *</label>
+                          <label className="text-[11px] font-medium text-slate-600 block mb-1">Phone / WhatsApp *</label>
                           <input
                             type="text"
                             value={newCustomerPhone}
@@ -3621,13 +3636,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             }}
                             placeholder="+880 1..."
                             required={orderCustomerMode === 'new'}
-                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                            className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Delivery Address</label>
+                        <label className="text-[11px] font-medium text-slate-600 block mb-1">Delivery Address</label>
                         <input
                           type="text"
                           value={newCustomerAddress}
@@ -3636,26 +3651,26 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             setNewRecipientAddress(e.target.value);
                           }}
                           placeholder="Plot / Street, Area, City"
-                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                          className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
                         />
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* C. Routing & Transport Corridor */}
-                <div className="space-y-2.5">
-                  <span className="font-semibold text-slate-800 text-xs block">
-                    Corridor &amp; Transport
+                {/* C. Corridor & Transport Card */}
+                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
+                  <span className="text-xs font-medium text-slate-800 block">
+                    Corridor &amp; Transit Linehaul
                   </span>
 
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Origin</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Origin Port</label>
                       <select
                         value={newOriginCity}
                         onChange={(e) => setNewOriginCity(e.target.value)}
-                        className="w-full h-8 px-2 rounded-md border border-slate-300 bg-white text-xs font-medium"
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
                       >
                         <option value="Guangzhou">Guangzhou (CAN)</option>
                         <option value="Shenzhen">Shenzhen (SZX)</option>
@@ -3665,11 +3680,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Destination</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Destination Hub</label>
                       <select
                         value={newDestCity}
                         onChange={(e) => setNewDestCity(e.target.value)}
-                        className="w-full h-8 px-2 rounded-md border border-slate-300 bg-white text-xs font-medium"
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
                       >
                         <option value="Dhaka">Dhaka (HSIA / Hub)</option>
                         <option value="Chittagong">Chittagong (CFS)</option>
@@ -3677,11 +3692,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Mode</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Freight Mode</label>
                       <select
                         value={newMode}
                         onChange={(e) => setNewMode(e.target.value as any)}
-                        className="w-full h-8 px-2 rounded-md border border-slate-300 bg-white text-xs font-medium"
+                        className="w-full h-9 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
                       >
                         <option value="air">Air Freight</option>
                         <option value="sea">Ocean (FCL/LCL)</option>
@@ -3691,55 +3706,58 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Carrier</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Carrier / Forwarder</label>
                       <input
                         type="text"
                         value={newCarrier}
                         onChange={(e) => setNewCarrier(e.target.value)}
                         required
-                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs"
+                        placeholder="e.g. Biman Cargo, Cathay Cargo, Maersk"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Flight / Voyage #</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Flight / Voyage Number</label>
                       <input
                         type="text"
                         value={newVoyage}
                         onChange={(e) => setNewVoyage(e.target.value)}
                         required
-                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 font-mono text-xs"
+                        placeholder="e.g. BG-089 / V-2026A"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white font-mono text-xs focus:border-slate-400 focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* D. Cargo Specs */}
-                <div className="space-y-2.5">
-                  <span className="font-semibold text-slate-800 text-xs block">
-                    Cargo Specifications
+                {/* D. Cargo Specifications Card (2x2 Balanced Grid) */}
+                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-3.5">
+                  <span className="text-xs font-medium text-slate-800 block">
+                    Cargo Specifications &amp; Packaging
                   </span>
 
                   <div>
-                    <label className="text-[10px] text-slate-500 block mb-0.5">Goods Description</label>
+                    <label className="text-[11px] font-medium text-slate-600 block mb-1">Goods Description *</label>
                     <input
                       type="text"
                       value={newItemDesc}
                       onChange={(e) => setNewItemDesc(e.target.value)}
-                      placeholder="e.g. Export Apparel, Electronic Components..."
+                      placeholder="e.g. Export Apparel, Electronic Components, Industrial Hardware..."
                       required
-                      className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
                     />
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 font-mono">
+                  {/* Balanced 2x2 Grid for generous width */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Packaging</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Packaging Type</label>
                       <select
                         value={newItemType}
                         onChange={(e) => setNewItemType(e.target.value)}
-                        className="w-full h-8 px-1.5 rounded-md border border-slate-300 bg-white text-[11px]"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
                       >
                         <option value="carton">Cartons</option>
                         <option value="pallet">Pallet</option>
@@ -3750,75 +3768,80 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Weight (KG)</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Category Tag</label>
+                      <select
+                        value={newItemTag}
+                        onChange={(e) => setNewItemTag(e.target.value as any)}
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
+                      >
+                        <option value="Commercial">Commercial Cargo</option>
+                        <option value="General">General Goods</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Liquids">Chemicals &amp; Liquids</option>
+                        <option value="Dangerous">Dangerous Goods</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Gross Weight (KG) *</label>
                       <input
                         type="number"
                         value={newWeight}
                         onChange={(e) => setNewWeight(e.target.value)}
                         required
-                        className="w-full h-8 px-2 rounded-md border border-slate-300 text-[11px]"
+                        placeholder="0.00"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
                       />
                     </div>
 
                     <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">CBM</label>
+                      <label className="text-[11px] font-medium text-slate-600 block mb-1">Total Volume (CBM) *</label>
                       <input
                         type="text"
                         value={newCbm}
                         onChange={(e) => setNewCbm(e.target.value)}
                         required
-                        className="w-full h-8 px-2 rounded-md border border-slate-300 text-[11px]"
+                        placeholder="0.00"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono focus:border-slate-400 focus:outline-none"
                       />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] text-slate-500 block mb-0.5">Category</label>
-                      <select
-                        value={newItemTag}
-                        onChange={(e) => setNewItemTag(e.target.value as any)}
-                        className="w-full h-8 px-1.5 rounded-md border border-slate-300 bg-white text-[11px]"
-                      >
-                        <option value="Commercial">Commercial</option>
-                        <option value="General">General</option>
-                        <option value="Electronics">Electronics</option>
-                        <option value="Liquids">Liquids</option>
-                        <option value="Dangerous">Dangerous</option>
-                      </select>
                     </div>
                   </div>
                 </div>
 
-                {/* E. Delivery Address Override */}
-                <div className="pt-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-semibold text-slate-700">Delivery Address in Bangladesh</label>
-                    <span className="text-[10px] text-slate-400">Destination Hub / Doorstep</span>
+                {/* E. Delivery Destination Card */}
+                <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-800">Delivery Address in Bangladesh</label>
+                    <span className="text-[11px] text-slate-400">Destination Hub / Doorstep</span>
                   </div>
                   <input
                     type="text"
                     value={newRecipientAddress}
                     onChange={(e) => setNewRecipientAddress(e.target.value)}
                     required
-                    placeholder="Delivery address in Bangladesh"
-                    className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs"
+                    placeholder="e.g. House 14, Road 7, Sector 3, Uttara, Dhaka - 1230"
+                    className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs focus:border-slate-400 focus:outline-none"
                   />
                 </div>
               </form>
 
               {/* 3. Drawer Footer (Sticky Bottom) */}
-              <div className="px-6 py-3.5 border-t border-slate-200 bg-slate-50/95 flex items-center justify-between shrink-0">
-                <span className="text-[11px] text-slate-500 font-mono">
-                  {newCustomTrackingNumber || 'GOSH-2026-XXXX'}
-                </span>
-
+              <div className="px-6 h-16 border-t border-slate-200/90 bg-white flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs text-slate-600 font-mono font-medium">
+                    {newCustomTrackingNumber || 'GOSH-2026-XXXX'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5">
                   <button
                     type="button"
                     onClick={() => {
                       setShowConsignmentModal(false);
                       setIsCustomerDropdownOpen(false);
                     }}
-                    className="px-3.5 py-1.5 rounded-md border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 transition-none cursor-pointer text-xs"
+                    className="h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 font-medium hover:bg-slate-50 transition-none cursor-pointer text-xs"
                   >
                     Cancel
                   </button>
@@ -3827,7 +3850,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     type="submit"
                     form="drawer-consignment-form"
                     disabled={submittingConsignment}
-                    className="px-4 py-1.5 rounded-md bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold cursor-pointer text-xs flex items-center gap-1.5 shadow-xs transition-none"
+                    className="h-9 px-5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-medium cursor-pointer text-xs flex items-center gap-2 shadow-2xs transition-none"
                   >
                     {submittingConsignment ? (
                       <>
@@ -3839,7 +3862,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     ) : (
                       <>
                         <span>Dispatch Consignment</span>
-                        <span>→</span>
+                        <span className="font-bold">→</span>
                       </>
                     )}
                   </button>
