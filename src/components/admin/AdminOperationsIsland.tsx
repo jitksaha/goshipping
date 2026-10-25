@@ -3300,351 +3300,334 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       )}
 
       {/* ========================================================= */}
-      {/* 02. MODAL: CREATE NEW TRACKING ORDER & CONSIGNMENT         */}
+      {/* 02. RIGHT SIDE DRAWER: CREATE NEW TRACKING CONSIGNMENT    */}
       {/* ========================================================= */}
       {showConsignmentModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl border border-slate-200 max-w-2xl w-full p-6 sm:p-7 shadow-xl space-y-4 max-h-[92vh] overflow-y-auto font-['Inter',sans-serif]">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
-                    + Create New Tracking Order (নতুন অর্ডার তৈরি করুন)
-                  </h3>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-[#EA1D2C] border border-red-200">
-                    Live Dispatch Ready
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Assign unique tracking code, bind customer profile, and register cargo into live tracking network.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowConsignmentModal(false);
-                  setIsCustomerDropdownOpen(false);
-                }}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-none cursor-pointer"
-                aria-label="Close"
-              >
-                <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 overflow-hidden font-['Inter',sans-serif]">
+          {/* Backdrop overlay */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity duration-200"
+            onClick={() => {
+              setShowConsignmentModal(false);
+              setIsCustomerDropdownOpen(false);
+            }}
+          />
 
-            <form onSubmit={handleCreateConsignment} className="space-y-4 text-xs">
-              {/* 1. Tracking Identity & Initial Status */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-red-50/60 border border-red-200 rounded-lg">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block font-bold text-slate-800 text-xs">
-                      Tracking / Consignment Code (ট্র্যাকিং কোড)
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
-                      className="text-[10px] text-[#EA1D2C] hover:underline font-bold cursor-pointer"
-                    >
-                      ↻ Regenerate
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={newCustomTrackingNumber}
-                    onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
-                    placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
-                    required
-                    className="w-full h-9 px-3 rounded-lg border border-red-300 bg-white font-mono font-bold text-slate-900 text-sm focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
-                  />
-                  <span className="text-[10px] text-slate-500 mt-1 block">
-                    Customer can track this code on <code>/tracking</code> immediately.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-800 text-xs mb-1">
-                    Initial Status on Live Tracker (প্রথম স্ট্যাটাস)
-                  </label>
-                  <select
-                    value={newInitialStatus}
-                    onChange={(e) => setNewInitialStatus(e.target.value)}
-                    className="w-full h-9 px-3 rounded-lg border border-red-200 bg-white font-semibold text-xs text-slate-900 cursor-pointer"
-                  >
-                    <option value="purchased">PURCHASED (Supplier sourcing)</option>
-                    <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED (Guangzhou Hub)</option>
-                    <option value="dispatched_from_china">DISPATCHED FROM CHINA (International Departure)</option>
-                    <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT (Touchdown at HSIA)</option>
-                    <option value="awaiting_customs">AWAITING CUSTOMS CLEARANCE (C&amp;F Processing)</option>
-                    <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED (Sabujkanon Hub)</option>
-                    <option value="payment_received">PAYMENT RECEIVED (Freight Settled)</option>
-                    <option value="out_for_delivery">OUT FOR DELIVERY (Dispatch to Door)</option>
-                    <option value="delivered">DELIVERED (Successfully Handed Over)</option>
-                  </select>
-                  <span className="text-[10px] text-emerald-700 font-medium mt-1 block">
-                    Real-time status broadcast active across all open trackers.
-                  </span>
-                </div>
-              </div>
-
-              {/* 2. Customer / User Account Selection (গ্রাহক নির্বাচন) */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div>
-                    <span className="block font-bold text-slate-900 text-xs">
-                      Customer &amp; User Account (গ্রাহক নির্বাচন ও অ্যাকাউন্ট লিংক)
+          {/* Slide-over Drawer Panel */}
+          <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-lg lg:max-w-xl bg-white border-l border-slate-200 shadow-2xl flex flex-col h-full transform transition ease-out duration-200">
+              
+              {/* 1. Drawer Header (Sticky Top) */}
+              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0 bg-white">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                      New Consignment &amp; Order
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-[#EA1D2C] border border-red-200">
+                      Live Dispatch
                     </span>
-                    <p className="text-[11px] text-slate-500">
-                      Select an existing user to auto-fill details or register a new customer account simultaneously.
-                    </p>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Register freight, assign waybill, and link customer profile.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConsignmentModal(false);
+                    setIsCustomerDropdownOpen(false);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-none cursor-pointer"
+                  title="Close (Esc)"
+                >
+                  <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+
+              {/* 2. Drawer Body (Scrollable Form) */}
+              <form id="drawer-consignment-form" onSubmit={handleCreateConsignment} className="flex-1 overflow-y-auto px-6 py-5 space-y-5 text-xs">
+                
+                {/* A. Waybill Code & Initial Live Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-lg border border-red-100 bg-red-50/40">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-slate-700 text-xs">
+                        Waybill Code
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
+                        className="text-[10px] text-[#EA1D2C] hover:underline font-bold cursor-pointer"
+                      >
+                        ↻ Regenerate
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={newCustomTrackingNumber}
+                      onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
+                      placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
+                      required
+                      className="w-full h-9 px-3 rounded-md border border-red-200 bg-white font-mono font-bold text-slate-900 text-sm focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
+                    />
                   </div>
 
-                  {/* Mode Tabs */}
-                  <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 shrink-0 self-start sm:self-auto">
-                    <button
-                      type="button"
-                      onClick={() => setOrderCustomerMode('existing')}
-                      className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-none ${
-                        orderCustomerMode === 'existing'
-                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                  <div>
+                    <label className="font-semibold text-slate-700 text-xs mb-1 block">
+                      Initial Tracker Stage
+                    </label>
+                    <select
+                      value={newInitialStatus}
+                      onChange={(e) => setNewInitialStatus(e.target.value)}
+                      className="w-full h-9 px-2.5 rounded-md border border-red-200 bg-white font-semibold text-xs text-slate-900 cursor-pointer"
                     >
-                      Select Existing User
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOrderCustomerMode('new');
-                        setIsCustomerDropdownOpen(false);
-                      }}
-                      className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-none ${
-                        orderCustomerMode === 'new'
-                          ? 'bg-white text-[#EA1D2C] shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      + Register New Customer
-                    </button>
+                      <option value="purchased">PURCHASED (Supplier)</option>
+                      <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
+                      <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
+                      <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
+                      <option value="awaiting_customs">AWAITING CUSTOMS</option>
+                      <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
+                      <option value="payment_received">PAYMENT RECEIVED</option>
+                      <option value="out_for_delivery">OUT FOR DELIVERY</option>
+                      <option value="delivered">DELIVERED</option>
+                    </select>
                   </div>
                 </div>
 
-                {/* Mode A: Select Existing Customer */}
-                {orderCustomerMode === 'existing' ? (
-                  <div className="space-y-2.5">
-                    {/* Search / Filter Input */}
-                    <div className="relative">
-                      <div className="relative flex items-center">
-                        <div className="absolute left-3 text-slate-400 pointer-events-none">
-                          <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle cx="11" cy="11" r="8"/>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                          </svg>
+                {/* B. Customer Profile Selection (Instant & Powerful) */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-800 text-xs">
+                      Customer Profile
+                    </span>
+                    <div className="inline-flex rounded-md border border-slate-200 bg-slate-100 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setOrderCustomerMode('existing')}
+                        className={`px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer transition-none ${
+                          orderCustomerMode === 'existing'
+                            ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Existing Client
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOrderCustomerMode('new');
+                          setIsCustomerDropdownOpen(false);
+                        }}
+                        className={`px-2.5 py-1 rounded text-[11px] font-semibold cursor-pointer transition-none ${
+                          orderCustomerMode === 'new'
+                            ? 'bg-white text-[#EA1D2C] shadow-2xs font-bold'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        + New Client
+                      </button>
+                    </div>
+                  </div>
+
+                  {orderCustomerMode === 'existing' ? (
+                    <div className="space-y-2">
+                      {/* Search ComboBox */}
+                      <div className="relative">
+                        <div className="relative flex items-center">
+                          <div className="absolute left-3 text-slate-400 pointer-events-none">
+                            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <circle cx="11" cy="11" r="8"/>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                          </div>
+                          <input
+                            type="text"
+                            value={customerSearchQuery}
+                            onChange={(e) => {
+                              setCustomerSearchQuery(e.target.value);
+                              setIsCustomerDropdownOpen(true);
+                            }}
+                            onFocus={() => setIsCustomerDropdownOpen(true)}
+                            placeholder="Search client by name, company, email or phone..."
+                            className="w-full h-9 pl-9 pr-8 rounded-md border border-slate-300 bg-white text-xs text-slate-900 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] focus:outline-hidden"
+                          />
+                          {customerSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => setCustomerSearchQuery('')}
+                              className="absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          )}
                         </div>
-                        <input
-                          type="text"
-                          value={customerSearchQuery}
-                          onChange={(e) => {
-                            setCustomerSearchQuery(e.target.value);
-                            setIsCustomerDropdownOpen(true);
-                          }}
-                          onFocus={() => setIsCustomerDropdownOpen(true)}
-                          placeholder="Type customer name, company, email or phone to search..."
-                          className="w-full h-9 pl-9 pr-8 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] focus:outline-hidden"
-                        />
-                        {customerSearchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setCustomerSearchQuery('')}
-                            className="absolute right-2.5 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-                          >
-                            ✕
-                          </button>
+
+                        {/* Search Dropdown */}
+                        {isCustomerDropdownOpen && (
+                          <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg divide-y divide-slate-100">
+                            {filteredCustomersForOrder.length === 0 ? (
+                              <div className="p-3 text-center text-slate-500 text-xs">
+                                No clients matching "{customerSearchQuery}".
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOrderCustomerMode('new');
+                                    setNewCustomerFullName(customerSearchQuery);
+                                    setIsCustomerDropdownOpen(false);
+                                  }}
+                                  className="block mx-auto mt-1 text-[11px] font-bold text-[#EA1D2C] hover:underline cursor-pointer"
+                                >
+                                  + Create new client with this name
+                                </button>
+                              </div>
+                            ) : (
+                              filteredCustomersForOrder.map((u) => {
+                                const isSelected = u.id === selectedCustomerId;
+                                return (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    onClick={() => selectCustomerForOrder(u)}
+                                    className={`w-full text-left p-2.5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-none ${
+                                      isSelected ? 'bg-red-50/60' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0 ${
+                                        isSelected ? 'bg-[#EA1D2C] text-white' : 'bg-slate-100 text-slate-700'
+                                      }`}>
+                                        {(u.fullName || u.companyName || 'U').substring(0, 2).toUpperCase()}
+                                      </div>
+                                      <div className="truncate">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-semibold text-slate-900 text-xs truncate">
+                                            {u.fullName}
+                                          </span>
+                                          {u.companyName && (
+                                            <span className="text-[10px] text-slate-500 truncate">
+                                              ({u.companyName})
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-[10px] text-slate-400 font-mono truncate">
+                                          {u.email} {u.phone ? `• ${u.phone}` : ''}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    {isSelected && (
+                                      <span className="text-[10px] text-[#EA1D2C] font-bold shrink-0">Selected ✓</span>
+                                    )}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
                         )}
                       </div>
 
-                      {/* Dropdown Results */}
-                      {isCustomerDropdownOpen && (
-                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-52 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg divide-y divide-slate-100">
-                          {filteredCustomersForOrder.length === 0 ? (
-                            <div className="p-3 text-center text-slate-500 text-xs space-y-1">
-                              <div>No matching users found for "{customerSearchQuery}".</div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setOrderCustomerMode('new');
-                                  setNewCustomerFullName(customerSearchQuery);
-                                  setIsCustomerDropdownOpen(false);
-                                }}
-                                className="text-[11px] font-bold text-[#EA1D2C] hover:underline cursor-pointer"
-                              >
-                                + Register New Customer with this name
-                              </button>
+                      {/* Selected Profile Card */}
+                      {currentSelectedCustomer && (
+                        <div className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                              {(currentSelectedCustomer.fullName || 'C').substring(0, 2).toUpperCase()}
                             </div>
-                          ) : (
-                            filteredCustomersForOrder.map((u) => {
-                              const isSelected = u.id === selectedCustomerId;
-                              return (
-                                <button
-                                  key={u.id}
-                                  type="button"
-                                  onClick={() => selectCustomerForOrder(u)}
-                                  className={`w-full text-left p-2.5 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition-none ${
-                                    isSelected ? 'bg-red-50/60' : ''
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2.5 min-w-0">
-                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${
-                                      isSelected ? 'bg-[#EA1D2C] text-white' : 'bg-slate-100 text-slate-700'
-                                    }`}>
-                                      {(u.fullName || u.companyName || 'U').substring(0, 2).toUpperCase()}
-                                    </div>
-                                    <div className="truncate">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="font-semibold text-slate-900 text-xs truncate">
-                                          {u.fullName}
-                                        </span>
-                                        {u.companyName && (
-                                          <span className="text-[10px] text-slate-500 font-medium truncate">
-                                            ({u.companyName})
-                                          </span>
-                                        )}
-                                        <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded ${
-                                          u.role === 'customer'
-                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                            : 'bg-slate-100 text-slate-600'
-                                        }`}>
-                                          {u.role}
-                                        </span>
-                                      </div>
-                                      <div className="text-[10px] text-slate-400 font-mono truncate">
-                                        {u.email} {u.phone ? `• ${u.phone}` : ''}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {isSelected && (
-                                    <span className="text-[10px] text-[#EA1D2C] font-bold shrink-0">Selected ✓</span>
-                                  )}
-                                </button>
-                              );
-                            })
-                          )}
+                            <div className="truncate">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900 text-xs truncate">
+                                  {currentSelectedCustomer.fullName}
+                                </span>
+                                {currentSelectedCustomer.companyName && (
+                                  <span className="text-[11px] text-slate-600 truncate">
+                                    • {currentSelectedCustomer.companyName}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500 font-mono truncate">
+                                {currentSelectedCustomer.phone || 'No phone'} · {currentSelectedCustomer.email}
+                              </div>
+                              <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                                {newRecipientAddress || currentSelectedCustomer.address || 'Dhaka, Bangladesh'}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsCustomerDropdownOpen(true)}
+                            className="text-[11px] text-[#EA1D2C] hover:underline font-semibold shrink-0 ml-2 cursor-pointer"
+                          >
+                            Change
+                          </button>
                         </div>
                       )}
                     </div>
-
-                    {/* Active Selected Customer Preview Card */}
-                    {currentSelectedCustomer && (
-                      <div className="p-3 rounded-lg border border-emerald-200 bg-emerald-50/60 flex items-center justify-between">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                            {(currentSelectedCustomer.fullName || 'C').substring(0, 2).toUpperCase()}
-                          </div>
-                          <div className="truncate">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-emerald-950 text-xs">
-                                {currentSelectedCustomer.fullName}
-                              </span>
-                              {currentSelectedCustomer.companyName && (
-                                <span className="text-[11px] text-emerald-800 font-medium truncate">
-                                  • {currentSelectedCustomer.companyName}
-                                </span>
-                              )}
-                              <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-200">
-                                Bound to ID: {currentSelectedCustomer.id}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-emerald-700 font-mono truncate mt-0.5">
-                              {currentSelectedCustomer.email} | {currentSelectedCustomer.phone || 'No phone'} | {currentSelectedCustomer.address || 'Dhaka, Bangladesh'}
-                            </div>
-                          </div>
+                  ) : (
+                    /* New Customer Mode */
+                    <div className="p-3.5 rounded-lg border border-red-200 bg-red-50/30 space-y-2.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Contact Name *</label>
+                          <input
+                            type="text"
+                            value={newCustomerFullName}
+                            onChange={(e) => {
+                              setNewCustomerFullName(e.target.value);
+                              setNewRecipientName(e.target.value);
+                            }}
+                            placeholder="Full Name"
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                          />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsCustomerDropdownOpen(true)}
-                          className="text-[11px] text-emerald-800 hover:text-emerald-950 font-bold hover:underline shrink-0 ml-2 cursor-pointer"
-                        >
-                          Change
-                        </button>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Company Name</label>
+                          <input
+                            type="text"
+                            value={newCustomerCompany}
+                            onChange={(e) => {
+                              setNewCustomerCompany(e.target.value);
+                              setNewCustName(e.target.value);
+                            }}
+                            placeholder="Business / Trade Name"
+                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
+                          />
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  /* Mode B: Register New Customer Account on the fly */
-                  <div className="space-y-2.5 p-3 rounded-lg border border-red-200 bg-red-50/30">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-slate-800">
-                        New Customer Account Details (অন-দ্য-ফ্লাই অ্যাকাউন্ট)
-                      </span>
-                      <span className="text-[10px] text-[#EA1D2C] font-semibold bg-red-50 px-2 py-0.5 rounded border border-red-200">
-                        Creates portal login automatically
-                      </span>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Full Name *</label>
-                        <input
-                          type="text"
-                          value={newCustomerFullName}
-                          onChange={(e) => {
-                            setNewCustomerFullName(e.target.value);
-                            setNewRecipientName(e.target.value);
-                          }}
-                          placeholder="e.g. Mahbubur Rahman"
-                          required={orderCustomerMode === 'new'}
-                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Email (Login) *</label>
+                          <input
+                            type="email"
+                            value={newCustomerEmail}
+                            onChange={(e) => setNewCustomerEmail(e.target.value)}
+                            placeholder="email@company.com"
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Phone / WhatsApp *</label>
+                          <input
+                            type="text"
+                            value={newCustomerPhone}
+                            onChange={(e) => {
+                              setNewCustomerPhone(e.target.value);
+                              setNewRecipientPhone(e.target.value);
+                            }}
+                            placeholder="+880 1..."
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Company / Importer Name</label>
-                        <input
-                          type="text"
-                          value={newCustomerCompany}
-                          onChange={(e) => {
-                            setNewCustomerCompany(e.target.value);
-                            setNewCustName(e.target.value);
-                          }}
-                          placeholder="e.g. Bengal Logistics Corp"
-                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
-                        />
-                      </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Email Address (Login ID) *</label>
-                        <input
-                          type="email"
-                          value={newCustomerEmail}
-                          onChange={(e) => setNewCustomerEmail(e.target.value)}
-                          placeholder="customer@domain.com"
-                          required={orderCustomerMode === 'new'}
-                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Phone / WhatsApp *</label>
-                        <input
-                          type="text"
-                          value={newCustomerPhone}
-                          onChange={(e) => {
-                            setNewCustomerPhone(e.target.value);
-                            setNewRecipientPhone(e.target.value);
-                          }}
-                          placeholder="+880 1711-XXXXXX"
-                          required={orderCustomerMode === 'new'}
-                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Warehouse / Delivery Address</label>
+                        <label className="text-[10px] font-semibold text-slate-600 block mb-0.5">Delivery Address</label>
                         <input
                           type="text"
                           value={newCustomerAddress}
@@ -3652,234 +3635,218 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             setNewCustomerAddress(e.target.value);
                             setNewRecipientAddress(e.target.value);
                           }}
-                          placeholder="e.g. Plot 14, Uttara, Dhaka"
+                          placeholder="Plot / Street, Area, City"
                           className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Login Password</label>
-                        <input
-                          type="text"
-                          value={newCustomerPassword}
-                          onChange={(e) => setNewCustomerPassword(e.target.value)}
-                          placeholder="password123"
-                          className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs font-mono"
-                        />
-                        <span className="text-[9px] text-slate-500 block mt-0.5">Default password: password123</span>
-                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* C. Routing & Transport Corridor */}
+                <div className="space-y-2.5">
+                  <span className="font-semibold text-slate-800 text-xs block">
+                    Corridor &amp; Transport
+                  </span>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Origin</label>
+                      <select
+                        value={newOriginCity}
+                        onChange={(e) => setNewOriginCity(e.target.value)}
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 bg-white text-xs font-medium"
+                      >
+                        <option value="Guangzhou">Guangzhou (CAN)</option>
+                        <option value="Shenzhen">Shenzhen (SZX)</option>
+                        <option value="Yiwu">Yiwu Trade Hub</option>
+                        <option value="Hong Kong">Hong Kong (HKG)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Destination</label>
+                      <select
+                        value={newDestCity}
+                        onChange={(e) => setNewDestCity(e.target.value)}
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 bg-white text-xs font-medium"
+                      >
+                        <option value="Dhaka">Dhaka (HSIA / Hub)</option>
+                        <option value="Chittagong">Chittagong (CFS)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Mode</label>
+                      <select
+                        value={newMode}
+                        onChange={(e) => setNewMode(e.target.value as any)}
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 bg-white text-xs font-medium"
+                      >
+                        <option value="air">Air Freight</option>
+                        <option value="sea">Ocean (FCL/LCL)</option>
+                        <option value="hand_carry">P2P Hand carry</option>
+                        <option value="road">Cross-border Road</option>
+                      </select>
                     </div>
                   </div>
-                )}
-              </div>
 
-              {/* 3. Consignee Delivery Details (Auto-filled & Fine-tunable) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Company / Importer Name</label>
-                  <input
-                    type="text"
-                    value={newCustName}
-                    onChange={(e) => setNewCustName(e.target.value)}
-                    required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs"
-                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Carrier</label>
+                      <input
+                        type="text"
+                        value={newCarrier}
+                        onChange={(e) => setNewCarrier(e.target.value)}
+                        required
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Flight / Voyage #</label>
+                      <input
+                        type="text"
+                        value={newVoyage}
+                        onChange={(e) => setNewVoyage(e.target.value)}
+                        required
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 font-mono text-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Recipient Name</label>
-                  <input
-                    type="text"
-                    value={newRecipientName}
-                    onChange={(e) => setNewRecipientName(e.target.value)}
-                    required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Recipient Phone / WhatsApp</label>
-                  <input
-                    type="text"
-                    value={newRecipientPhone}
-                    onChange={(e) => setNewRecipientPhone(e.target.value)}
-                    required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 font-mono text-xs"
-                  />
+                {/* D. Cargo Specs */}
+                <div className="space-y-2.5">
+                  <span className="font-semibold text-slate-800 text-xs block">
+                    Cargo Specifications
+                  </span>
+
+                  <div>
+                    <label className="text-[10px] text-slate-500 block mb-0.5">Goods Description</label>
+                    <input
+                      type="text"
+                      value={newItemDesc}
+                      onChange={(e) => setNewItemDesc(e.target.value)}
+                      placeholder="e.g. Export Apparel, Electronic Components..."
+                      required
+                      className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2 font-mono">
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Packaging</label>
+                      <select
+                        value={newItemType}
+                        onChange={(e) => setNewItemType(e.target.value)}
+                        className="w-full h-8 px-1.5 rounded-md border border-slate-300 bg-white text-[11px]"
+                      >
+                        <option value="carton">Cartons</option>
+                        <option value="pallet">Pallet</option>
+                        <option value="air_uld">Air ULD</option>
+                        <option value="40ft_hq">40ft HQ</option>
+                        <option value="20ft_container">20ft FCL</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Weight (KG)</label>
+                      <input
+                        type="number"
+                        value={newWeight}
+                        onChange={(e) => setNewWeight(e.target.value)}
+                        required
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 text-[11px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">CBM</label>
+                      <input
+                        type="text"
+                        value={newCbm}
+                        onChange={(e) => setNewCbm(e.target.value)}
+                        required
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 text-[11px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-0.5">Category</label>
+                      <select
+                        value={newItemTag}
+                        onChange={(e) => setNewItemTag(e.target.value as any)}
+                        className="w-full h-8 px-1.5 rounded-md border border-slate-300 bg-white text-[11px]"
+                      >
+                        <option value="Commercial">Commercial</option>
+                        <option value="General">General</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Liquids">Liquids</option>
+                        <option value="Dangerous">Dangerous</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Destination Address (Bangladesh)</label>
+
+                {/* E. Delivery Address Override */}
+                <div className="pt-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-700">Delivery Address in Bangladesh</label>
+                    <span className="text-[10px] text-slate-400">Destination Hub / Doorstep</span>
+                  </div>
                   <input
                     type="text"
                     value={newRecipientAddress}
                     onChange={(e) => setNewRecipientAddress(e.target.value)}
                     required
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs"
+                    placeholder="Delivery address in Bangladesh"
+                    className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs"
                   />
                 </div>
-              </div>
+              </form>
 
-              {/* 4. Corridor & Logistics Mode */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Origin City (China Hub)</label>
-                  <select
-                    value={newOriginCity}
-                    onChange={(e) => setNewOriginCity(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white text-xs"
+              {/* 3. Drawer Footer (Sticky Bottom) */}
+              <div className="px-6 py-3.5 border-t border-slate-200 bg-slate-50/95 flex items-center justify-between shrink-0">
+                <span className="text-[11px] text-slate-500 font-mono">
+                  {newCustomTrackingNumber || 'GOSH-2026-XXXX'}
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowConsignmentModal(false);
+                      setIsCustomerDropdownOpen(false);
+                    }}
+                    className="px-3.5 py-1.5 rounded-md border border-slate-300 text-slate-700 font-semibold hover:bg-slate-100 transition-none cursor-pointer text-xs"
                   >
-                    <option value="Guangzhou">Guangzhou (CAN Hub - 765 Sanyuanli)</option>
-                    <option value="Shenzhen">Shenzhen (SZX Qianhai)</option>
-                    <option value="Yiwu">Yiwu Trade Hub</option>
-                    <option value="Hong Kong">Hong Kong (HKG International Hub)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Destination City (Bangladesh)</label>
-                  <select
-                    value={newDestCity}
-                    onChange={(e) => setNewDestCity(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white text-xs"
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    form="drawer-consignment-form"
+                    disabled={submittingConsignment}
+                    className="px-4 py-1.5 rounded-md bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold cursor-pointer text-xs flex items-center gap-1.5 shadow-xs transition-none"
                   >
-                    <option value="Dhaka">Dhaka (HSIA Airport / Sabujkanon)</option>
-                    <option value="Chittagong">Chittagong (Port CFS Terminal)</option>
-                  </select>
+                    {submittingConsignment ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                        <span>Dispatching...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Dispatch Consignment</span>
+                        <span>→</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Mode</label>
-                  <select
-                    value={newMode}
-                    onChange={(e) => setNewMode(e.target.value as any)}
-                    className="w-full h-9 px-2 rounded-lg border border-slate-300 bg-white font-medium text-xs"
-                  >
-                    <option value="air">Air (7–14 Days)</option>
-                    <option value="sea">Sea (30–45 Days)</option>
-                    <option value="hand_carry">P2P Hand carry (24–48 Hours)</option>
-                    <option value="road">Road / D2D</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Carrier Name</label>
-                  <input
-                    type="text"
-                    value={newCarrier}
-                    onChange={(e) => setNewCarrier(e.target.value)}
-                    required
-                    className="w-full h-9 px-2 rounded-lg border border-slate-300 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Flight / Voyage #</label>
-                  <input
-                    type="text"
-                    value={newVoyage}
-                    onChange={(e) => setNewVoyage(e.target.value)}
-                    required
-                    className="w-full h-9 px-2 rounded-lg border border-slate-300 font-mono text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* 5. Cargo & Package Specs */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5">
-                <span className="font-bold text-slate-800 text-xs block">Itemized Cargo &amp; Goods Spec</span>
-                <div>
-                  <label className="block font-medium text-slate-600 mb-1">Goods Description</label>
-                  <input
-                    type="text"
-                    value={newItemDesc}
-                    onChange={(e) => setNewItemDesc(e.target.value)}
-                    placeholder="e.g. Export Cotton T-Shirts, Electronics, Machinery parts..."
-                    required
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 bg-white text-xs"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
-                  <div>
-                    <label className="block text-[10px] text-slate-500 mb-0.5">Package Type</label>
-                    <select
-                      value={newItemType}
-                      onChange={(e) => setNewItemType(e.target.value)}
-                      className="w-full h-8 px-1.5 rounded border border-slate-300 bg-white text-[11px]"
-                    >
-                      <option value="carton">Export Cartons</option>
-                      <option value="pallet">Palletized Unit</option>
-                      <option value="air_uld">Air Freight ULD</option>
-                      <option value="40ft_hq">40ft HQ Container</option>
-                      <option value="20ft_container">20ft Container</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-500 mb-0.5">Weight (KG)</label>
-                    <input
-                      type="number"
-                      value={newWeight}
-                      onChange={(e) => setNewWeight(e.target.value)}
-                      required
-                      className="w-full h-8 px-2 rounded border border-slate-300 bg-white text-[11px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-500 mb-0.5">Volume (CBM)</label>
-                    <input
-                      type="text"
-                      value={newCbm}
-                      onChange={(e) => setNewCbm(e.target.value)}
-                      required
-                      className="w-full h-8 px-2 rounded border border-slate-300 bg-white text-[11px]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] text-slate-500 mb-0.5">Tag</label>
-                    <select
-                      value={newItemTag}
-                      onChange={(e) => setNewItemTag(e.target.value as any)}
-                      className="w-full h-8 px-1.5 rounded border border-slate-300 bg-white text-[11px]"
-                    >
-                      <option value="Commercial">Commercial</option>
-                      <option value="General">General</option>
-                      <option value="Liquids">Liquids</option>
-                      <option value="Dangerous">Dangerous</option>
-                      <option value="Electronics">Electronics</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Form Actions */}
-              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowConsignmentModal(false);
-                    setIsCustomerDropdownOpen(false);
-                  }}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold cursor-pointer text-xs hover:bg-slate-50 transition-none"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingConsignment}
-                  className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold cursor-pointer text-xs flex items-center gap-2 shadow-xs transition-none"
-                >
-                  {submittingConsignment ? (
-                    <>
-                      <svg className="w-3.5 h-3.5 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                      </svg>
-                      <span>Creating Order...</span>
-                    </>
-                  ) : (
-                    <span>Create &amp; Dispatch Order →</span>
-                  )}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
