@@ -399,8 +399,8 @@ export default function QuoteCalculatorIsland({
                         onChange={handleOriginCountryChange}
                         options={originCountryOptions}
                         placeholder="Select origin country..."
-                        searchPlaceholder="Search country (China, Hong Kong, etc)..."
-                        allowCustom={true}
+                        searchPlaceholder="Search country (China)..."
+                        allowCustom={false}
                       />
 
                       <SearchableLocationSelect
@@ -437,7 +437,7 @@ export default function QuoteCalculatorIsland({
                         options={destCountryOptions}
                         placeholder="Select destination country..."
                         searchPlaceholder="Search destination country (Bangladesh)..."
-                        allowCustom={true}
+                        allowCustom={false}
                       />
 
                       <SearchableLocationSelect
