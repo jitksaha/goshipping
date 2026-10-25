@@ -1093,39 +1093,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
         {/* Right Action Controls */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-          {/* 1. Sync Button with Instant Visual Feedback */}
-          <button
-            type="button"
-            onClick={() => loadData(true)}
-            disabled={loading || syncState === 'syncing'}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-none cursor-pointer shadow-2xs ${
-              syncState === 'synced'
-                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                : syncState === 'error'
-                ? 'border-red-300 bg-red-50 text-red-700'
-                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            }`}
-            title="Refresh operational data from server"
-          >
-            {syncState === 'synced' ? (
-              <>
-                <svg className="w-3.5 h-3.5 stroke-[2.5] text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span className="font-bold text-emerald-700">Synced!</span>
-              </>
-            ) : (
-              <>
-                <svg className={`w-3.5 h-3.5 stroke-[2] ${syncState === 'syncing' || loading ? 'animate-spin text-slate-700' : 'text-slate-500'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                  <path d="M3 3v5h5" />
-                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-                  <path d="M16 16h5v5" />
-                </svg>
-                <span className="hidden sm:inline">{syncState === 'syncing' ? 'Syncing...' : 'Sync'}</span>
-              </>
-            )}
-          </button>
 
 
 
@@ -1157,7 +1124,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span>+ New Order</span>
+              <span>New Order</span>
             </button>
           )}
         </div>
@@ -2046,7 +2013,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         <line x1="12" y1="5" x2="12" y2="19" />
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
-                      <span>+ Add Product</span>
+                      <span>Add Product</span>
                     </button>
                   </div>
 
@@ -2236,7 +2203,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         <line x1="12" y1="5" x2="12" y2="19" />
                         <line x1="5" y1="12" x2="19" y2="12" />
                       </svg>
-                      <span>+ Add Another Product Item</span>
+                      <span>Add Another Product Item</span>
                     </button>
 
                     <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -2586,18 +2553,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={loadData}
-                  disabled={loading}
-                  className="h-9 px-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-none cursor-pointer disabled:opacity-50"
-                  title="Reload orders"
-                >
-                  <svg className={`w-3.5 h-3.5 stroke-[2] ${loading ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-                  </svg>
-                  <span>Sync</span>
-                </button>
 
                 <button
                   type="button"
@@ -2612,7 +2567,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>+ New Order</span>
+                  <span>New Order</span>
                 </button>
               </div>
             </div>
