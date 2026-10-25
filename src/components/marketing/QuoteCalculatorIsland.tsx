@@ -653,11 +653,11 @@ export default function QuoteCalculatorIsland({
                           />
                           <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
                             <span className="font-semibold text-slate-800 dark:text-slate-200 block text-[11px] mb-0.5">
-                              📍 {destCity === 'Dhaka' ? 'Dhaka Central Pickup Depot:' : 'Chittagong Port CFS Depot:'}
+                              📍 {destCity === 'Dhaka' ? 'Bangladesh Central Pickup Hub (Dhaka):' : 'Chittagong Port CFS Depot:'}
                             </span>
-                            <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                            <p className="text-slate-900 dark:text-white font-medium text-[11.5px] leading-relaxed">
                               {destCity === 'Dhaka'
-                                ? 'GoShipping Airport Cargo Complex & Sorting Warehouse, Sector 1, Uttara, Dhaka'
+                                ? '43/31, Sabujkanon, Dhaka- 1214, Bangladesh.'
                                 : 'GoShipping CFS Terminal, CPA Seaport Zone, Agrabad Commercial Area, Chittagong'}
                             </p>
                             <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
@@ -952,7 +952,11 @@ export default function QuoteCalculatorIsland({
                   <div className="flex justify-between text-slate-600">
                     <span>Fulfillment:</span>
                     <span className="font-semibold text-slate-900">
-                      {fulfillmentType === 'delivery' ? `Doorstep Delivery (${destCity})` : `Depot Self-Pickup (${destCity})`}
+                      {fulfillmentType === 'delivery'
+                        ? `Doorstep Delivery (${destCity})`
+                        : destCity === 'Dhaka'
+                        ? 'Pickup: 43/31, Sabujkanon, Dhaka'
+                        : `Depot Self-Pickup (${destCity})`}
                     </span>
                   </div>
                 </div>

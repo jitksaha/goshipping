@@ -36,13 +36,20 @@ export const CHINA_ORIGIN_HUB = {
   chineseAddress: '广州市白云区三元里大道765号'
 };
 
+export const BANGLADESH_PICKUP_HUB = {
+  country: 'Bangladesh',
+  city: 'Dhaka',
+  code: 'DAC',
+  address: '43/31, Sabujkanon, Dhaka- 1214, Bangladesh'
+};
+
 export const DEST_DELIVERY_HUBS: LocationHub[] = [
   { city: 'Dhaka', code: 'DAC', badge: 'DOOR DELIVERY', description: 'Doorstep Delivery to home, office, or shop in Dhaka' },
   { city: 'Chittagong', code: 'CGP', badge: 'DOOR DELIVERY', description: 'Doorstep Delivery to home, office, or shop in Chittagong' }
 ];
 
 export const DEST_PICKUP_HUBS: LocationHub[] = [
-  { city: 'Dhaka', code: 'DAC', badge: 'WAREHOUSE', description: 'Self-pickup at GoShipping Dhaka Central Depot (Uttara / Airport Cargo Hub)' },
+  { city: 'Dhaka', code: 'DAC', badge: 'WAREHOUSE', description: '43/31, Sabujkanon, Dhaka- 1214, Bangladesh' },
   { city: 'Chittagong', code: 'CGP', badge: 'SEA PORT', description: 'Self-pickup at GoShipping Chittagong CFS Seaport Terminal (Agrabad)' }
 ];
 

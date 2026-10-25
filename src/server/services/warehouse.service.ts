@@ -17,10 +17,10 @@ let initialWarehouses: WarehouseRecord[] = [
   {
     id: 'wh-dac-01',
     code: 'DAC-HUB',
-    name: 'Dhaka Central Gateway & Air Freight Depot',
+    name: 'Dhaka Central Hub & Pickup Point',
     country: 'Bangladesh',
     city: 'Dhaka',
-    address: 'Plot 14, Sector 3, Uttara Export Zone, Dhaka 1230',
+    address: '43/31, Sabujkanon, Dhaka- 1214, Bangladesh',
     contactPerson: 'Kamal Hossain',
     phone: '+880 1711 223344',
     email: 'dhaka.hub@goshipping.com',
