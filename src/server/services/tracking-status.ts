@@ -172,7 +172,7 @@ export const PHYSICAL_STAGES: TrackingStatusCode[] = [
 ];
 
 /**
- * Calculate physical stage progress (0 to 100%) from actual completed physical events
+ * Calculate physical stage progress (0 to 100%) from current shipment status
  */
 export function calculatePhysicalProgress(
   currentStatus: TrackingStatusCode | string,
@@ -185,40 +185,38 @@ export function calculatePhysicalProgress(
   isComplete: boolean;
 } {
   const totalStagesCount = PHYSICAL_STAGES.length; // 8
+  const normalized = normalizeStatusCode(currentStatus);
 
-  // Normalize completed status codes
-  const completedCodes = new Set<string>();
-  for (const evt of events) {
-    const code = (evt.statusCode || evt.status).toLowerCase();
-    completedCodes.add(code);
+  // Directly determine active physical stage index from current status
+  let activeIndex = -1;
+  if (normalized === 'payment_received') {
+    // Payment received corresponds to Stage 6 (BD Warehouse Received) physically
+    activeIndex = PHYSICAL_STAGES.indexOf('bd_warehouse_received');
+  } else {
+    activeIndex = PHYSICAL_STAGES.indexOf(normalized);
   }
 
-  // Also include currentStatus if physical
-  const currentNormalized = currentStatus.toLowerCase();
-  if (TRACKING_STATUSES[currentNormalized as TrackingStatusCode]?.isPhysicalStage) {
-    completedCodes.add(currentNormalized);
-  }
-
-  // Find the highest physical stage reached
-  let highestIndex = -1;
-  for (let i = 0; i < PHYSICAL_STAGES.length; i++) {
-    const stageCode = PHYSICAL_STAGES[i];
-    if (completedCodes.has(stageCode)) {
-      highestIndex = Math.max(highestIndex, i);
+  // Fallback if not found directly in PHYSICAL_STAGES
+  if (activeIndex < 0) {
+    for (let i = PHYSICAL_STAGES.length - 1; i >= 0; i--) {
+      const stageCode = PHYSICAL_STAGES[i];
+      if (events && events.some(e => (e.statusCode || e.status).toLowerCase() === stageCode)) {
+        activeIndex = i;
+        break;
+      }
     }
   }
 
-  // If no physical events recorded yet, default to index 0 if purchased or 0
-  const activeIndex = highestIndex >= 0 ? highestIndex : 0;
-  const completedCount = highestIndex + 1;
+  const finalIndex = activeIndex >= 0 ? activeIndex : 0;
+  const completedCount = finalIndex + 1;
   const percentage = Math.round((completedCount / totalStagesCount) * 100);
-  const isComplete = highestIndex === totalStagesCount - 1;
+  const isComplete = finalIndex === totalStagesCount - 1;
 
   return {
     completedStagesCount: completedCount,
     totalStagesCount,
     percentage: Math.min(percentage, 100),
-    currentPhysicalStageIndex: activeIndex,
+    currentPhysicalStageIndex: finalIndex,
     isComplete
   };
 }

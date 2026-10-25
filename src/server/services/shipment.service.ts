@@ -879,23 +879,23 @@ export class ShipmentService {
     // Increment optimistic version
     shipment.eventVersion += 1;
 
-    // Check if this is PAYMENT RECEIVED milestone
+    // Unconditionally update shipment status to the chosen status so UI and live tracker match
+    shipment.status = normalizedCode;
+    shipment.statusCode = normalizedCode;
+    shipment.statusLabel = statusDef.label;
+
+    // Mark payment status if payment_received
     if (normalizedCode === 'payment_received' || data.paymentStatus === 'payment_received') {
       shipment.paymentStatus = 'payment_received';
-      // CRITICAL REQUIREMENT: PAYMENT RECEIVED is independent. It does NOT overwrite the current physical stage!
-    } else {
-      // Physical stage transition
-      shipment.status = normalizedCode;
-      shipment.statusCode = normalizedCode;
-      shipment.statusLabel = statusDef.label;
-      if (data.locationName) {
-        shipment.currentLocation = data.locationName;
-      } else if (statusDef.defaultLocation) {
-        shipment.currentLocation = statusDef.defaultLocation;
-      }
-      if (data.lat !== undefined) shipment.currentLat = data.lat;
-      if (data.lng !== undefined) shipment.currentLng = data.lng;
     }
+
+    if (data.locationName) {
+      shipment.currentLocation = data.locationName;
+    } else if (statusDef.defaultLocation) {
+      shipment.currentLocation = statusDef.defaultLocation;
+    }
+    if (data.lat !== undefined) shipment.currentLat = data.lat;
+    if (data.lng !== undefined) shipment.currentLng = data.lng;
 
     const eventId = `evt-${crypto.randomBytes(4).toString('hex')}`;
     const newEvent: ShipmentEvent = {

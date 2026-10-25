@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
 import type { WarehouseRecord } from '../../server/services/warehouse.service';
-import { TRACKING_STATUSES, type TrackingStatusCode } from '../../server/services/tracking-status';
+import { TRACKING_STATUSES, normalizeStatusCode, type TrackingStatusCode } from '../../server/services/tracking-status';
 
 interface CustomerItem {
   id: string;
@@ -412,29 +412,58 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
-  // Handler: Quick Status Update with Immediate Feedback
+  // Handler: Quick Status Update with Immediate Feedback & Optimistic UI
   const handleQuickStatusUpdate = async (id: string, newStatus: string) => {
+    const norm = normalizeStatusCode(newStatus);
+    const statusDef = TRACKING_STATUSES[norm];
+    const newLabel = statusDef ? statusDef.label : norm.toUpperCase();
+
+    // 1. Optimistic Instant UI Update - 0ms response
+    setShipments((prev) =>
+      prev.map((s) => {
+        if (s.id === id || s.trackingNumber === id) {
+          return {
+            ...s,
+            status: norm,
+            statusCode: norm,
+            statusLabel: newLabel,
+            currentLocation: statusDef?.defaultLocation || s.currentLocation
+          };
+        }
+        return s;
+      })
+    );
+
+    // Immediate notification banner
+    const target = shipments.find((s) => s.id === id || s.trackingNumber === id);
+    if (target) {
+      setLiveStatusFeedback({
+        trackingNumber: target.trackingNumber,
+        newStatus: norm,
+        statusLabel: newLabel
+      });
+    }
+
+    // 2. Persist to API
     try {
       const res = await fetch(`/api/shipments/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: norm })
       });
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.error || 'Status update failed');
       }
       const data = await res.json();
-      const updatedShipment = data.shipment;
-      const statusDef = TRACKING_STATUSES[newStatus as TrackingStatusCode];
-      setLiveStatusFeedback({
-        trackingNumber: updatedShipment.trackingNumber,
-        newStatus,
-        statusLabel: statusDef ? statusDef.label : newStatus.toUpperCase()
-      });
-      loadData();
+      if (data.shipment) {
+        setShipments((prev) =>
+          prev.map((s) => (s.id === data.shipment.id || s.trackingNumber === data.shipment.trackingNumber ? data.shipment : s))
+        );
+      }
     } catch (err: any) {
-      alert(err.message);
+      alert(`Status update error: ${err.message}`);
+      loadData(); // Revert on network failure
     }
   };
 
@@ -1212,16 +1241,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           </td>
                           <td className="py-2.5 px-3">
                             <select
-                              value={s.status}
+                              value={normalizeStatusCode(s.status)}
                               onChange={(e) => handleQuickStatusUpdate(s.id, e.target.value)}
-                              className={`appearance-none px-2 py-1 rounded text-[11px] font-bold border cursor-pointer ${getStatusBadge(s.status)}`}
+                              className={`appearance-none px-2 py-1 rounded text-[11px] font-bold border cursor-pointer ${getStatusBadge(normalizeStatusCode(s.status))}`}
                               title="Click to update live tracker status"
                             >
                               <option value="purchased">1. PURCHASED</option>
                               <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
                               <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
                               <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
-                              <option value="awaiting_customs">5. AWAITING CUSTOMS</option>
+                              <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE</option>
                               <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
                               <option value="payment_received">7. PAYMENT RECEIVED</option>
                               <option value="out_for_delivery">8. OUT FOR DELIVERY</option>
@@ -1517,9 +1546,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                       <td className="py-3 px-4">
                         <select
-                          value={s.status}
+                          value={normalizeStatusCode(s.status)}
                           onChange={(e) => handleQuickStatusUpdate(s.id, e.target.value)}
-                          className={`appearance-none px-2.5 py-1 rounded text-[11px] font-semibold border cursor-pointer ${getStatusBadge(s.status)}`}
+                          className={`appearance-none px-2.5 py-1 rounded text-[11px] font-semibold border cursor-pointer ${getStatusBadge(normalizeStatusCode(s.status))}`}
                         >
                           <option value="purchased">1. PURCHASED</option>
                           <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
