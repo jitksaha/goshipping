@@ -631,7 +631,7 @@ export default function LiveTrackingIsland({
                 <div className="flex items-center gap-2 font-medium">
                   <span className="text-slate-500 dark:text-slate-400">Physical Movement Progress:</span>
                   <span className="font-bold text-[#EA1D2C] font-mono">
-                    Stage {progress.completedStagesCount} of {progress.totalStagesCount} ({progress.percentage}%)
+                    {progress.percentage}% Completed
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -752,7 +752,7 @@ export default function LiveTrackingIsland({
                             ) : isCurrent ? (
                               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                             ) : (
-                              <span>{idx + 1}</span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
                             )}
                           </div>
 
@@ -773,7 +773,7 @@ export default function LiveTrackingIsland({
                           <span className={`text-[9px] mt-0.5 font-mono ${
                             isCurrent ? 'text-[#EA1D2C] font-bold' : isCompleted ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-slate-400'
                           }`}>
-                            {isCompleted ? 'Completed' : isCurrent ? 'Active' : `Step ${idx + 1}`}
+                            {isCompleted ? 'Completed' : isCurrent ? 'Active' : 'Pending'}
                           </span>
                         </div>
                       );

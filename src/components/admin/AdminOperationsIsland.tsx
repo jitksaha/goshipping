@@ -1079,7 +1079,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 {/* Block 1: Create Order */}
                 <div className="p-4 rounded-xl bg-white border border-red-100 shadow-2xs space-y-2 flex flex-col justify-between">
                   <div>
-                    <span className="text-[10px] font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">Step 1: Order Creation</span>
+                    <span className="text-[10px] font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">Order Creation</span>
                     <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
                       Add New Tracking Order
                     </h3>
@@ -1102,7 +1102,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 {/* Block 2: 1-Click Instant Live Status Changer */}
                 <div className="p-4 rounded-xl bg-white border border-indigo-100 shadow-2xs space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase tracking-wider">Step 2: Live Status Control</span>
+                    <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase tracking-wider">Live Status Control</span>
                     <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
                   </div>
                   <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
@@ -1133,21 +1133,21 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">New Physical Stage</label>
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Physical Stage</label>
                       <select
                         value={quickTargetStage}
                         onChange={(e) => setQuickTargetStage(e.target.value)}
                         className="w-full h-8 px-2 text-[11px] font-semibold rounded-md border border-indigo-300 bg-indigo-50/60 text-indigo-900"
                       >
-                        <option value="purchased">1. PURCHASED</option>
-                        <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
-                        <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
-                        <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
-                        <option value="awaiting_customs">5. AWAITING CUSTOMS</option>
-                        <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
-                        <option value="payment_received">7. PAYMENT RECEIVED</option>
-                        <option value="out_for_delivery">8. OUT FOR DELIVERY</option>
-                        <option value="delivered">9. DELIVERED</option>
+                        <option value="purchased">PURCHASED</option>
+                        <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
+                        <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
+                        <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
+                        <option value="awaiting_customs">AWAITING CUSTOMS</option>
+                        <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
+                        <option value="payment_received">PAYMENT RECEIVED</option>
+                        <option value="out_for_delivery">OUT FOR DELIVERY</option>
+                        <option value="delivered">DELIVERED</option>
                       </select>
                     </div>
 
@@ -1165,12 +1165,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 {/* Block 3: Public Tracker Preview */}
                 <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2 flex flex-col justify-between">
                   <div>
-                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Step 3: Verification</span>
+                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Verification</span>
                     <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
                       Verify on Public Tracker
                     </h3>
                     <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                      Check how customers see the 8-stage progress bar and live waypoint telemetry on the public tracking portal.
+                      Check how customers see the physical progress bar and live waypoint telemetry on the public tracking portal.
                     </p>
                   </div>
                   <div className="space-y-1.5">
@@ -1300,15 +1300,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                               className={`appearance-none px-2 py-1 rounded text-[11px] font-bold border cursor-pointer ${getStatusBadge(normalizeStatusCode(s.status))}`}
                               title="Click to update live tracker status"
                             >
-                              <option value="purchased">1. PURCHASED</option>
-                              <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
-                              <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
-                              <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
-                              <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE</option>
-                              <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
-                              <option value="payment_received">7. PAYMENT RECEIVED</option>
-                              <option value="out_for_delivery">8. OUT FOR DELIVERY</option>
-                              <option value="delivered">9. DELIVERED</option>
+                              <option value="purchased">PURCHASED</option>
+                              <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
+                              <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
+                              <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
+                              <option value="awaiting_customs">AWAITING CUSTOMS CLEARANCE</option>
+                              <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
+                              <option value="payment_received">PAYMENT RECEIVED</option>
+                              <option value="out_for_delivery">OUT FOR DELIVERY</option>
+                              <option value="delivered">DELIVERED</option>
                             </select>
                           </td>
                           <td className="py-2.5 px-3 text-right">
@@ -1604,15 +1604,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           onChange={(e) => handleQuickStatusUpdate(s.id, e.target.value)}
                           className={`appearance-none px-2.5 py-1 rounded text-[11px] font-semibold border cursor-pointer ${getStatusBadge(normalizeStatusCode(s.status))}`}
                         >
-                          <option value="purchased">1. PURCHASED</option>
-                          <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
-                          <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
-                          <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
-                          <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE</option>
-                          <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
-                          <option value="payment_received">7. PAYMENT RECEIVED</option>
-                          <option value="out_for_delivery">8. OUT FOR DELIVERY</option>
-                          <option value="delivered">9. DELIVERED</option>
+                          <option value="purchased">PURCHASED</option>
+                          <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
+                          <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
+                          <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
+                          <option value="awaiting_customs">AWAITING CUSTOMS CLEARANCE</option>
+                          <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
+                          <option value="payment_received">PAYMENT RECEIVED</option>
+                          <option value="out_for_delivery">OUT FOR DELIVERY</option>
+                          <option value="delivered">DELIVERED</option>
                         </select>
                       </td>
 
@@ -2927,15 +2927,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     }}
                     className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium"
                   >
-                    <option value="purchased">1. PURCHASED</option>
-                    <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
-                    <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
-                    <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
-                    <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE</option>
-                    <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
-                    <option value="payment_received">7. PAYMENT RECEIVED (Independent)</option>
-                    <option value="out_for_delivery">8. OUT FOR DELIVERY</option>
-                    <option value="delivered">9. DELIVERED</option>
+                    <option value="purchased">PURCHASED</option>
+                    <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
+                    <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
+                    <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
+                    <option value="awaiting_customs">AWAITING CUSTOMS CLEARANCE</option>
+                    <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
+                    <option value="payment_received">PAYMENT RECEIVED (Independent)</option>
+                    <option value="out_for_delivery">OUT FOR DELIVERY</option>
+                    <option value="delivered">DELIVERED</option>
                   </select>
                 </div>
                 <div>
@@ -3116,15 +3116,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   onChange={(e) => setNewInitialStatus(e.target.value)}
                   className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-semibold text-xs text-slate-900 cursor-pointer"
                 >
-                  <option value="purchased">1. PURCHASED (Supplier sourcing)</option>
-                  <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED (Intake at Guangzhou Hub)</option>
-                  <option value="dispatched_from_china">3. DISPATCHED FROM CHINA (International Departure)</option>
-                  <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT (Touchdown at HSIA)</option>
-                  <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE (C&amp;F Processing)</option>
-                  <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED (Central Hub Sabujkanon)</option>
-                  <option value="payment_received">7. PAYMENT RECEIVED (Customs &amp; Freight Settled)</option>
-                  <option value="out_for_delivery">8. OUT FOR DELIVERY (Dispatch to Customer Door)</option>
-                  <option value="delivered">9. DELIVERED (Successfully Handed Over)</option>
+                  <option value="purchased">PURCHASED (Supplier sourcing)</option>
+                  <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED (Intake at Guangzhou Hub)</option>
+                  <option value="dispatched_from_china">DISPATCHED FROM CHINA (International Departure)</option>
+                  <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT (Touchdown at HSIA)</option>
+                  <option value="awaiting_customs">AWAITING CUSTOMS CLEARANCE (C&amp;F Processing)</option>
+                  <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED (Central Hub Sabujkanon)</option>
+                  <option value="payment_received">PAYMENT RECEIVED (Customs &amp; Freight Settled)</option>
+                  <option value="out_for_delivery">OUT FOR DELIVERY (Dispatch to Customer Door)</option>
+                  <option value="delivered">DELIVERED (Successfully Handed Over)</option>
                 </select>
               </div>
 
