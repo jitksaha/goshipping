@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import SearchableLocationSelect from './SearchableLocationSelect';
 import {
   ORIGIN_COUNTRIES,
+  CHINA_ORIGIN_HUB,
+  DEST_DELIVERY_HUBS,
+  DEST_PICKUP_HUBS,
   DEST_COUNTRIES,
   getCitiesForCountry
 } from './shippingLocations';
@@ -27,7 +30,10 @@ export default function QuoteCalculatorIsland({
   const [originCountry, setOriginCountry] = useState('China');
   const [originCity, setOriginCity] = useState('Guangzhou');
   const [destCountry, setDestCountry] = useState('Bangladesh');
-  const [destCity, setDestCity] = useState('Dhaka');
+  const [fulfillmentType, setFulfillmentType] = useState<'delivery' | 'pickup'>('delivery');
+  const [destCity, setDestCity] = useState('All 64 Districts (Doorstep Delivery)');
+  const [destAddress, setDestAddress] = useState('');
+  const [copiedAddress, setCopiedAddress] = useState(false);
   const [weightKg, setWeightKg] = useState('50');
   const [cbm, setCbm] = useState('0.4');
   const [quantity, setQuantity] = useState('10');
@@ -48,9 +54,14 @@ export default function QuoteCalculatorIsland({
 
   const handleDestCountryChange = (newCountry: string) => {
     setDestCountry(newCountry);
-    const hubs = getCitiesForCountry(DEST_COUNTRIES, newCountry);
-    if (hubs.length > 0) {
-      setDestCity(hubs[0].city);
+  };
+
+  const handleFulfillmentChange = (type: 'delivery' | 'pickup') => {
+    setFulfillmentType(type);
+    if (type === 'delivery') {
+      setDestCity('All 64 Districts (Doorstep Delivery)');
+    } else {
+      setDestCity('Dhaka Central Hub — Uttara Express Sorting Warehouse & HSIA Cargo Complex');
     }
   };
 
@@ -60,7 +71,7 @@ export default function QuoteCalculatorIsland({
     value: c.country,
     code: c.code,
     badge: c.popular ? 'POPULAR' : undefined,
-    description: `${c.hubs.length} verified trade hubs & ports`
+    description: `Primary consolidation hub: ${CHINA_ORIGIN_HUB.city}`
   }));
 
   const originCityHubs = getCitiesForCountry(ORIGIN_COUNTRIES, originCountry);
@@ -77,17 +88,26 @@ export default function QuoteCalculatorIsland({
     value: c.country,
     code: c.code,
     badge: c.popular ? 'POPULAR' : undefined,
-    description: `${c.hubs.length} delivery gateways & EPZs`
+    description: 'Nationwide delivery across all 64 districts & central depots'
   }));
 
-  const destCityHubs = getCitiesForCountry(DEST_COUNTRIES, destCountry);
-  const destCityOptions = destCityHubs.map((h) => ({
+  const destDeliveryOptions = DEST_DELIVERY_HUBS.map((h) => ({
     label: h.city,
     value: h.city,
     code: h.code,
     badge: h.badge,
     description: h.description
   }));
+
+  const destPickupOptions = DEST_PICKUP_HUBS.map((h) => ({
+    label: h.city,
+    value: h.city,
+    code: h.code,
+    badge: h.badge,
+    description: h.description
+  }));
+
+  const destCityOptions = fulfillmentType === 'delivery' ? destDeliveryOptions : destPickupOptions;
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedQuote, setSubmittedQuote] = useState<{ quoteNumber: string; route: string } | null>(null);
@@ -115,6 +135,11 @@ export default function QuoteCalculatorIsland({
     setSubmitting(true);
 
     try {
+      const serviceType = fulfillmentType === 'delivery' ? 'door_to_door' : 'port_to_port';
+      const cargoDescWithFulfillment = destAddress.trim()
+        ? `${cargoDescription} [Fulfillment: ${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Self-Pickup'}, Delivery Address: ${destAddress.trim()}]`
+        : `${cargoDescription} [Fulfillment: ${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Self-Pickup'}]`;
+
       const res = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,7 +152,8 @@ export default function QuoteCalculatorIsland({
           destCountry,
           destCity,
           mode,
-          cargoDescription,
+          serviceType,
+          cargoDescription: cargoDescWithFulfillment,
           packagingType,
           quantity: parseInt(quantity) || 1,
           totalWeightKg: numWeight,
@@ -142,7 +168,7 @@ export default function QuoteCalculatorIsland({
 
       setSubmittedQuote({
         quoteNumber: data.quote.quoteNumber,
-        route: `${originCity} → ${destCity}`
+        route: `${originCity} → ${destCity} (${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Pickup'})`
       });
 
       if (onQuoteCreated) {
@@ -154,8 +180,8 @@ export default function QuoteCalculatorIsland({
         (window as any).goShippingTrack('Lead', {
           quote_number: data.quote.quoteNumber,
           mode,
-          origin: `${originCity}, ${originCountry}`,
-          destination: `${destCity}, ${destCountry}`,
+          origin: `${originCity}, China (${CHINA_ORIGIN_HUB.address})`,
+          destination: `${destCity}, Bangladesh (${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Pickup'})`,
           weight_kg: numWeight,
           volume_cbm: numCbm,
           cargo_type: cargoDescription,
@@ -230,7 +256,9 @@ export default function QuoteCalculatorIsland({
                 setOriginCountry('China');
                 setOriginCity('Guangzhou');
                 setDestCountry('Bangladesh');
-                setDestCity('Dhaka');
+                setFulfillmentType('delivery');
+                setDestCity('All 64 Districts (Doorstep Delivery)');
+                setDestAddress('');
               }}
               className="px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-none cursor-pointer"
             >
@@ -388,31 +416,52 @@ export default function QuoteCalculatorIsland({
                           Origin Location (From)
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-500 font-medium">Export Warehouse</span>
+                      <span className="text-[10px] text-slate-500 font-medium">Consolidation Warehouse</span>
                     </div>
 
                     <div className="space-y-3">
-                      <SearchableLocationSelect
-                        id="origin-country-select"
-                        label="Origin Country"
-                        value={originCountry}
-                        onChange={handleOriginCountryChange}
-                        options={originCountryOptions}
-                        placeholder="Select origin country..."
-                        searchPlaceholder="Search country (China)..."
-                        allowCustom={false}
-                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Origin Country</label>
+                          <div className="h-10 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                            China
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Intake Hub</label>
+                          <div className="h-10 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                            Guangzhou (CAN)
+                          </div>
+                        </div>
+                      </div>
 
-                      <SearchableLocationSelect
-                        id="origin-city-select"
-                        label="Origin Hub / CFS Warehouse / Port"
-                        value={originCity}
-                        onChange={(val) => setOriginCity(val)}
-                        options={originCityOptions}
-                        placeholder="Select origin hub..."
-                        searchPlaceholder="Search city, port, or warehouse (Guangzhou, Yiwu)..."
-                        allowCustom={true}
-                      />
+                      {/* Prominent Origin Warehouse Address */}
+                      <div className="p-3 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <span className="font-semibold text-emerald-900 dark:text-emerald-300 block text-[11px] mb-0.5">
+                              📍 Guangzhou Warehouse Address:
+                            </span>
+                            <p className="font-mono text-slate-800 dark:text-slate-200 text-xs leading-relaxed select-all">
+                              {CHINA_ORIGIN_HUB.address}
+                            </p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              {CHINA_ORIGIN_HUB.chineseAddress}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard?.writeText(`${CHINA_ORIGIN_HUB.address} (${CHINA_ORIGIN_HUB.chineseAddress})`);
+                              setCopiedAddress(true);
+                              setTimeout(() => setCopiedAddress(false), 2000);
+                            }}
+                            className="px-2.5 py-1 rounded bg-white dark:bg-slate-800 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-300 text-[11px] font-medium hover:bg-emerald-100/50 cursor-pointer shrink-0 transition-none"
+                          >
+                            {copiedAddress ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -425,31 +474,108 @@ export default function QuoteCalculatorIsland({
                           Destination Location (To)
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-500 font-medium">Delivery Depot</span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                        All 64 Districts Coverage
+                      </span>
                     </div>
 
                     <div className="space-y-3">
-                      <SearchableLocationSelect
-                        id="dest-country-select"
-                        label="Destination Country"
-                        value={destCountry}
-                        onChange={handleDestCountryChange}
-                        options={destCountryOptions}
-                        placeholder="Select destination country..."
-                        searchPlaceholder="Search destination country (Bangladesh)..."
-                        allowCustom={false}
-                      />
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Destination Country</label>
+                        <div className="h-10 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-between font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                          <span>Bangladesh</span>
+                          <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                            Nationwide Dispatch
+                          </span>
+                        </div>
+                      </div>
 
-                      <SearchableLocationSelect
-                        id="dest-city-select"
-                        label="Destination Hub / City / Delivery Terminal"
-                        value={destCity}
-                        onChange={(val) => setDestCity(val)}
-                        options={destCityOptions}
-                        placeholder="Select delivery station..."
-                        searchPlaceholder="Search city, district or airport (Dhaka, Chittagong)..."
-                        allowCustom={true}
-                      />
+                      {/* Fulfillment Method Toggle */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                          Fulfillment Option (Delivery or Pickup)
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleFulfillmentChange('delivery')}
+                            className={`p-2 rounded-lg border text-left transition-none cursor-pointer flex flex-col gap-0.5 ${
+                              fulfillmentType === 'delivery'
+                                ? 'border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/40 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
+                                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                            }`}
+                          >
+                            <span className="text-xs font-bold flex items-center gap-1.5">
+                              <span>🚚</span> Doorstep Delivery
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                              Direct to home, shop or factory
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleFulfillmentChange('pickup')}
+                            className={`p-2 rounded-lg border text-left transition-none cursor-pointer flex flex-col gap-0.5 ${
+                              fulfillmentType === 'pickup'
+                                ? 'border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/40 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
+                                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                            }`}
+                          >
+                            <span className="text-xs font-bold flex items-center gap-1.5">
+                              <span>🏢</span> Hub / Depot Self-Pickup
+                            </span>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                              Dhaka &amp; Chittagong warehouse
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Dynamic Selector based on Delivery vs Pickup */}
+                      {fulfillmentType === 'delivery' ? (
+                        <div className="space-y-2.5">
+                          <SearchableLocationSelect
+                            id="dest-city-select"
+                            label="Delivery District / City"
+                            value={destCity}
+                            onChange={(val) => setDestCity(val)}
+                            options={destDeliveryOptions}
+                            placeholder="Select delivery district..."
+                            searchPlaceholder="Search district (Dhaka, Chittagong, Sylhet, Gazipur)..."
+                            allowCustom={true}
+                          />
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                              Delivery Address / Thana / Area (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={destAddress}
+                              onChange={(e) => setDestAddress(e.target.value)}
+                              placeholder="House, Road, Thana or Landmark for direct delivery..."
+                              className="w-full h-9 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <SearchableLocationSelect
+                            id="dest-city-select"
+                            label="Self-Pickup Warehouse / Station"
+                            value={destCity}
+                            onChange={(val) => setDestCity(val)}
+                            options={destPickupOptions}
+                            placeholder="Select pickup station..."
+                            searchPlaceholder="Search pickup point (Uttara, Tejgaon, Chittagong)..."
+                            allowCustom={false}
+                          />
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                            ℹ️ Zero local dispatch charge. Collect your consignment directly from our airport or port depot.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
