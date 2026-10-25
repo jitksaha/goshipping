@@ -111,6 +111,23 @@ export default function QuoteCalculatorIsland({
   const [submittedQuote, setSubmittedQuote] = useState<{ quoteNumber: string; route: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Dynamic Live Calendar Arrival Estimator
+  const calculateArrivalDates = (daysMin: number, daysMax: number) => {
+    const now = new Date();
+    const minD = new Date(now.getTime() + daysMin * 24 * 60 * 60 * 1000);
+    const maxD = new Date(now.getTime() + daysMax * 24 * 60 * 60 * 1000);
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${fmt(minD)} – ${fmt(maxD)}`;
+  };
+
+  const airDates = calculateArrivalDates(7, 14);
+  const seaDates = calculateArrivalDates(30, 45);
+  const handCarryDates = calculateArrivalDates(1, 2);
+
+  const currentSla = mode === 'air' ? '7–14 Days' : mode === 'sea' ? '30–45 Days' : '24–48 Hours';
+  const currentArrivalRange = mode === 'air' ? airDates : mode === 'sea' ? seaDates : handCarryDates;
+
   // Fast estimate calculation based on market indicative rates in BDT
   const numWeight = parseFloat(weightKg) || 0;
   const numCbm = parseFloat(cbm) || 0;
@@ -320,8 +337,12 @@ export default function QuoteCalculatorIsland({
                     <span className="w-5 h-5 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center text-[10px] font-bold">1</span>
                     <span className="text-sm">Ship by</span>
                   </span>
-                  <span className="text-[11px] font-bold text-[#EA1D2C] bg-red-50 dark:bg-red-950/40 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-900/60">
-                    {mode === 'air' ? '✈️ Air Active' : mode === 'sea' ? '🚢 Sea Active' : '🎒 Hand carry Active'}
+                  <span className="text-[11px] font-bold text-[#EA1D2C] bg-red-50 dark:bg-red-950/40 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-900/60 font-mono">
+                    {mode === 'air'
+                      ? `✈️ Air · Est: ${airDates}`
+                      : mode === 'sea'
+                      ? `🚢 Sea · Est: ${seaDates}`
+                      : `🎒 Hand carry · Est: ${handCarryDates}`}
                   </span>
                 </div>
 
@@ -354,6 +375,10 @@ export default function QuoteCalculatorIsland({
                         Scheduled air cargo flight from Guangzhou (CAN) to Dhaka HSIA.
                       </p>
                     </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400">Est. Arrival:</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-[10.5px]">{airDates}</span>
+                    </div>
                   </button>
 
                   {/* Sea Card */}
@@ -378,7 +403,7 @@ export default function QuoteCalculatorIsland({
                             <line x1="12" y1="1" x2="12" y2="5" />
                           </svg>
                         </div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">35–45 Days</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">30–45 Days</span>
                       </div>
                       <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
                         Sea
@@ -386,6 +411,10 @@ export default function QuoteCalculatorIsland({
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
                         Economical maritime container freight to Chittagong Seaport / Dhaka.
                       </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400">Est. Arrival:</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-[10.5px]">{seaDates}</span>
                     </div>
                   </button>
 
@@ -409,7 +438,7 @@ export default function QuoteCalculatorIsland({
                             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                           </svg>
                         </div>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">2–3 Days</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">24–48 Hours</span>
                       </div>
                       <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
                         Hand carry
@@ -417,6 +446,10 @@ export default function QuoteCalculatorIsland({
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
                         Dedicated on-board courier for samples, high-value tech &amp; urgent cargo.
                       </p>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-500 dark:text-slate-400">Est. Arrival:</span>
+                      <span className="font-bold text-emerald-700 dark:text-emerald-400 font-mono text-[10.5px]">{handCarryDates}</span>
                     </div>
                   </button>
                 </div>
@@ -837,8 +870,30 @@ export default function QuoteCalculatorIsland({
                   <div className="flex justify-between text-slate-600">
                     <span>Service Mode:</span>
                     <span className="font-semibold text-slate-900">
-                      {mode === 'air' ? 'Air (7–14d)' : mode === 'sea' ? 'Sea (35–45d)' : 'Hand carry (2–3d)'}
+                      {mode === 'air' ? 'Air' : mode === 'sea' ? 'Sea' : 'Hand carry'}
                     </span>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Transit SLA:</span>
+                    <span className="font-semibold text-[#EA1D2C]">
+                      {currentSla}
+                    </span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-red-50/80 dark:bg-red-950/40 border border-red-200/90 dark:border-red-900/50 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                        Estimated Arrival Date
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                        Real-Time Calendar
+                      </span>
+                    </div>
+                    <div className="text-xs font-bold text-[#EA1D2C] font-mono">
+                      {currentArrivalRange}
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Calculated from real-time dispatch date upon intake at Guangzhou hub.
+                    </p>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>Route Corridor:</span>
@@ -856,12 +911,6 @@ export default function QuoteCalculatorIsland({
                     <span>Packages:</span>
                     <span className="font-semibold text-slate-900">
                       {quantity || '1'} {packagingType || 'Cartons'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>Transit SLA:</span>
-                    <span className="font-semibold text-[#EA1D2C]">
-                      {mode === 'air' ? '7–14 Days Transit' : mode === 'sea' ? '35–45 Days Transit' : '2–3 Days Transit (Ultra Fast)'}
                     </span>
                   </div>
                   <div className="flex justify-between text-slate-600">

@@ -64,50 +64,73 @@ const quoteSchema = {
     </div>
 
     <!-- Rate Comparison Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
-        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/AIR SERVICE ESTIMATE</span>
-        <h3 class="text-xl font-bold text-slate-900 font-['Manrope']">Air Shipment (Express & Standard)</h3>
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/AIR FREIGHT</span>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Air Shipment</h3>
         <p class="text-xs text-slate-600 leading-relaxed">
-          Best for high-value merchandise, urgent inventory replenishments, sample parcels, and electronics.
+          Best for standard commercial merchandise, inventory replenishment, electronics, and parcel freight.
         </p>
         <div class="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-2 text-xs">
           <div class="flex justify-between border-b border-slate-200 pb-2">
             <span class="text-slate-500">Transit Duration</span>
-            <span class="font-bold text-slate-900">3–7 Business Days</span>
+            <span class="font-bold text-slate-900">7–14 Days</span>
           </div>
           <div class="flex justify-between border-b border-slate-200 pb-2">
             <span class="text-slate-500">Billing Metric</span>
-            <span class="font-bold text-slate-900">Per KG (Chargeable Weight)</span>
+            <span class="font-bold text-slate-900">Per KG</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-slate-500">Volumetric Factor</span>
-            <span class="font-bold text-slate-900">1 CBM = 167 KG (L×W×H/6000)</span>
+            <span class="text-slate-500">Routing</span>
+            <span class="font-bold text-slate-900">Guangzhou → Dhaka</span>
           </div>
         </div>
       </div>
 
       <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
-        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/OCEAN SERVICE ESTIMATE</span>
-        <h3 class="text-xl font-bold text-slate-900 font-['Manrope']">Sea Shipment (FCL & LCL)</h3>
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/OCEAN FREIGHT</span>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Sea Shipment</h3>
         <p class="text-xs text-slate-600 leading-relaxed">
-          Best for large commercial volumes, raw materials, heavy machinery, furniture, and cost-conscious bulk cargo.
+          Best for large commercial volumes, raw materials, heavy cargo, and cost-effective bulk consignments.
         </p>
         <div class="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-2 text-xs">
           <div class="flex justify-between border-b border-slate-200 pb-2">
             <span class="text-slate-500">Transit Duration</span>
-            <span class="font-bold text-slate-900">35–45 Days Total Door Delivery</span>
+            <span class="font-bold text-slate-900">30–45 Days</span>
           </div>
           <div class="flex justify-between border-b border-slate-200 pb-2">
             <span class="text-slate-500">Billing Metric</span>
-            <span class="font-bold text-slate-900">Per CBM (Cubic Meter)</span>
+            <span class="font-bold text-slate-900">Per CBM</span>
           </div>
           <div class="flex justify-between">
-            <span class="text-slate-500">Minimum Charge</span>
-            <span class="font-bold text-slate-900">1.0 CBM (Shared Container)</span>
+            <span class="text-slate-500">Port Handling</span>
+            <span class="font-bold text-slate-900">Chittagong / Dhaka</span>
           </div>
         </div>
       </div>
+
+      <div class="p-6 rounded-lg bg-white border border-slate-200 space-y-4">
+        <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/EXPRESS COURIER</span>
+        <h3 class="text-lg font-bold text-slate-900 font-['Manrope']">Hand Carry</h3>
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Dedicated on-board passenger courier for urgent samples, tech prototypes, critical documents & parts.
+        </p>
+        <div class="bg-slate-50 p-4 rounded-md border border-slate-200 space-y-2 text-xs">
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Transit Duration</span>
+            <span class="font-bold text-slate-900">24–48 Hours</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-200 pb-2">
+            <span class="text-slate-500">Handling</span>
+            <span class="font-bold text-slate-900">Dedicated Courier</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-500">Priority</span>
+            <span class="font-bold text-slate-900">Direct Flight On-Board</span>
+          </div>
+        </div>
+      </div>
+    </div>
     </div>
   </section>
 </PublicLayout>
