@@ -29,7 +29,7 @@ export interface QuoteRecord {
   originCity: string;
   destCountry: string;
   destCity: string;
-  mode: 'air' | 'sea';
+  mode: 'air' | 'sea' | 'hand_carry';
   serviceType: 'door_to_door' | 'port_to_port' | 'door_to_port';
   cargoDescription: string;
   packagingType: string;
@@ -154,7 +154,7 @@ export class QuoteService {
     originCity: string;
     destCountry: string;
     destCity: string;
-    mode: 'air' | 'sea';
+    mode: 'air' | 'sea' | 'hand_carry';
     serviceType?: 'door_to_door' | 'port_to_port' | 'door_to_port';
     cargoDescription: string;
     packagingType?: string;

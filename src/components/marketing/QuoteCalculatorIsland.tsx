@@ -13,7 +13,7 @@ interface Props {
   defaultGuestName?: string;
   defaultGuestEmail?: string;
   defaultGuestPhone?: string;
-  initialMode?: 'air' | 'sea';
+  initialMode?: 'air' | 'sea' | 'hand_carry';
   onQuoteCreated?: (newQuote: any) => void;
   onViewQuotes?: () => void;
 }
@@ -26,7 +26,7 @@ export default function QuoteCalculatorIsland({
   onQuoteCreated,
   onViewQuotes
 }: Props = {}) {
-  const [mode, setMode] = useState<'air' | 'sea'>(initialMode);
+  const [mode, setMode] = useState<'air' | 'sea' | 'hand_carry'>(initialMode);
   const [originCountry, setOriginCountry] = useState('China');
   const [originCity, setOriginCity] = useState('Guangzhou');
   const [destCountry, setDestCountry] = useState('Bangladesh');
@@ -312,75 +312,110 @@ export default function QuoteCalculatorIsland({
               </div>
 
               {/* ================================================================= */}
-              {/* STEP 1: TRANSPORT MODE SELECTOR (AIR FLIGHT VS OCEAN VESSEL)       */}
+              {/* STEP 1: TRANSPORT MODE SELECTOR (AIR VS SEA VS HAND CARRY)        */}
               {/* ================================================================= */}
               <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-red-100 dark:border-slate-800 shadow-2xs space-y-3">
                 <div className="flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800 pb-2">
                   <span className="font-bold text-slate-900 dark:text-white flex items-center gap-2 font-['Manrope',sans-serif]">
                     <span className="w-5 h-5 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center text-[10px] font-bold">1</span>
-                    <span className="text-sm">Select Shipping Mode (Air vs Sea)</span>
+                    <span className="text-sm">Ship by</span>
                   </span>
                   <span className="text-[11px] font-bold text-[#EA1D2C] bg-red-50 dark:bg-red-950/40 px-2.5 py-0.5 rounded-full border border-red-200 dark:border-red-900/60">
-                    {mode === 'air' ? '✈️ Air Express Active' : '🚢 Ocean Cargo Active'}
+                    {mode === 'air' ? '✈️ Air Active' : mode === 'sea' ? '🚢 Sea Active' : '🎒 Hand carry Active'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Air Express Card */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Air Card */}
                   <button
                     type="button"
                     onClick={() => setMode('air')}
-                    className={`p-3.5 rounded-xl text-left transition-none cursor-pointer flex items-start gap-3 border ${
+                    className={`p-3.5 rounded-xl text-left transition-none cursor-pointer flex flex-col justify-between border ${
                       mode === 'air'
                         ? 'border-2 border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/30 text-slate-900 dark:text-white ring-1 ring-[#EA1D2C]/20 shadow-xs'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 text-slate-700 dark:text-slate-300'
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                      mode === 'air' ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}>
-                      <svg className="w-5 h-5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">Air Express (Cargo Flight)</span>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                          mode === 'air' ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}>
+                          <svg className="w-5 h-5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z" />
+                          </svg>
+                        </div>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-[#EA1D2C]">7–14 Days</span>
                       </div>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
+                        Air
+                      </span>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                        Daily direct scheduled air cargo from Guangzhou (CAN) &amp; Shenzhen to Dhaka HSIA. Best for garments, tech &amp; urgent orders.
+                        Scheduled air cargo flight from Guangzhou (CAN) to Dhaka HSIA.
                       </p>
                     </div>
                   </button>
 
-                  {/* Sea Freight Card */}
+                  {/* Sea Card */}
                   <button
                     type="button"
                     onClick={() => setMode('sea')}
-                    className={`p-3.5 rounded-xl text-left transition-none cursor-pointer flex items-start gap-3 border ${
+                    className={`p-3.5 rounded-xl text-left transition-none cursor-pointer flex flex-col justify-between border ${
                       mode === 'sea'
                         ? 'border-2 border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/30 text-slate-900 dark:text-white ring-1 ring-[#EA1D2C]/20 shadow-xs'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 text-slate-700 dark:text-slate-300'
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                      mode === 'sea' ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                    }`}>
-                      <svg className="w-5 h-5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
-                        <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76" />
-                        <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
-                        <line x1="12" y1="1" x2="12" y2="5" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">Ocean Cargo (Container)</span>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                          mode === 'sea' ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}>
+                          <svg className="w-5 h-5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+                            <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76" />
+                            <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
+                            <line x1="12" y1="1" x2="12" y2="5" />
+                          </svg>
+                        </div>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">35–45 Days</span>
                       </div>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
+                        Sea
+                      </span>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                        Economical LCL consolidation &amp; FCL containers from Ningbo / Yiwu / Guangzhou to Chittagong / Dhaka.
+                        Economical maritime container freight to Chittagong Seaport / Dhaka.
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Hand carry Card */}
+                  <button
+                    type="button"
+                    onClick={() => setMode('hand_carry')}
+                    className={`p-3.5 rounded-xl text-left transition-none cursor-pointer flex flex-col justify-between border ${
+                      mode === 'hand_carry'
+                        ? 'border-2 border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/30 text-slate-900 dark:text-white ring-1 ring-[#EA1D2C]/20 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                          mode === 'hand_carry' ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}>
+                          <svg className="w-5 h-5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                          </svg>
+                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">2–3 Days</span>
+                      </div>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
+                        Hand carry
+                      </span>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                        Dedicated on-board courier for samples, high-value tech &amp; urgent cargo.
                       </p>
                     </div>
                   </button>
@@ -801,7 +836,9 @@ export default function QuoteCalculatorIsland({
                 <div className="space-y-2.5 py-3 border-y border-red-100 text-xs">
                   <div className="flex justify-between text-slate-600">
                     <span>Service Mode:</span>
-                    <span className="font-semibold text-slate-900">{mode === 'air' ? 'Air Express (7–14d Direct)' : 'Ocean Freight (35–45d FCL/LCL)'}</span>
+                    <span className="font-semibold text-slate-900">
+                      {mode === 'air' ? 'Air (7–14d)' : mode === 'sea' ? 'Sea (35–45d)' : 'Hand carry (2–3d)'}
+                    </span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>Route Corridor:</span>
@@ -810,7 +847,9 @@ export default function QuoteCalculatorIsland({
                   <div className="flex justify-between text-slate-600">
                     <span>Declared Volume:</span>
                     <span className="font-semibold font-mono text-slate-900 tabular-nums">
-                      {mode === 'air' ? `${airChargeableKg.toFixed(1)} KG (Equiv)` : `${Math.max(numCbm, 0.5).toFixed(2)} CBM`}
+                      {mode === 'sea'
+                        ? `${Math.max(numCbm, 0.5).toFixed(2)} CBM`
+                        : `${airChargeableKg.toFixed(1)} KG`}
                     </span>
                   </div>
                   <div className="flex justify-between text-slate-600">
@@ -821,15 +860,19 @@ export default function QuoteCalculatorIsland({
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>Transit SLA:</span>
-                    <span className="font-semibold text-[#EA1D2C]">{mode === 'air' ? '7–14 Days Transit' : '35–45 Days Transit'}</span>
+                    <span className="font-semibold text-[#EA1D2C]">
+                      {mode === 'air' ? '7–14 Days Transit' : mode === 'sea' ? '35–45 Days Transit' : '2–3 Days Transit (Ultra Fast)'}
+                    </span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>Customs Brokerage:</span>
                     <span className="font-semibold text-emerald-700">Full Brokerage Included</span>
                   </div>
                   <div className="flex justify-between text-slate-600">
-                    <span>Doorstep Drop:</span>
-                    <span className="font-semibold text-slate-900">Included Across Bangladesh</span>
+                    <span>Fulfillment:</span>
+                    <span className="font-semibold text-slate-900">
+                      {fulfillmentType === 'delivery' ? `Doorstep Delivery (${destCity})` : `Depot Self-Pickup (${destCity})`}
+                    </span>
                   </div>
                 </div>
 

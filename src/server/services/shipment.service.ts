@@ -60,7 +60,7 @@ export interface ShipmentRecord {
   destAddress: string;
   destLat: number;
   destLng: number;
-  mode: 'air' | 'sea' | 'road';
+  mode: 'air' | 'sea' | 'road' | 'hand_carry';
   serviceLevel: 'standard' | 'express' | 'priority';
   status: TrackingStatusCode;
   statusCode: TrackingStatusCode;
@@ -681,7 +681,7 @@ export class ShipmentService {
     destAddress?: string;
     destLat?: number;
     destLng?: number;
-    mode: 'air' | 'sea' | 'road';
+    mode: 'air' | 'sea' | 'road' | 'hand_carry';
     serviceLevel: 'standard' | 'express' | 'priority';
     totalWeightKg: number;
     totalCbm: number;

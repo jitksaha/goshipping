@@ -15,7 +15,7 @@ export interface PublicTrackingResponse {
   destAddress: string;
   destLat: number;
   destLng: number;
-  mode: 'air' | 'sea' | 'road';
+  mode: 'air' | 'sea' | 'road' | 'hand_carry';
   serviceLevel: string;
   status: TrackingStatusCode;
   statusCode: TrackingStatusCode;

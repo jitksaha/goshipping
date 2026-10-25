@@ -71,7 +71,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newOriginCity, setNewOriginCity] = useState('Guangzhou');
   const [newDestCountry, setNewDestCountry] = useState('Bangladesh');
   const [newDestCity, setNewDestCity] = useState('Dhaka');
-  const [newMode, setNewMode] = useState<'air' | 'sea' | 'road'>('air');
+  const [newMode, setNewMode] = useState<'air' | 'sea' | 'road' | 'hand_carry'>('air');
   const [newServiceLevel, setNewServiceLevel] = useState<'standard' | 'express' | 'priority'>('express');
   const [newCarrier, setNewCarrier] = useState('Cathay Cargo / GoShipping Air');
   const [newVoyage, setNewVoyage] = useState('Flight CX-068');
@@ -2425,8 +2425,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     onChange={(e) => setNewMode(e.target.value as any)}
                     className="w-full h-9 px-2 rounded-lg border border-slate-300 bg-white"
                   >
-                    <option value="air">Air Cargo</option>
-                    <option value="sea">Ocean Freight</option>
+                    <option value="air">Air</option>
+                    <option value="sea">Sea</option>
+                    <option value="hand_carry">Hand carry</option>
                     <option value="road">Road / D2D</option>
                   </select>
                 </div>
