@@ -31,7 +31,7 @@ export default function QuoteCalculatorIsland({
   const [originCity, setOriginCity] = useState('Guangzhou');
   const [destCountry, setDestCountry] = useState('Bangladesh');
   const [fulfillmentType, setFulfillmentType] = useState<'delivery' | 'pickup'>('delivery');
-  const [destCity, setDestCity] = useState('All 64 Districts (Doorstep Delivery)');
+  const [destCity, setDestCity] = useState('Dhaka');
   const [destAddress, setDestAddress] = useState('');
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [weightKg, setWeightKg] = useState('50');
@@ -58,10 +58,8 @@ export default function QuoteCalculatorIsland({
 
   const handleFulfillmentChange = (type: 'delivery' | 'pickup') => {
     setFulfillmentType(type);
-    if (type === 'delivery') {
-      setDestCity('All 64 Districts (Doorstep Delivery)');
-    } else {
-      setDestCity('Dhaka Central Hub — Uttara Express Sorting Warehouse & HSIA Cargo Complex');
+    if (destCity !== 'Dhaka' && destCity !== 'Chittagong') {
+      setDestCity('Dhaka');
     }
   };
 
@@ -257,7 +255,7 @@ export default function QuoteCalculatorIsland({
                 setOriginCity('Guangzhou');
                 setDestCountry('Bangladesh');
                 setFulfillmentType('delivery');
-                setDestCity('All 64 Districts (Doorstep Delivery)');
+                setDestCity('Dhaka');
                 setDestAddress('');
               }}
               className="px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-none cursor-pointer"
@@ -475,7 +473,7 @@ export default function QuoteCalculatorIsland({
                         </span>
                       </div>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                        All 64 Districts Coverage
+                        Dhaka &amp; Chittagong
                       </span>
                     </div>
 
@@ -485,7 +483,7 @@ export default function QuoteCalculatorIsland({
                         <div className="h-10 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-between font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
                           <span>Bangladesh</span>
                           <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                            Nationwide Dispatch
+                            Dhaka &amp; Chittagong
                           </span>
                         </div>
                       </div>
@@ -509,7 +507,7 @@ export default function QuoteCalculatorIsland({
                               <span>🚚</span> Doorstep Delivery
                             </span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                              Direct to home, shop or factory
+                              Dhaka &amp; Chittagong city
                             </span>
                           </button>
 
@@ -526,7 +524,7 @@ export default function QuoteCalculatorIsland({
                               <span>🏢</span> Hub / Depot Self-Pickup
                             </span>
                             <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                              Dhaka &amp; Chittagong warehouse
+                              Airport &amp; seaport depot
                             </span>
                           </button>
                         </div>
@@ -537,43 +535,53 @@ export default function QuoteCalculatorIsland({
                         <div className="space-y-2.5">
                           <SearchableLocationSelect
                             id="dest-city-select"
-                            label="Delivery District / City"
+                            label="Delivery Destination City"
                             value={destCity}
                             onChange={(val) => setDestCity(val)}
                             options={destDeliveryOptions}
-                            placeholder="Select delivery district..."
-                            searchPlaceholder="Search district (Dhaka, Chittagong, Sylhet, Gazipur)..."
-                            allowCustom={true}
+                            placeholder="Select Dhaka or Chittagong..."
+                            searchPlaceholder="Search Dhaka or Chittagong..."
+                            allowCustom={false}
                           />
 
                           <div>
                             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                              Delivery Address / Thana / Area (Optional)
+                              Street / Shop Address in {destCity} (Optional)
                             </label>
                             <input
                               type="text"
                               value={destAddress}
                               onChange={(e) => setDestAddress(e.target.value)}
-                              placeholder="House, Road, Thana or Landmark for direct delivery..."
+                              placeholder={`House, Road, Thana or Landmark in ${destCity}...`}
                               className="w-full h-9 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
                             />
                           </div>
                         </div>
                       ) : (
-                        <div>
+                        <div className="space-y-2.5">
                           <SearchableLocationSelect
                             id="dest-city-select"
-                            label="Self-Pickup Warehouse / Station"
+                            label="Self-Pickup Hub / City"
                             value={destCity}
                             onChange={(val) => setDestCity(val)}
                             options={destPickupOptions}
-                            placeholder="Select pickup station..."
-                            searchPlaceholder="Search pickup point (Uttara, Tejgaon, Chittagong)..."
+                            placeholder="Select pickup city..."
+                            searchPlaceholder="Search Dhaka or Chittagong depot..."
                             allowCustom={false}
                           />
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
-                            ℹ️ Zero local dispatch charge. Collect your consignment directly from our airport or port depot.
-                          </p>
+                          <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 block text-[11px] mb-0.5">
+                              📍 {destCity === 'Dhaka' ? 'Dhaka Central Pickup Depot:' : 'Chittagong Port CFS Depot:'}
+                            </span>
+                            <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                              {destCity === 'Dhaka'
+                                ? 'GoShipping Airport Cargo Complex & Sorting Warehouse, Sector 1, Uttara, Dhaka'
+                                : 'GoShipping CFS Terminal, CPA Seaport Zone, Agrabad Commercial Area, Chittagong'}
+                            </p>
+                            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
+                              ✓ Zero local dispatch fee. Collect with your Tracking Number / B/L.
+                            </p>
+                          </div>
                         </div>
                       )}
                     </div>
