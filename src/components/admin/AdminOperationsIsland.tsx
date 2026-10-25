@@ -102,7 +102,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     statusLabel: string;
   } | null>(null);
   const [newCustomTrackingNumber, setNewCustomTrackingNumber] = useState('');
-  const [newInitialStatus, setNewInitialStatus] = useState<string>('cn_warehouse_received');
+  const [newInitialStatus, setNewInitialStatus] = useState<string>('purchased');
   const [copiedTracking, setCopiedTracking] = useState<string | null>(null);
 
   // Quick Status Updater in Dashboard Overview
@@ -523,6 +523,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       setNewCustomerPhone('');
       setNewCustomerCompany('');
       setNewCustomerAddress('');
+      setNewInitialStatus('purchased');
       loadData();
     } catch (err: any) {
       alert(err.message);
@@ -3408,7 +3409,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         onChange={(e) => setNewInitialStatus(e.target.value)}
                         className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-800 cursor-pointer focus:border-slate-400 focus:outline-none"
                       >
-                        <option value="purchased">PURCHASED (Supplier)</option>
+                        <option value="purchased">PURCHASED</option>
                         <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
                         <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
                         <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
