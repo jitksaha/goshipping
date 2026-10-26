@@ -320,6 +320,29 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [userBin, setUserBin] = useState('');
   const [submittingUser, setSubmittingUser] = useState(false);
 
+  // Warehouse Facility Management State
+  const [showAddWarehouseModal, setShowAddWarehouseModal] = useState(false);
+  const [showEditWarehouseModal, setShowEditWarehouseModal] = useState(false);
+  const [showDeleteWarehouseModal, setShowDeleteWarehouseModal] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<WarehouseRecord | null>(null);
+  const [warehouseSearch, setWarehouseSearch] = useState('');
+  const [warehouseCountryFilter, setWarehouseCountryFilter] = useState('all');
+  const [submittingWarehouse, setSubmittingWarehouse] = useState(false);
+  const [deletingWarehouse, setDeletingWarehouse] = useState(false);
+
+  // Warehouse Form State
+  const [whCode, setWhCode] = useState('');
+  const [whName, setWhName] = useState('');
+  const [whCountry, setWhCountry] = useState('China');
+  const [whCity, setWhCity] = useState('');
+  const [whAddress, setWhAddress] = useState('');
+  const [whContactPerson, setWhContactPerson] = useState('');
+  const [whPhone, setWhPhone] = useState('');
+  const [whEmail, setWhEmail] = useState('');
+  const [whCapacitySqft, setWhCapacitySqft] = useState(25000);
+  const [whCurrentOccupancyPct, setWhCurrentOccupancyPct] = useState(50);
+  const [whIsActive, setWhIsActive] = useState(true);
+
   // New Consignment Customer Link & Real-time Selection State
   const [selectedCustomerId, setSelectedCustomerId] = useState('usr-customer-01');
   const [orderCustomerMode, setOrderCustomerMode] = useState<'existing' | 'new'>('existing');
@@ -356,6 +379,32 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       { id: 'usr-customer-03', fullName: 'Tasnim Hasan', companyName: 'Meghna Knitwear Cargo', email: 'tasnim@meghnaknit.com', phone: '+880 1912-445566', role: 'customer', address: 'Plot 14, Sector 7, Uttara Model Town, Dhaka 1230, Bangladesh' }
     ];
   }, [users, customers]);
+
+  const filteredWarehouses = useMemo(() => {
+    return warehouses.filter((wh) => {
+      if (warehouseCountryFilter !== 'all' && wh.country.toLowerCase() !== warehouseCountryFilter.toLowerCase()) {
+        return false;
+      }
+      if (!warehouseSearch.trim()) return true;
+      const q = warehouseSearch.trim().toLowerCase();
+      return (
+        wh.code.toLowerCase().includes(q) ||
+        wh.name.toLowerCase().includes(q) ||
+        wh.city.toLowerCase().includes(q) ||
+        wh.country.toLowerCase().includes(q) ||
+        wh.address.toLowerCase().includes(q) ||
+        (wh.contactPerson && wh.contactPerson.toLowerCase().includes(q))
+      );
+    });
+  }, [warehouses, warehouseCountryFilter, warehouseSearch]);
+
+  const activeChinaWarehouses = useMemo(() => {
+    return warehouses.filter((w) => w.country.toLowerCase() === 'china' && w.isActive);
+  }, [warehouses]);
+
+  const activeDestWarehouses = useMemo(() => {
+    return warehouses.filter((w) => w.country.toLowerCase() === newDestCountry.toLowerCase() && w.isActive);
+  }, [warehouses, newDestCountry]);
 
   const customerSelectOptions = useMemo<SearchableSelectOption[]>(() => {
     return allCustomerOptions.map((cust) => ({
@@ -1052,6 +1101,144 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setUserCompanyName('');
     setUserAddress('');
     setUserBin('');
+  };
+
+  // Warehouse Facility Management Handlers
+  const openAddWarehouseModal = () => {
+    setWhCode('');
+    setWhName('');
+    setWhCountry('China');
+    setWhCity('Guangzhou');
+    setWhAddress('');
+    setWhContactPerson('');
+    setWhPhone('+86 20 8888 0000');
+    setWhEmail('ops@goshipping.com.bd');
+    setWhCapacitySqft(35000);
+    setWhCurrentOccupancyPct(50);
+    setWhIsActive(true);
+    setShowAddWarehouseModal(true);
+  };
+
+  const openEditWarehouseModal = (wh: WarehouseRecord) => {
+    setSelectedWarehouse(wh);
+    setWhCode(wh.code);
+    setWhName(wh.name);
+    setWhCountry(wh.country);
+    setWhCity(wh.city);
+    setWhAddress(wh.address);
+    setWhContactPerson(wh.contactPerson || '');
+    setWhPhone(wh.phone || '');
+    setWhEmail(wh.email || '');
+    setWhCapacitySqft(wh.capacitySqft || 25000);
+    setWhCurrentOccupancyPct(wh.currentOccupancyPct || 50);
+    setWhIsActive(wh.isActive !== undefined ? wh.isActive : true);
+    setShowEditWarehouseModal(true);
+  };
+
+  const openDeleteWarehouseModal = (wh: WarehouseRecord) => {
+    setSelectedWarehouse(wh);
+    setShowDeleteWarehouseModal(true);
+  };
+
+  const handleCreateWarehouse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingWarehouse(true);
+    try {
+      const res = await fetch('/api/admin/warehouses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: whCode.trim().toUpperCase(),
+          name: whName.trim(),
+          country: whCountry.trim(),
+          city: whCity.trim(),
+          address: whAddress.trim(),
+          contactPerson: whContactPerson.trim(),
+          phone: whPhone.trim(),
+          email: whEmail.trim(),
+          capacitySqft: Number(whCapacitySqft) || 20000,
+          currentOccupancyPct: Number(whCurrentOccupancyPct) || 0,
+          isActive: whIsActive
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to create warehouse');
+      }
+
+      const data = await res.json();
+      showToast(`Warehouse facility ${data.warehouse.code} created successfully.`);
+      setShowAddWarehouseModal(false);
+      await loadData();
+    } catch (err: any) {
+      alert(`Error creating warehouse: ${err.message}`);
+    } finally {
+      setSubmittingWarehouse(false);
+    }
+  };
+
+  const handleUpdateWarehouse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedWarehouse) return;
+    setSubmittingWarehouse(true);
+    try {
+      const res = await fetch(`/api/admin/warehouses/${selectedWarehouse.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: whCode.trim().toUpperCase(),
+          name: whName.trim(),
+          country: whCountry.trim(),
+          city: whCity.trim(),
+          address: whAddress.trim(),
+          contactPerson: whContactPerson.trim(),
+          phone: whPhone.trim(),
+          email: whEmail.trim(),
+          capacitySqft: Number(whCapacitySqft) || 20000,
+          currentOccupancyPct: Number(whCurrentOccupancyPct) || 0,
+          isActive: whIsActive
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update warehouse');
+      }
+
+      showToast(`Warehouse facility ${whCode.toUpperCase()} updated successfully.`);
+      setShowEditWarehouseModal(false);
+      setSelectedWarehouse(null);
+      await loadData();
+    } catch (err: any) {
+      alert(`Error updating warehouse: ${err.message}`);
+    } finally {
+      setSubmittingWarehouse(false);
+    }
+  };
+
+  const handleDeleteWarehouse = async () => {
+    if (!selectedWarehouse) return;
+    setDeletingWarehouse(true);
+    try {
+      const res = await fetch(`/api/admin/warehouses/${selectedWarehouse.id}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete warehouse');
+      }
+
+      showToast(`Warehouse facility ${selectedWarehouse.code} deleted successfully.`);
+      setShowDeleteWarehouseModal(false);
+      setSelectedWarehouse(null);
+      await loadData();
+    } catch (err: any) {
+      alert(`Error deleting warehouse: ${err.message}`);
+    } finally {
+      setDeletingWarehouse(false);
+    }
   };
 
   // Filtered shipments
@@ -1978,29 +2165,47 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Origin (China Only)
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          Origin Hub (China Only)
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {activeChinaWarehouses.length} active
+                        </span>
+                      </div>
                       <select
                         value={newOriginCity}
                         onChange={(e) => {
                           setNewOriginCity(e.target.value);
                           setNewOriginCountry('China');
                         }}
-                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer font-medium"
                       >
-                        <option value="Guangzhou">Guangzhou (CAN Hub)</option>
-                        <option value="Yiwu">Yiwu (YIW Trade City)</option>
-                        <option value="Shenzhen">Shenzhen (SZX Airport)</option>
-                        <option value="Shanghai">Shanghai (PVG)</option>
-                        <option value="Hong Kong">Hong Kong (HKG)</option>
+                        {activeChinaWarehouses.length > 0 ? (
+                          activeChinaWarehouses.map((wh) => (
+                            <option key={wh.id} value={wh.city}>
+                              {wh.city} ({wh.code} — {wh.name})
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="Guangzhou">Guangzhou (CAN-GZ Hub)</option>
+                            <option value="Yiwu">Yiwu (YIW-01 Hub)</option>
+                            <option value="Shenzhen">Shenzhen (SZX-01 Hub)</option>
+                          </>
+                        )}
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Destination (BD / MY)
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          Destination Hub (BD / MY)
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {warehouses.filter((w) => w.country !== 'China' && w.isActive).length} active
+                        </span>
+                      </div>
                       <select
                         value={`${newDestCountry}:${newDestCity}`}
                         onChange={(e) => {
@@ -2011,17 +2216,29 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           setNewDestCity(city);
                           setRecipientCity(city);
                         }}
-                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
+                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer font-medium"
                       >
-                        <optgroup label="🇧🇩 Bangladesh">
-                          <option value="Bangladesh:Dhaka">Dhaka (Central Hub)</option>
-                          <option value="Bangladesh:Chittagong">Chittagong (Port CFS)</option>
-                          <option value="Bangladesh:Tejgaon">Dhaka (Tejgaon Depot)</option>
-                          <option value="Bangladesh:Savar">Dhaka (DEPZ Hub)</option>
+                        <optgroup label="🇧🇩 Bangladesh Hubs">
+                          {warehouses.filter((w) => w.country === 'Bangladesh' && w.isActive).length > 0 ? (
+                            warehouses.filter((w) => w.country === 'Bangladesh' && w.isActive).map((wh) => (
+                              <option key={wh.id} value={`Bangladesh:${wh.city}`}>
+                                {wh.city} ({wh.code} — {wh.name})
+                              </option>
+                            ))
+                          ) : (
+                            <option value="Bangladesh:Dhaka">Dhaka (DAC-HUB — Dhaka Central)</option>
+                          )}
                         </optgroup>
-                        <optgroup label="🇲🇾 Malaysia (New)">
-                          <option value="Malaysia:Selangor">Selangor (Sungai Buloh Hub)</option>
-                          <option value="Malaysia:Kuala Lumpur">Kuala Lumpur (Klang Valley)</option>
+                        <optgroup label="🇲🇾 Malaysia Hubs">
+                          {warehouses.filter((w) => w.country === 'Malaysia' && w.isActive).length > 0 ? (
+                            warehouses.filter((w) => w.country === 'Malaysia' && w.isActive).map((wh) => (
+                              <option key={wh.id} value={`Malaysia:${wh.city}`}>
+                                {wh.city} ({wh.code} — {wh.name})
+                              </option>
+                            ))
+                          ) : (
+                            <option value="Malaysia:Selangor">Selangor (MY-KUL — Sungai Buloh)</option>
+                          )}
                         </optgroup>
                       </select>
                     </div>
@@ -3586,83 +3803,246 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         })()}
 
         {/* ========================================================= */}
-        {/* TAB: CHINA & BD WAREHOUSE HUBS                             */}
+        {/* TAB: GLOBAL WAREHOUSE LOCATIONS & CFS HUBS               */}
         {/* ========================================================= */}
         {activeTab === 'warehouses' && (
-          <div className="bg-white rounded-lg p-6 border border-slate-200 space-y-6 shadow-xs">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                  Warehouse Locations
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Addresses and contact details for China and Bangladesh warehouses
-                </p>
+          <div className="space-y-6">
+            {/* Header & Primary Action */}
+            <div className="bg-white rounded-xl p-6 border border-slate-200/90 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <h2 className="text-lg font-bold text-slate-900 font-['Manrope',sans-serif]">
+                      Warehouse Locations &amp; CFS Hubs
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                      {warehouses.length} Active Hubs
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Operational receiving points, sorting yards, and fulfillment centers across China, Bangladesh, and Malaysia.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={openAddWarehouseModal}
+                    className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-95 shadow-2xs flex items-center gap-1.5 cursor-pointer transition-none"
+                  >
+                    <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span>+ Add Warehouse</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchTab('new_order')}
+                    className="px-3.5 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-none cursor-pointer"
+                  >
+                    + Create Order
+                  </button>
+                </div>
               </div>
 
-              <button
-                onClick={() => switchTab('new_order')}
-                className="px-3.5 py-1.5 rounded-lg bg-[#EA1D2C] text-white text-xs font-bold hover:bg-[#D41523] transition-colors"
-              >
-                + Create Order
-              </button>
+              {/* KPI Summary Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 mt-5 border-t border-slate-100">
+                <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200/80">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Total Facilities</span>
+                  <span className="text-xl font-bold text-slate-900 font-['Manrope',sans-serif]">{warehouses.length}</span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Active consolidation hubs</span>
+                </div>
+                <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200/80">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block flex items-center gap-1">
+                    <span>🇨🇳</span> China Origin Hubs
+                  </span>
+                  <span className="text-xl font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    {warehouses.filter((w) => w.country.toLowerCase() === 'china').length}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Guangzhou, Yiwu, Shenzhen</span>
+                </div>
+                <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200/80">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block flex items-center gap-1">
+                    <span>🇧🇩</span> Bangladesh Hubs
+                  </span>
+                  <span className="text-xl font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    {warehouses.filter((w) => w.country.toLowerCase() === 'bangladesh').length}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Dhaka Central, Chittagong Port</span>
+                </div>
+                <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200/80">
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block flex items-center gap-1">
+                    <span>🇲🇾</span> Malaysia Hubs
+                  </span>
+                  <span className="text-xl font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    {warehouses.filter((w) => w.country.toLowerCase() === 'malaysia').length}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Selangor Sungai Buloh Hub</span>
+                </div>
+              </div>
             </div>
 
+            {/* Filters & Search Bar */}
+            <div className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                {[
+                  { id: 'all', label: `All Facilities (${warehouses.length})` },
+                  { id: 'China', label: `🇨🇳 China (${warehouses.filter(w => w.country.toLowerCase() === 'china').length})` },
+                  { id: 'Bangladesh', label: `🇧🇩 Bangladesh (${warehouses.filter(w => w.country.toLowerCase() === 'bangladesh').length})` },
+                  { id: 'Malaysia', label: `🇲🇾 Malaysia (${warehouses.filter(w => w.country.toLowerCase() === 'malaysia').length})` }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setWarehouseCountryFilter(tab.id)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-none ${
+                      warehouseCountryFilter.toLowerCase() === tab.id.toLowerCase()
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-72">
+                <input
+                  type="text"
+                  placeholder="Search code, name, city, manager..."
+                  value={warehouseSearch}
+                  onChange={(e) => setWarehouseSearch(e.target.value)}
+                  className="w-full h-9 pl-8 pr-3 rounded-lg border border-slate-300 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                />
+                <svg className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Warehouse Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {warehouses.map((wh) => (
+              {filteredWarehouses.map((wh) => (
                 <div
                   key={wh.id}
-                  className="bg-white rounded-lg border border-slate-200 p-5 hover:border-slate-300 transition-colors flex flex-col justify-between space-y-4"
+                  className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs hover:border-slate-300 flex flex-col justify-between space-y-4 transition-none"
                 >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-900 text-white">
-                        {wh.code}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold border bg-emerald-50 text-emerald-800 border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        Active Station
+                  <div className="space-y-3">
+                    {/* Badge Row */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-900 text-white">
+                          {wh.code}
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          {wh.country === 'Bangladesh' ? '🇧🇩 BD' : wh.country === 'Malaysia' ? '🇲🇾 MY' : '🇨🇳 CN'}
+                        </span>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        wh.isActive
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${wh.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                        {wh.isActive ? 'Active Station' : 'Inactive'}
                       </span>
                     </div>
 
-                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] leading-snug">
-                      {wh.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-normal">{wh.address}</p>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] leading-snug">
+                        {wh.name}
+                      </h3>
+                      <p className="text-xs text-slate-500 leading-relaxed mt-1 break-words">{wh.address}</p>
+                    </div>
                   </div>
 
-                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                  {/* Floor Capacity & Occupancy Bar */}
+                  <div className="space-y-1.5 pt-3 border-t border-slate-100">
                     <div className="flex justify-between text-[11px] text-slate-500">
-                      <span>Floor Capacity: <b>{wh.capacitySqft.toLocaleString()} sqft</b></span>
+                      <span>Floor Capacity: <b className="text-slate-800">{wh.capacitySqft.toLocaleString()} sqft</b></span>
                       <span className="font-mono font-bold text-slate-900">{wh.currentOccupancyPct}% Occupied</span>
                     </div>
                     <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          wh.currentOccupancyPct > 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                          wh.currentOccupancyPct > 80
+                            ? 'bg-amber-500'
+                            : wh.currentOccupancyPct > 50
+                            ? 'bg-emerald-500'
+                            : 'bg-blue-500'
                         }`}
-                        style={{ width: `${wh.currentOccupancyPct}%` }}
+                        style={{ width: `${Math.min(100, Math.max(0, wh.currentOccupancyPct))}%` }}
                       ></div>
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
+                  {/* Contact Person Details */}
+                  <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-600 space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400">Manager:</span>
-                      <span className="font-medium text-slate-800">{wh.contactPerson}</span>
+                      <span className="text-slate-400">Station Lead:</span>
+                      <span className="font-medium text-slate-800">{wh.contactPerson || 'Ops Lead'}</span>
                     </div>
                     <div className="flex items-center justify-between font-mono">
-                      <span className="text-slate-400 font-sans">Phone:</span>
-                      <span>{wh.phone}</span>
+                      <span className="text-slate-400 font-sans">Contact:</span>
+                      <span className="text-slate-700">{wh.phone || 'N/A'}</span>
                     </div>
                     <div className="flex items-center justify-between font-mono truncate">
                       <span className="text-slate-400 font-sans">Email:</span>
-                      <span className="text-slate-700">{wh.email}</span>
+                      <span className="text-slate-700 truncate max-w-[170px]" title={wh.email}>{wh.email || 'N/A'}</span>
                     </div>
+                  </div>
+
+                  {/* Action Buttons: Edit and Delete */}
+                  <div className="pt-3 border-t border-slate-100 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditWarehouseModal(wh)}
+                      className="w-full py-1.5 px-3 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-none shadow-2xs"
+                    >
+                      <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                      <span>Edit Hub</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openDeleteWarehouseModal(wh)}
+                      className="w-full py-1.5 px-3 rounded-lg border border-red-200 hover:bg-red-50 text-red-600 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-none shadow-2xs"
+                    >
+                      <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                      <span>Delete</span>
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
+
+            {filteredWarehouses.length === 0 && (
+              <div className="bg-white rounded-xl p-12 border border-slate-200 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-xl">
+                  🏢
+                </div>
+                <h3 className="text-sm font-bold text-slate-800">No Warehouse Facilities Found</h3>
+                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                  {warehouseSearch
+                    ? `No facilities matched your search query "${warehouseSearch}".`
+                    : 'No warehouse facilities active under this country filter.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={openAddWarehouseModal}
+                  className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-95 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+                >
+                  + Add New Warehouse
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -4925,6 +5305,461 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           </div>
         </div>
       )}
+      {/* ========================================================= */}
+      {/* MODAL: ADD NEW WAREHOUSE FACILITY                         */}
+      {/* ========================================================= */}
+      {showAddWarehouseModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 sm:p-7 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto font-['Inter',sans-serif]">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
+                  + Add Warehouse Facility
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Register a new receiving, bonded CFS, or fulfillment hub.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddWarehouseModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md cursor-pointer"
+                aria-label="Close"
+              >
+                <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateWarehouse} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Hub Code <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. SHA-01, KUL-02"
+                    value={whCode}
+                    onChange={(e) => setWhCode(e.target.value.toUpperCase())}
+                    required
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono uppercase focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Country <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <select
+                    value={whCountry}
+                    onChange={(e) => {
+                      setWhCountry(e.target.value);
+                      if (e.target.value === 'China') setWhPhone('+86 20 8888 0000');
+                      else if (e.target.value === 'Malaysia') setWhPhone('+60 11-1234 5678');
+                      else setWhPhone('+880 1711 000000');
+                    }}
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  >
+                    <option value="China">🇨🇳 China</option>
+                    <option value="Bangladesh">🇧🇩 Bangladesh</option>
+                    <option value="Malaysia">🇲🇾 Malaysia</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Facility Name <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Guangzhou Baiyun Gateway"
+                    value={whName}
+                    onChange={(e) => setWhName(e.target.value)}
+                    required
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    City <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Guangzhou, Selangor, Dhaka"
+                    value={whCity}
+                    onChange={(e) => setWhCity(e.target.value)}
+                    required
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Full Street &amp; Building Address <span className="text-[#EA1D2C]">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Street, building name, industrial zone, postal code"
+                  value={whAddress}
+                  onChange={(e) => setWhAddress(e.target.value)}
+                  required
+                  className="w-full p-2.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Station Lead</label>
+                  <input
+                    type="text"
+                    placeholder="Manager name"
+                    value={whContactPerson}
+                    onChange={(e) => setWhContactPerson(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Contact Phone</label>
+                  <input
+                    type="tel"
+                    placeholder="+880 / +86 / +60"
+                    value={whPhone}
+                    onChange={(e) => setWhPhone(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Official Email</label>
+                  <input
+                    type="email"
+                    placeholder="hub@goshipping.com.bd"
+                    value={whEmail}
+                    onChange={(e) => setWhEmail(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Capacity (Sqft)</label>
+                  <input
+                    type="number"
+                    min={1000}
+                    step={1000}
+                    value={whCapacitySqft}
+                    onChange={(e) => setWhCapacitySqft(Number(e.target.value) || 20000)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Occupancy (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={whCurrentOccupancyPct}
+                    onChange={(e) => setWhCurrentOccupancyPct(Number(e.target.value) || 0)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Station Status</label>
+                  <select
+                    value={whIsActive ? 'active' : 'inactive'}
+                    onChange={(e) => setWhIsActive(e.target.value === 'active')}
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  >
+                    <option value="active">Active Station</option>
+                    <option value="inactive">Inactive / Offline</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowAddWarehouseModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold cursor-pointer hover:bg-slate-50 transition-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingWarehouse}
+                  className="px-5 py-2 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold transition-none shadow-2xs cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {submittingWarehouse ? 'Registering...' : '+ Create Warehouse Hub'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: EDIT WAREHOUSE FACILITY                            */}
+      {/* ========================================================= */}
+      {showEditWarehouseModal && selectedWarehouse && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-lg w-full p-6 sm:p-7 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto font-['Inter',sans-serif]">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
+                  Edit Warehouse: {selectedWarehouse.code}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Update facility address, storage capacity, and station leadership.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditWarehouseModal(false);
+                  setSelectedWarehouse(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md cursor-pointer"
+                aria-label="Close"
+              >
+                <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateWarehouse} className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Hub Code <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={whCode}
+                    onChange={(e) => setWhCode(e.target.value.toUpperCase())}
+                    required
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono uppercase focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Country <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <select
+                    value={whCountry}
+                    onChange={(e) => setWhCountry(e.target.value)}
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  >
+                    <option value="China">🇨🇳 China</option>
+                    <option value="Bangladesh">🇧🇩 Bangladesh</option>
+                    <option value="Malaysia">🇲🇾 Malaysia</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Facility Name <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={whName}
+                    onChange={(e) => setWhName(e.target.value)}
+                    required
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    City <span className="text-[#EA1D2C]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={whCity}
+                    onChange={(e) => setWhCity(e.target.value)}
+                    required
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Full Street &amp; Building Address <span className="text-[#EA1D2C]">*</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={whAddress}
+                  onChange={(e) => setWhAddress(e.target.value)}
+                  required
+                  className="w-full p-2.5 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Station Lead</label>
+                  <input
+                    type="text"
+                    value={whContactPerson}
+                    onChange={(e) => setWhContactPerson(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Contact Phone</label>
+                  <input
+                    type="tel"
+                    value={whPhone}
+                    onChange={(e) => setWhPhone(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Official Email</label>
+                  <input
+                    type="email"
+                    value={whEmail}
+                    onChange={(e) => setWhEmail(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Capacity (Sqft)</label>
+                  <input
+                    type="number"
+                    min={1000}
+                    step={1000}
+                    value={whCapacitySqft}
+                    onChange={(e) => setWhCapacitySqft(Number(e.target.value) || 20000)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Occupancy (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={whCurrentOccupancyPct}
+                    onChange={(e) => setWhCurrentOccupancyPct(Number(e.target.value) || 0)}
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Station Status</label>
+                  <select
+                    value={whIsActive ? 'active' : 'inactive'}
+                    onChange={(e) => setWhIsActive(e.target.value === 'active')}
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  >
+                    <option value="active">Active Station</option>
+                    <option value="inactive">Inactive / Offline</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditWarehouseModal(false);
+                    setSelectedWarehouse(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold cursor-pointer hover:bg-slate-50 transition-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingWarehouse}
+                  className="px-5 py-2 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold transition-none shadow-2xs cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+                >
+                  {submittingWarehouse ? 'Updating...' : 'Save Hub Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: DELETE WAREHOUSE FACILITY CONFIRMATION             */}
+      {/* ========================================================= */}
+      {showDeleteWarehouseModal && selectedWarehouse && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4 font-['Inter',sans-serif]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
+                  Delete Warehouse Facility?
+                </h3>
+                <p className="text-xs text-slate-500">
+                  This action will permanently delete this facility from the network.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Hub Code:</span>
+                <span className="font-mono font-bold text-slate-900">{selectedWarehouse.code}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Facility:</span>
+                <span className="font-semibold text-slate-900">{selectedWarehouse.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Location:</span>
+                <span className="text-slate-700">{selectedWarehouse.city}, {selectedWarehouse.country}</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500">
+              Note: This warehouse will immediately be removed from all active order origin and destination selector dropdowns.
+            </p>
+
+            <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowDeleteWarehouseModal(false);
+                  setSelectedWarehouse(null);
+                }}
+                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-xs cursor-pointer hover:bg-slate-50 transition-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deletingWarehouse}
+                onClick={handleDeleteWarehouse}
+                className="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-none shadow-2xs cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
+              >
+                {deletingWarehouse ? 'Deleting...' : 'Confirm Delete Facility'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Global Toast Notification */}
       {toastNotification && (
         <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-lg shadow-xl text-xs font-semibold bg-slate-900 text-white animate-in fade-in slide-in-from-bottom-2 duration-150 border border-slate-700/80">

@@ -866,10 +866,130 @@ app.post('/quotes/:id/convert', async (c) => {
   return c.json({ success: true, quote: result.quote, shipmentId: result.shipmentId });
 });
 
-// 13. Warehouses
+// 13. Warehouses Management (List, Add, Update, Delete)
+const WarehouseInputSchema = z.object({
+  code: z.string().min(2).max(30),
+  name: z.string().min(2).max(255),
+  country: z.string().min(2),
+  city: z.string().min(2),
+  address: z.string().min(5),
+  contactPerson: z.string().optional().default('Warehouse Operations'),
+  phone: z.string().optional().default('+880 1711 000000'),
+  email: z.string().optional().default('ops@goshipping.com.bd'),
+  capacitySqft: z.number().int().positive().optional().default(25000),
+  currentOccupancyPct: z.number().min(0).max(100).optional().default(50),
+  isActive: z.boolean().optional().default(true)
+});
+
+const WarehouseUpdateSchema = WarehouseInputSchema.partial();
+
 app.get('/warehouses', async (c) => {
   const warehouses = await WarehouseService.listWarehouses();
   return c.json({ success: true, warehouses });
+});
+
+app.get('/admin/warehouses', async (c) => {
+  const warehouses = await WarehouseService.listWarehouses();
+  return c.json({ success: true, warehouses });
+});
+
+app.post('/admin/warehouses', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized. Staff role required to add warehouse.' }, 403);
+  }
+
+  try {
+    const body = await c.req.json();
+    const parsed = WarehouseInputSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'Validation failed', details: parsed.error.issues }, 400);
+    }
+
+    const created = await WarehouseService.createWarehouse(parsed.data as any);
+    await AuditService.logAction({
+      userId: user.id,
+      userName: user.fullName,
+      action: 'WAREHOUSE_CREATED',
+      entityType: 'warehouse',
+      entityId: created.id,
+      details: { code: created.code, name: created.name, country: created.country }
+    });
+
+    return c.json({ success: true, warehouse: created }, 201);
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to create warehouse' }, 500);
+  }
+});
+app.post('/warehouses', async (c) => {
+  return c.redirect('/api/admin/warehouses', 307);
+});
+
+app.put('/admin/warehouses/:id', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized. Staff role required to update warehouse.' }, 403);
+  }
+
+  const { id } = c.req.param();
+  try {
+    const body = await c.req.json();
+    const parsed = WarehouseUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'Validation failed', details: parsed.error.issues }, 400);
+    }
+
+    const updated = await WarehouseService.updateWarehouse(id, parsed.data as any);
+    if (!updated) {
+      return c.json({ error: 'Warehouse not found' }, 404);
+    }
+
+    await AuditService.logAction({
+      userId: user.id,
+      userName: user.fullName,
+      action: 'WAREHOUSE_UPDATED',
+      entityType: 'warehouse',
+      entityId: updated.id,
+      details: { code: updated.code, name: updated.name }
+    });
+
+    return c.json({ success: true, warehouse: updated });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to update warehouse' }, 500);
+  }
+});
+
+app.delete('/admin/warehouses/:id', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized. Staff role required to delete warehouse.' }, 403);
+  }
+
+  const { id } = c.req.param();
+  const deleted = await WarehouseService.deleteWarehouse(id);
+  if (!deleted) {
+    return c.json({ error: 'Warehouse not found' }, 404);
+  }
+
+  await AuditService.logAction({
+    userId: user.id,
+    userName: user.fullName,
+    action: 'WAREHOUSE_DELETED',
+    entityType: 'warehouse',
+    entityId: id,
+    details: { warehouseId: id }
+  });
+
+  return c.json({ success: true, message: 'Warehouse deleted successfully' });
 });
 
 // 14. Admin Operations KPIs
