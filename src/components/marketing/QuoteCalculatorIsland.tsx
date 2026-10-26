@@ -4,8 +4,12 @@ import QuoteFaqSection from './QuoteFaqSection';
 import {
   ORIGIN_COUNTRIES,
   CHINA_ORIGIN_HUB,
+  BANGLADESH_PICKUP_HUB,
+  MALAYSIA_PICKUP_HUB,
   DEST_DELIVERY_HUBS,
   DEST_PICKUP_HUBS,
+  MALAYSIA_DELIVERY_HUBS,
+  MALAYSIA_PICKUP_HUBS,
   DEST_COUNTRIES,
   getCitiesForCountry
 } from './shippingLocations';
@@ -53,12 +57,26 @@ export default function QuoteCalculatorIsland({
 
   const handleFulfillmentChange = (type: 'delivery' | 'pickup') => {
     setFulfillmentType(type);
-    if (destCity !== 'Dhaka' && destCity !== 'Chittagong') {
+    if (destCountry === 'Malaysia') {
+      setDestCity('Selangor');
+    } else if (destCity !== 'Dhaka' && destCity !== 'Chittagong') {
       setDestCity('Dhaka');
     }
   };
 
-  const destDeliveryOptions = DEST_DELIVERY_HUBS.map((h) => ({
+  const handleDestCountryChange = (country: string) => {
+    setDestCountry(country);
+    if (country === 'Malaysia') {
+      setDestCity('Selangor');
+    } else {
+      setDestCity('Dhaka');
+    }
+  };
+
+  const currentDeliveryHubs = destCountry === 'Malaysia' ? MALAYSIA_DELIVERY_HUBS : DEST_DELIVERY_HUBS;
+  const currentPickupHubs = destCountry === 'Malaysia' ? MALAYSIA_PICKUP_HUBS : DEST_PICKUP_HUBS;
+
+  const destDeliveryOptions = currentDeliveryHubs.map((h) => ({
     label: h.city,
     value: h.city,
     code: h.code,
@@ -66,7 +84,7 @@ export default function QuoteCalculatorIsland({
     description: h.description
   }));
 
-  const destPickupOptions = DEST_PICKUP_HUBS.map((h) => ({
+  const destPickupOptions = currentPickupHubs.map((h) => ({
     label: h.city,
     value: h.city,
     code: h.code,
@@ -227,7 +245,7 @@ export default function QuoteCalculatorIsland({
           quote_number: data.quote.quoteNumber,
           mode,
           origin: `${originCity}, China (${CHINA_ORIGIN_HUB.address})`,
-          destination: `${destCity}, Bangladesh (${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Pickup'})`,
+          destination: `${destCity}, ${destCountry} (${fulfillmentType === 'delivery' ? 'Doorstep Delivery' : 'Hub Pickup'})`,
           weight_kg: numWeight,
           volume_cbm: numCbm,
           cargo_type: cargoDescription,
@@ -603,18 +621,42 @@ export default function QuoteCalculatorIsland({
                         </span>
                       </div>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                        Dhaka &amp; Chittagong
+                        {destCountry === 'Malaysia' ? 'Selangor & KL Hub' : 'Dhaka & Chittagong'}
                       </span>
                     </div>
 
                     <div className="space-y-3">
                       <div>
                         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Destination Country</label>
-                        <div className="h-10 px-3 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-between font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
-                          <span>Bangladesh</span>
-                          <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-                            Dhaka &amp; Chittagong
-                          </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDestCountryChange('Bangladesh')}
+                            className={`h-10 px-3 rounded-md border font-bold text-xs flex items-center justify-between cursor-pointer transition-none ${
+                              destCountry === 'Bangladesh'
+                                ? 'border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/40 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
+                                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5">🇧🇩 Bangladesh</span>
+                            <span className="text-[10px] font-normal text-slate-500">Dhaka / CTG</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDestCountryChange('Malaysia')}
+                            className={`h-10 px-3 rounded-md border font-bold text-xs flex items-center justify-between cursor-pointer transition-none ${
+                              destCountry === 'Malaysia'
+                                ? 'border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/40 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
+                                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-400'
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5">
+                              🇲🇾 Malaysia
+                              <span className="text-[9px] bg-red-600 text-white px-1 py-0.2 rounded font-mono font-bold uppercase">New</span>
+                            </span>
+                            <span className="text-[10px] font-normal text-slate-500">Selangor</span>
+                          </button>
                         </div>
                       </div>
 
@@ -674,8 +716,8 @@ export default function QuoteCalculatorIsland({
                             value={destCity}
                             onChange={(val) => setDestCity(val)}
                             options={destDeliveryOptions}
-                            placeholder="Select Dhaka or Chittagong..."
-                            searchPlaceholder="Search Dhaka or Chittagong..."
+                            placeholder={destCountry === 'Malaysia' ? 'Select Selangor or Kuala Lumpur...' : 'Select Dhaka or Chittagong...'}
+                            searchPlaceholder={destCountry === 'Malaysia' ? 'Search Selangor or KL...' : 'Search Dhaka or Chittagong...'}
                             allowCustom={false}
                           />
 
@@ -700,8 +742,8 @@ export default function QuoteCalculatorIsland({
                             value={destCity}
                             onChange={(val) => setDestCity(val)}
                             options={destPickupOptions}
-                            placeholder="Select pickup city..."
-                            searchPlaceholder="Search Dhaka or Chittagong depot..."
+                            placeholder={destCountry === 'Malaysia' ? 'Select Selangor or KL...' : 'Select pickup city...'}
+                            searchPlaceholder={destCountry === 'Malaysia' ? 'Search Selangor / KL...' : 'Search Dhaka or Chittagong depot...'}
                             allowCustom={false}
                           />
                           <div className="p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
@@ -710,10 +752,18 @@ export default function QuoteCalculatorIsland({
                                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                                 <circle cx="12" cy="10" r="3" />
                               </svg>
-                              <span>{destCity === 'Dhaka' ? 'Bangladesh Central Pickup Hub (Dhaka):' : 'Chittagong Port CFS Depot:'}</span>
+                              <span>
+                                {destCountry === 'Malaysia'
+                                  ? 'Malaysia Receiving Hub (Selangor):'
+                                  : destCity === 'Dhaka'
+                                  ? 'Bangladesh Central Pickup Hub (Dhaka):'
+                                  : 'Chittagong Port CFS Depot:'}
+                              </span>
                             </span>
                             <p className="text-slate-900 dark:text-white font-medium text-[11.5px] leading-relaxed">
-                              {destCity === 'Dhaka'
+                              {destCountry === 'Malaysia'
+                                ? 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor.'
+                                : destCity === 'Dhaka'
                                 ? '43/31, Sabujkanon, Dhaka- 1214, Bangladesh.'
                                 : 'GoShipping CFS Terminal, CPA Seaport Zone, Agrabad Commercial Area, Chittagong'}
                             </p>

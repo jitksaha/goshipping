@@ -8,6 +8,7 @@ export interface LocationHub {
 export interface CountryData {
   country: string;
   code: string;
+  flag?: string;
   popular?: boolean;
   hubs: LocationHub[];
 }
@@ -16,6 +17,7 @@ export const ORIGIN_COUNTRIES: CountryData[] = [
   {
     country: 'China',
     code: 'CN',
+    flag: '🇨🇳',
     popular: true,
     hubs: [
       {
@@ -23,6 +25,18 @@ export const ORIGIN_COUNTRIES: CountryData[] = [
         code: 'CAN',
         badge: 'WAREHOUSE',
         description: '765, Sanyuanli Avenue, Baiyun District, Guangzhou'
+      },
+      {
+        city: 'Yiwu',
+        code: 'YIW',
+        badge: 'WAREHOUSE',
+        description: 'Chouzhou North Road, International Trade City Zone 4, Yiwu, Zhejiang'
+      },
+      {
+        city: 'Shenzhen',
+        code: 'SZX',
+        badge: 'AIR HUB',
+        description: 'Baoan Airport Logistics Park & Qianhai Port CFS, Shenzhen'
       }
     ]
   }
@@ -43,6 +57,13 @@ export const BANGLADESH_PICKUP_HUB = {
   address: '43/31, Sabujkanon, Dhaka- 1214, Bangladesh'
 };
 
+export const MALAYSIA_PICKUP_HUB = {
+  country: 'Malaysia',
+  city: 'Selangor',
+  code: 'SGR',
+  address: 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor.'
+};
+
 export const DEST_DELIVERY_HUBS: LocationHub[] = [
   { city: 'Dhaka', code: 'DAC', badge: 'DOOR DELIVERY', description: 'Doorstep Delivery to home, office, or shop in Dhaka' },
   { city: 'Chittagong', code: 'CGP', badge: 'DOOR DELIVERY', description: 'Doorstep Delivery to home, office, or shop in Chittagong' }
@@ -53,14 +74,44 @@ export const DEST_PICKUP_HUBS: LocationHub[] = [
   { city: 'Chittagong', code: 'CGP', badge: 'SEA PORT', description: 'Self-pickup at GoShipping Chittagong CFS Seaport Terminal (Agrabad)' }
 ];
 
+export const MALAYSIA_DELIVERY_HUBS: LocationHub[] = [
+  { city: 'Selangor', code: 'SGR', badge: 'DOOR DELIVERY', description: 'Doorstep Delivery across Selangor & Klang Valley' },
+  { city: 'Kuala Lumpur', code: 'KUL', badge: 'DOOR DELIVERY', description: 'Doorstep Delivery in Kuala Lumpur Federal Territory' }
+];
+
+export const MALAYSIA_PICKUP_HUBS: LocationHub[] = [
+  { city: 'Selangor', code: 'SGR', badge: 'WAREHOUSE', description: 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor.' }
+];
+
 export const DEST_COUNTRIES: CountryData[] = [
   {
     country: 'Bangladesh',
     code: 'BD',
+    flag: '🇧🇩',
     popular: true,
     hubs: [
       { city: 'Dhaka', code: 'DAC', badge: 'DOOR DELIVERY', description: 'Doorstep Delivery or Depot Pickup in Dhaka' },
       { city: 'Chittagong', code: 'CGP', badge: 'SEA PORT', description: 'Doorstep Delivery or Seaport CFS Pickup in Chittagong' }
+    ]
+  },
+  {
+    country: 'Malaysia',
+    code: 'MY',
+    flag: '🇲🇾',
+    popular: true,
+    hubs: [
+      {
+        city: 'Selangor',
+        code: 'SGR',
+        badge: 'WAREHOUSE',
+        description: 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor.'
+      },
+      {
+        city: 'Kuala Lumpur',
+        code: 'KUL',
+        badge: 'DOOR DELIVERY',
+        description: 'Doorstep Delivery across Kuala Lumpur and Klang Valley'
+      }
     ]
   }
 ];

@@ -97,6 +97,20 @@ let initialWarehouses: WarehouseRecord[] = [
     capacitySqft: 45000,
     currentOccupancyPct: 62,
     isActive: true
+  },
+  {
+    id: 'wh-my-01',
+    code: 'MY-KUL',
+    name: 'Malaysia Receiving & Logistics Hub',
+    country: 'Malaysia',
+    city: 'Selangor',
+    address: 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor.',
+    contactPerson: 'GoShipping Malaysia Ops',
+    phone: '+60 11-1234 5678',
+    email: 'my.ops@goshipping.com.bd',
+    capacitySqft: 35000,
+    currentOccupancyPct: 42,
+    isActive: true
   }
 ];
 

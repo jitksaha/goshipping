@@ -1890,23 +1890,26 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       2. Route &amp; Shipping Method
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Specify origin China hub, Bangladesh destination, carrier, and flight/voyage details
+                      Specify origin China hub, destination (Bangladesh / Malaysia), carrier, and flight/voyage details
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Origin (China)
+                        Origin (China Only)
                       </label>
                       <select
                         value={newOriginCity}
-                        onChange={(e) => setNewOriginCity(e.target.value)}
+                        onChange={(e) => {
+                          setNewOriginCity(e.target.value);
+                          setNewOriginCountry('China');
+                        }}
                         className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                       >
-                        <option value="Guangzhou">Guangzhou (CAN)</option>
-                        <option value="Yiwu">Yiwu (YIW)</option>
-                        <option value="Shenzhen">Shenzhen (SZX)</option>
+                        <option value="Guangzhou">Guangzhou (CAN Hub)</option>
+                        <option value="Yiwu">Yiwu (YIW Trade City)</option>
+                        <option value="Shenzhen">Shenzhen (SZX Airport)</option>
                         <option value="Shanghai">Shanghai (PVG)</option>
                         <option value="Hong Kong">Hong Kong (HKG)</option>
                       </select>
@@ -1914,17 +1917,34 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Destination (BD)
+                        Destination (BD / MY)
                       </label>
                       <select
-                        value={newDestCity}
-                        onChange={(e) => setNewDestCity(e.target.value)}
+                        value={`${newDestCountry}:${newDestCity}`}
+                        onChange={(e) => {
+                          const [country, city] = e.target.value.split(':');
+                          setNewDestCountry(country);
+                          setNewDestCity(city);
+                          if (country === 'Malaysia') {
+                            setNewRecipientAddress('Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor');
+                          } else if (country === 'Bangladesh' && city === 'Chittagong') {
+                            setNewRecipientAddress('Port Access Road, Customs Point, Chittagong 4100');
+                          } else {
+                            setNewRecipientAddress('Export Processing Zone, Savar, Dhaka 1349, Bangladesh');
+                          }
+                        }}
                         className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                       >
-                        <option value="Dhaka">Dhaka (HSIA / Hub)</option>
-                        <option value="Chittagong">Chittagong (Port)</option>
-                        <option value="Tejgaon">Dhaka (Tejgaon)</option>
-                        <option value="Savar">Dhaka (DEPZ)</option>
+                        <optgroup label="🇧🇩 Bangladesh">
+                          <option value="Bangladesh:Dhaka">Dhaka (Central Hub)</option>
+                          <option value="Bangladesh:Chittagong">Chittagong (Port CFS)</option>
+                          <option value="Bangladesh:Tejgaon">Dhaka (Tejgaon Depot)</option>
+                          <option value="Bangladesh:Savar">Dhaka (DEPZ Hub)</option>
+                        </optgroup>
+                        <optgroup label="🇲🇾 Malaysia (New)">
+                          <option value="Malaysia:Selangor">Selangor (Sungai Buloh Hub)</option>
+                          <option value="Malaysia:Kuala Lumpur">Kuala Lumpur (Klang Valley)</option>
+                        </optgroup>
                       </select>
                     </div>
 
@@ -2423,7 +2443,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="divide-y divide-slate-100 text-xs">
                     <div className="py-2 flex items-center justify-between">
                       <span className="text-slate-500">Route</span>
-                      <span className="font-semibold text-slate-900">{newOriginCity}, CN → {newDestCity}, BD</span>
+                      <span className="font-semibold text-slate-900">{newOriginCity}, CN → {newDestCity}, {newDestCountry === 'Malaysia' ? 'MY' : 'BD'}</span>
                     </div>
 
                     <div className="py-2 flex items-center justify-between">

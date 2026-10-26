@@ -18,7 +18,7 @@ const FAQ_ITEMS: FaqItem[] = [
     id: 'hubs-addresses',
     category: 'Hubs & Addresses',
     question: 'What are the official warehouse intake and pickup hub addresses?',
-    answer: 'China Origin Intake Hub: 765, Sanyuanli Avenue, Baiyun District, Guangzhou (广州市白云区三元里大道765号). Open 7 days a week for 1688, Taobao, and factory shipments. Bangladesh Central Hub: 43/31, Sabujkanon, Dhaka-1214. Open Saturday to Thursday for zero-fee pickup. Chittagong Port Hub: GoShipping CFS Terminal, CPA Seaport Zone, Agrabad Commercial Area, Chittagong.'
+    answer: 'China Origin Intake Hub: 765, Sanyuanli Avenue, Baiyun District, Guangzhou (广州市白云区三元里大道765号). Open 7 days a week for 1688, Taobao, and factory shipments. Bangladesh Central Hub: 43/31, Sabujkanon, Dhaka-1214. Chittagong Port Hub: GoShipping CFS Terminal, CPA Seaport Zone, Agrabad Commercial Area, Chittagong. Malaysia Hub: Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor, Malaysia.'
   },
   {
     id: 'customs-brokerage',
