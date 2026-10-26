@@ -41,11 +41,11 @@ export default function QuoteCalculatorIsland({
   const [destCity, setDestCity] = useState('Dhaka');
   const [destAddress, setDestAddress] = useState('');
   const [copiedAddress, setCopiedAddress] = useState(false);
-  const [weightKg, setWeightKg] = useState('50');
-  const [cbm, setCbm] = useState('0.4');
-  const [quantity, setQuantity] = useState('10');
+  const [weightKg, setWeightKg] = useState('');
+  const [cbm, setCbm] = useState('');
+  const [quantity, setQuantity] = useState('');
   const [packagingType, setPackagingType] = useState('carton');
-  const [cargoDescription, setCargoDescription] = useState('E-commerce Parcels, Garments & Accessories (1688 / Factory)');
+  const [cargoDescription, setCargoDescription] = useState('');
   const [productName, setProductName] = useState('');
   const [productCategory, setProductCategory] = useState('Garments, Apparel & Fashion Wear');
   const [productUrl, setProductUrl] = useState('');
@@ -951,6 +951,7 @@ export default function QuoteCalculatorIsland({
                           step="any"
                           value={weightKg}
                           onChange={(e) => setWeightKg(e.target.value)}
+                          placeholder="50"
                           required
                           className="w-full h-9 pl-3 pr-9 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
                         />
@@ -970,6 +971,7 @@ export default function QuoteCalculatorIsland({
                           step="any"
                           value={cbm}
                           onChange={(e) => setCbm(e.target.value)}
+                          placeholder="0.4"
                           required
                           className="w-full h-9 pl-3 pr-11 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
                         />
@@ -988,6 +990,7 @@ export default function QuoteCalculatorIsland({
                           type="number"
                           value={quantity}
                           onChange={(e) => setQuantity(e.target.value)}
+                          placeholder="10"
                           className="w-full h-9 pl-3 pr-9 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 font-mono font-bold text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
                         />
                         <span className="absolute right-2.5 top-2.5 text-[10px] font-medium text-slate-400 select-none">
@@ -1036,7 +1039,6 @@ export default function QuoteCalculatorIsland({
                       type="text"
                       value={cargoDescription}
                       onChange={(e) => setCargoDescription(e.target.value)}
-                      required
                       placeholder="Special handling instructions, carton markings, or specifications..."
                       className="w-full h-9 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-900 dark:text-white font-medium focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none"
                     />

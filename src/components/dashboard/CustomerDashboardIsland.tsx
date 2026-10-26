@@ -119,8 +119,6 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
         const urlCode = params.get('code');
         if (urlCode) {
           setSelectedTrackingCode(urlCode);
-        } else if (resShipments.shipments.length > 0 && !selectedTrackingCode) {
-          setSelectedTrackingCode(resShipments.shipments[0].trackingNumber);
         }
       }
       if (resQuotes.success && resQuotes.quotes) {
@@ -626,6 +624,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                   onChange={(e) => setSelectedTrackingCode(e.target.value)}
                   className="h-8 px-3 rounded-md border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 cursor-pointer"
                 >
+                  <option value="">-- Select Consignment to Track --</option>
                   {shipments.map((s) => (
                     <option key={s.id} value={s.trackingNumber}>
                       {s.trackingNumber} ({s.originCity} → {s.destCity}) [{s.status.replace(/_/g, ' ')}]

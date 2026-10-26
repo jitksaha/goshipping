@@ -117,29 +117,29 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   };
 
   // New Consignment Form State
-  const [newCustName, setNewCustName] = useState('Apex Textiles Ltd');
-  const [newRecipientName, setNewRecipientName] = useState('Apex Fashion Retail Hub');
-  const [newRecipientAddress, setNewRecipientAddress] = useState('Export Processing Zone, Savar, Dhaka 1349, Bangladesh');
+  const [newCustName, setNewCustName] = useState('');
+  const [newRecipientName, setNewRecipientName] = useState('');
+  const [newRecipientAddress, setNewRecipientAddress] = useState('');
   const [newOriginCountry, setNewOriginCountry] = useState('China');
   const [newOriginCity, setNewOriginCity] = useState('Guangzhou');
   const [newDestCountry, setNewDestCountry] = useState('Bangladesh');
   const [newDestCity, setNewDestCity] = useState('Dhaka');
   const [newMode, setNewMode] = useState<'air' | 'sea' | 'hand_carry'>('air');
   const [newServiceLevel, setNewServiceLevel] = useState<'standard' | 'express' | 'priority'>('express');
-  const [newCarrier, setNewCarrier] = useState('Cathay Cargo / GoShipping Air');
-  const [newVoyage, setNewVoyage] = useState('Flight CX-068');
-  const [deliveryInstructions, setDeliveryInstructions] = useState('Direct door-to-door delivery. Call recipient 2 hours before gate arrival.');
+  const [newCarrier, setNewCarrier] = useState('');
+  const [newVoyage, setNewVoyage] = useState('');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
   // Section 4: Dynamic Structured Delivery Address State
-  const [recipientContactName, setRecipientContactName] = useState('Apex Fashion Retail Hub');
-  const [addressLine1, setAddressLine1] = useState('Flat 2/B, 16, 16/1 Basubazar Lane, Dayaganj');
+  const [recipientContactName, setRecipientContactName] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
   const [recipientState, setRecipientState] = useState('Dhaka Division');
   const [recipientCity, setRecipientCity] = useState('Dhaka');
-  const [recipientPostcode, setRecipientPostcode] = useState('1204');
+  const [recipientPostcode, setRecipientPostcode] = useState('');
   const [recipientPhoneCode, setRecipientPhoneCode] = useState('+880');
-  const [recipientPhoneBody, setRecipientPhoneBody] = useState('1601111994');
-  const [deliveryNotes, setDeliveryNotes] = useState('Direct door-to-door delivery. Call recipient 2 hours before gate arrival.');
+  const [recipientPhoneBody, setRecipientPhoneBody] = useState('');
+  const [deliveryNotes, setDeliveryNotes] = useState('');
 
   const currentAddressConfig = DESTINATION_ADDRESS_CONFIGS[newDestCountry] || DESTINATION_ADDRESS_CONFIGS.Bangladesh;
   const currentStates = currentAddressConfig.states;
@@ -158,6 +158,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   }, [addressLine1, addressLine2, recipientCity, recipientState, recipientPostcode, newDestCountry]);
 
   const compiledPhone = useMemo(() => {
+    if (!recipientPhoneBody.trim()) return '';
     return `${recipientPhoneCode} ${recipientPhoneBody.trim()}`.trim();
   }, [recipientPhoneCode, recipientPhoneBody]);
 
@@ -169,15 +170,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setRecipientState(defaultState);
     setRecipientCity(defaultCity);
     setNewDestCity(defaultCity);
-    setAddressLine1(config.defaultAddress1);
-    setAddressLine2(config.defaultAddress2);
-    setRecipientPostcode(config.defaultPostcode);
+    setAddressLine1('');
+    setAddressLine2('');
+    setRecipientPostcode('');
     setRecipientPhoneCode(config.dialCode);
-    if (country === 'Malaysia') {
-      setRecipientPhoneBody('1112345678');
-    } else {
-      setRecipientPhoneBody('1601111994');
-    }
+    setRecipientPhoneBody('');
   };
 
   const handleStateChange = (stateName: string) => {
@@ -195,13 +192,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [orderItems, setOrderItems] = useState<OrderItemForm[]>([
     {
       id: 'item-1',
-      description: 'Air Freight LD3 ULD (Commercial Fabrics & Samples)',
-      packagingType: 'air_uld',
+      description: '',
+      packagingType: 'carton',
       categoryTag: 'Commercial',
-      quantity: 24,
-      weightKg: 850,
-      cbm: 4.25,
-      declaredValue: 2440000
+      quantity: '' as any,
+      weightKg: '' as any,
+      cbm: '' as any,
+      declaredValue: '' as any
     }
   ]);
 
@@ -214,10 +211,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         description: '',
         packagingType: 'carton',
         categoryTag: 'Commercial',
-        quantity: 1,
-        weightKg: 10,
-        cbm: 0.05,
-        declaredValue: 0
+        quantity: '' as any,
+        weightKg: '' as any,
+        cbm: '' as any,
+        declaredValue: '' as any
       }
     ]);
   };
@@ -344,7 +341,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [whIsActive, setWhIsActive] = useState(true);
 
   // New Consignment Customer Link & Real-time Selection State
-  const [selectedCustomerId, setSelectedCustomerId] = useState('usr-customer-01');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [orderCustomerMode, setOrderCustomerMode] = useState<'existing' | 'new'>('existing');
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
@@ -353,8 +350,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newCustomerPhone, setNewCustomerPhone] = useState('');
   const [newCustomerCompany, setNewCustomerCompany] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
-  const [newCustomerPassword, setNewCustomerPassword] = useState('password123');
-  const [newRecipientPhone, setNewRecipientPhone] = useState('+880 1711-002233');
+  const [newCustomerPassword, setNewCustomerPassword] = useState('');
+  const [newRecipientPhone, setNewRecipientPhone] = useState('');
 
   // Customer Filtering & Live Selection Mappings
   const filteredCustomersForOrder = useMemo(() => {
@@ -685,12 +682,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           finalRecipientAddress = newCustomerAddress.trim() || `${newDestCity}, Bangladesh`;
         }
       } else {
+        if (!finalCustomerId) {
+          throw new Error('Please select an existing customer account or switch to "Register New Client".');
+        }
         if (!finalCustName) {
           finalCustName = currentSelectedCustomer?.companyName || currentSelectedCustomer?.fullName || 'Valued Customer';
         }
         if (!finalRecipientName) {
           finalRecipientName = currentSelectedCustomer?.fullName || finalCustName;
         }
+      }
+
+      const invalidItems = orderItems.filter((it) => !it.description.trim() || !(Number(it.weightKg) > 0));
+      if (invalidItems.length > 0) {
+        throw new Error('Please fill in product description and weight (KG) for all cargo items.');
       }
 
       const trackingCodeToUse = newCustomTrackingNumber.trim()
@@ -1535,7 +1540,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <button
                     type="button"
                     onClick={() => {
-                      setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                      setNewCustomTrackingNumber('');
                       switchTab('new_order');
                     }}
                     className="px-4 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5 transition-none"
@@ -1565,7 +1570,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <button
                     type="button"
                     onClick={() => {
-                      setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                      setNewCustomTrackingNumber('');
                       switchTab('new_order');
                     }}
                     className="w-full py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-[#EA1D2C] text-xs font-bold transition-none cursor-pointer text-center"
@@ -2252,16 +2257,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         onChange={(e) => {
                           const m = e.target.value as any;
                           setNewMode(m);
-                          if (m === 'air') {
-                            setNewCarrier('Cathay Cargo / GoShipping Air');
-                            setNewVoyage('Flight CX-068');
-                          } else if (m === 'sea') {
-                            setNewCarrier('COSCO Shipping Line');
-                            setNewVoyage('Voyage CS-912');
-                          } else {
-                            setNewCarrier('Special Courier Express');
-                            setNewVoyage('Hand Carry Protocol');
-                          }
                         }}
                         className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                       >
@@ -2394,7 +2389,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             type="text"
                             value={item.description}
                             onChange={(e) => updateOrderItem(item.id, 'description', e.target.value)}
-                            placeholder="e.g. Air Freight LD3 ULD (Commercial Fabrics & Samples)"
+                            placeholder="e.g. Commercial Fabrics, Apparel, Electronics..."
                             required
                             className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
                           />
@@ -2431,8 +2426,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             <input
                               type="number"
                               min="1"
-                              value={item.quantity}
-                              onChange={(e) => updateOrderItem(item.id, 'quantity', parseInt(e.target.value, 10) || 1)}
+                              value={item.quantity ?? ''}
+                              onChange={(e) => updateOrderItem(item.id, 'quantity', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
+                              placeholder="e.g. 10"
                               required
                               className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
                             />
@@ -2449,8 +2445,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                               type="number"
                               step="any"
                               min="0.1"
-                              value={item.weightKg}
-                              onChange={(e) => updateOrderItem(item.id, 'weightKg', parseFloat(e.target.value) || 0)}
+                              value={item.weightKg ?? ''}
+                              onChange={(e) => updateOrderItem(item.id, 'weightKg', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                              placeholder="e.g. 50"
                               required
                               className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
                             />
@@ -2464,8 +2461,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                               type="number"
                               step="any"
                               min="0.001"
-                              value={item.cbm}
-                              onChange={(e) => updateOrderItem(item.id, 'cbm', parseFloat(e.target.value) || 0)}
+                              value={item.cbm ?? ''}
+                              onChange={(e) => updateOrderItem(item.id, 'cbm', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                              placeholder="e.g. 0.4"
                               required
                               className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
                             />
@@ -2478,8 +2476,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             <input
                               type="number"
                               min="0"
-                              value={item.declaredValue || ''}
-                              onChange={(e) => updateOrderItem(item.id, 'declaredValue', parseFloat(e.target.value) || 0)}
+                              value={item.declaredValue ?? ''}
+                              onChange={(e) => updateOrderItem(item.id, 'declaredValue', e.target.value === '' ? '' : parseFloat(e.target.value))}
                               placeholder="e.g. 50000"
                               className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
                             />
@@ -2857,8 +2855,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       type="text"
                       value={newCustomTrackingNumber}
                       onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
-                      placeholder={`GOSH-${new Date().getFullYear()}-XXXX`}
-                      required
+                      placeholder={`Auto-generated e.g. GOSH-${new Date().getFullYear()}-XXXX`}
                       className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
                     />
                   </div>
