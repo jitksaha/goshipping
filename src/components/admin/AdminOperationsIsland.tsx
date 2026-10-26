@@ -1,4 +1,5 @@
 import SearchableSelect, { type SearchableSelectOption } from "./SearchableSelect";
+import { ReferenceSelect } from "./ReferenceSelect";
 import React, { useState, useEffect, useMemo } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
@@ -2318,35 +2319,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           </span>
                         </div>
 
-                        {/* Radio Buttons for Origin */}
-                        <div className="flex flex-wrap gap-2">
-                          {originWarehouseList.map((wh) => {
-                            const isSelected = newOriginCity.toLowerCase() === wh.city.toLowerCase();
-                            return (
-                              <label
-                                key={wh.id}
-                                className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-none ${
-                                  isSelected
-                                    ? 'border-[#EA1D2C] bg-red-50/60 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
-                                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="originHubRadio"
-                                  value={wh.city}
-                                  checked={isSelected}
-                                  onChange={() => {
-                                    setNewOriginCity(wh.city);
-                                    setNewOriginCountry('China');
-                                  }}
-                                  className="w-3.5 h-3.5 text-[#EA1D2C] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#EA1D2C]"
-                                />
-                                <span>{wh.city}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                        {/* Selector for Origin matching reference style */}
+                        <ReferenceSelect
+                          value={newOriginCity}
+                          onChange={(cityVal) => {
+                            setNewOriginCity(cityVal);
+                            setNewOriginCountry('China');
+                          }}
+                          options={originWarehouseList.map((wh) => ({
+                            value: wh.city,
+                            label: wh.city,
+                            badge: wh.code,
+                          }))}
+                          placeholder="Select Origin Hub"
+                        />
                       </div>
 
                       {/* Selected Origin Warehouse Address Box */}
@@ -2385,40 +2371,32 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           </span>
                         </div>
 
-                        {/* Radio Buttons for Destination Hub */}
-                        <div className="flex flex-wrap gap-2">
-                          {destinationHubList.map((opt) => {
-                            const isSelected =
-                              newDestCountry.toLowerCase() === opt.country.toLowerCase() &&
-                              (newDestCity.toLowerCase() === opt.city.toLowerCase() || opt.country.toLowerCase() === 'malaysia');
-                            return (
-                              <label
-                                key={opt.key}
-                                className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-none ${
-                                  isSelected
-                                    ? 'border-[#EA1D2C] bg-red-50/60 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
-                                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="destHubRadio"
-                                  value={opt.key}
-                                  checked={isSelected}
-                                  onChange={() => {
-                                    if (opt.country !== newDestCountry) {
-                                      handleCountryChange(opt.country);
-                                    }
-                                    setNewDestCity(opt.city);
-                                    setRecipientCity(opt.city);
-                                  }}
-                                  className="w-3.5 h-3.5 text-[#EA1D2C] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#EA1D2C]"
-                                />
-                                <span>{opt.label}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                        {/* Selector for Destination Hub matching reference style */}
+                        <ReferenceSelect
+                          value={
+                            destinationHubList.find(
+                              (opt) =>
+                                newDestCountry.toLowerCase() === opt.country.toLowerCase() &&
+                                (newDestCity.toLowerCase() === opt.city.toLowerCase() || opt.country.toLowerCase() === 'malaysia')
+                            )?.key || (newDestCountry.toLowerCase() === 'malaysia' ? 'my-selangor' : 'bd-dhaka')
+                          }
+                          onChange={(keyVal) => {
+                            const chosen = destinationHubList.find((opt) => opt.key === keyVal);
+                            if (chosen) {
+                              if (chosen.country !== newDestCountry) {
+                                handleCountryChange(chosen.country);
+                              }
+                              setNewDestCity(chosen.city);
+                              setRecipientCity(chosen.city);
+                            }
+                          }}
+                          options={destinationHubList.map((opt) => ({
+                            value: opt.key,
+                            label: opt.label,
+                            badge: opt.country === 'Malaysia' ? 'MY' : 'BD',
+                          }))}
+                          placeholder="Select Destination Hub"
+                        />
                       </div>
 
                       {/* Selected Destination Warehouse Address Box */}
@@ -2457,36 +2435,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           </span>
                         </div>
 
-                        {/* Radio Buttons for Shipping Method */}
-                        <div className="flex flex-wrap gap-2">
-                          {[
-                            { mode: 'air', label: 'By Air' },
-                            { mode: 'sea', label: 'By Ship' },
-                            { mode: 'hand_carry', label: 'Hand Carry' }
-                          ].map((m) => {
-                            const isSelected = newMode === m.mode;
-                            return (
-                              <label
-                                key={m.mode}
-                                className={`flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-none ${
-                                  isSelected
-                                    ? 'border-[#EA1D2C] bg-red-50/60 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
-                                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name="shippingModeRadio"
-                                  value={m.mode}
-                                  checked={isSelected}
-                                  onChange={() => setNewMode(m.mode as any)}
-                                  className="w-3.5 h-3.5 text-[#EA1D2C] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#EA1D2C]"
-                                />
-                                <span className="whitespace-nowrap">{m.label}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
+                        {/* Selector for Shipping Method matching reference style */}
+                        <ReferenceSelect
+                          value={newMode}
+                          onChange={(modeVal) => setNewMode(modeVal as any)}
+                          options={[
+                            { value: 'air', label: 'By Air', badge: 'Air' },
+                            { value: 'sea', label: 'By Ship', badge: 'Sea' },
+                            { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' },
+                          ]}
+                          placeholder="Select Shipping Method"
+                        />
                       </div>
 
                       {/* Selected Shipping Mode SLA Box */}
