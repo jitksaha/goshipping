@@ -4,6 +4,7 @@ import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipmen
 import type { QuoteRecord } from '../../server/services/quote.service';
 import type { WarehouseRecord } from '../../server/services/warehouse.service';
 import { TRACKING_STATUSES, normalizeStatusCode, calculatePhysicalProgress, type TrackingStatusCode } from '../../server/services/tracking-status';
+import { DESTINATION_ADDRESS_CONFIGS, PHONE_DIAL_CODES } from '../marketing/shippingLocations';
 
 interface CustomerItem {
   id: string;
@@ -128,6 +129,67 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newCarrier, setNewCarrier] = useState('Cathay Cargo / GoShipping Air');
   const [newVoyage, setNewVoyage] = useState('Flight CX-068');
   const [deliveryInstructions, setDeliveryInstructions] = useState('Direct door-to-door delivery. Call recipient 2 hours before gate arrival.');
+
+  // Section 4: Dynamic Structured Delivery Address State
+  const [recipientContactName, setRecipientContactName] = useState('Apex Fashion Retail Hub');
+  const [addressLine1, setAddressLine1] = useState('Flat 2/B, 16, 16/1 Basubazar Lane, Dayaganj');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [recipientState, setRecipientState] = useState('Dhaka Division');
+  const [recipientCity, setRecipientCity] = useState('Dhaka');
+  const [recipientPostcode, setRecipientPostcode] = useState('1204');
+  const [recipientPhoneCode, setRecipientPhoneCode] = useState('+880');
+  const [recipientPhoneBody, setRecipientPhoneBody] = useState('1601111994');
+  const [deliveryNotes, setDeliveryNotes] = useState('Direct door-to-door delivery. Call recipient 2 hours before gate arrival.');
+
+  const currentAddressConfig = DESTINATION_ADDRESS_CONFIGS[newDestCountry] || DESTINATION_ADDRESS_CONFIGS.Bangladesh;
+  const currentStates = currentAddressConfig.states;
+  const matchedStateObj = currentStates.find((s) => s.name === recipientState) || currentStates[0];
+  const currentAvailableCities = matchedStateObj ? matchedStateObj.cities : [recipientCity];
+
+  const compiledAddress = useMemo(() => {
+    return [
+      addressLine1.trim(),
+      addressLine2.trim(),
+      recipientCity.trim(),
+      recipientState.trim(),
+      recipientPostcode.trim(),
+      newDestCountry
+    ].filter(Boolean).join(', ');
+  }, [addressLine1, addressLine2, recipientCity, recipientState, recipientPostcode, newDestCountry]);
+
+  const compiledPhone = useMemo(() => {
+    return `${recipientPhoneCode} ${recipientPhoneBody.trim()}`.trim();
+  }, [recipientPhoneCode, recipientPhoneBody]);
+
+  const handleCountryChange = (country: string) => {
+    setNewDestCountry(country);
+    const config = DESTINATION_ADDRESS_CONFIGS[country] || DESTINATION_ADDRESS_CONFIGS.Bangladesh;
+    const defaultState = config.states[0]?.name || '';
+    const defaultCity = config.states[0]?.cities[0] || '';
+    setRecipientState(defaultState);
+    setRecipientCity(defaultCity);
+    setNewDestCity(defaultCity);
+    setAddressLine1(config.defaultAddress1);
+    setAddressLine2(config.defaultAddress2);
+    setRecipientPostcode(config.defaultPostcode);
+    setRecipientPhoneCode(config.dialCode);
+    if (country === 'Malaysia') {
+      setRecipientPhoneBody('1112345678');
+    } else {
+      setRecipientPhoneBody('1601111994');
+    }
+  };
+
+  const handleStateChange = (stateName: string) => {
+    setRecipientState(stateName);
+    const config = DESTINATION_ADDRESS_CONFIGS[newDestCountry] || DESTINATION_ADDRESS_CONFIGS.Bangladesh;
+    const stateObj = config.states.find((s) => s.name === stateName);
+    if (stateObj && stateObj.cities.length > 0) {
+      const firstCity = stateObj.cities[0];
+      setRecipientCity(firstCity);
+      setNewDestCity(firstCity);
+    }
+  };
 
   // Dynamic Multi-Product Line Items
   const [orderItems, setOrderItems] = useState<OrderItemForm[]>([
@@ -316,8 +378,27 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setSelectedCustomerId(target.id);
     setNewCustName(target.companyName || target.fullName || '');
     setNewRecipientName(target.fullName || '');
-    if (target.phone) setNewRecipientPhone(target.phone);
-    if (target.address) setNewRecipientAddress(target.address);
+    setRecipientContactName(target.fullName || target.companyName || '');
+    if (target.phone) {
+      setNewRecipientPhone(target.phone);
+      const cleaned = target.phone.replace(/\s+/g, '');
+      if (cleaned.startsWith('+880')) {
+        setRecipientPhoneCode('+880');
+        setRecipientPhoneBody(cleaned.slice(4));
+      } else if (cleaned.startsWith('+60')) {
+        setRecipientPhoneCode('+60');
+        setRecipientPhoneBody(cleaned.slice(3));
+      } else if (cleaned.startsWith('+86')) {
+        setRecipientPhoneCode('+86');
+        setRecipientPhoneBody(cleaned.slice(3));
+      } else {
+        setRecipientPhoneBody(target.phone);
+      }
+    }
+    if (target.address) {
+      setNewRecipientAddress(target.address);
+      setAddressLine1(target.address);
+    }
     setIsCustomerDropdownOpen(false);
   };
 
@@ -499,9 +580,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     try {
       let finalCustomerId = selectedCustomerId;
       let finalCustName = newCustName.trim();
-      let finalRecipientName = newRecipientName.trim();
-      let finalRecipientPhone = newRecipientPhone.trim();
-      let finalRecipientAddress = newRecipientAddress.trim();
+      let finalRecipientName = recipientContactName.trim() || newRecipientName.trim();
+      let finalRecipientPhone = compiledPhone || newRecipientPhone.trim();
+      let finalRecipientAddress = compiledAddress || newRecipientAddress.trim();
 
       // If Admin opted to Register New Customer Account on the fly
       if (orderCustomerMode === 'new') {
@@ -600,6 +681,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           totalWeightKg: orderTotals.totalWeight || 500,
           totalCbm: orderTotals.totalCbm || 2.5,
           totalPieces: orderTotals.totalPieces || 1,
+          notes: deliveryNotes.trim() || deliveryInstructions.trim(),
           items: orderItems.map((it, idx) => ({
             itemCode: `#ITM-${1000 + idx}`,
             description: it.description.trim() || 'Commercial Cargo Item',
@@ -1923,15 +2005,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         value={`${newDestCountry}:${newDestCity}`}
                         onChange={(e) => {
                           const [country, city] = e.target.value.split(':');
-                          setNewDestCountry(country);
-                          setNewDestCity(city);
-                          if (country === 'Malaysia') {
-                            setNewRecipientAddress('Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor');
-                          } else if (country === 'Bangladesh' && city === 'Chittagong') {
-                            setNewRecipientAddress('Port Access Road, Customs Point, Chittagong 4100');
-                          } else {
-                            setNewRecipientAddress('Export Processing Zone, Savar, Dhaka 1349, Bangladesh');
+                          if (country !== newDestCountry) {
+                            handleCountryChange(country);
                           }
+                          setNewDestCity(city);
+                          setRecipientCity(city);
                         }}
                         className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                       >
@@ -2307,70 +2385,220 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
                 </div>
 
-                {/* 4. DELIVERY ADDRESS IN BANGLADESH (Matches Image 3) */}
+                {/* 4. DYNAMIC DESTINATION DELIVERY ADDRESS */}
                 <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
                   <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                        4. Delivery Address in Bangladesh
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Final destination doorstep and recipient dispatch coordinates
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                          4. Delivery Address in {newDestCountry}
+                        </h3>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                          <span>{currentAddressConfig.flag}</span>
+                          <span>{newDestCountry}</span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Final destination doorstep, consignee contact and localized dispatch coordinates
                       </p>
                     </div>
-                    <span className="text-[11px] font-medium text-slate-400">Full Address / Doorstep</span>
+                    <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">
+                      {newDestCountry === 'Malaysia' ? 'West & East Malaysia' : 'All 8 Divisions'}
+                    </span>
                   </div>
 
-                  <div>
-                    <input
-                      type="text"
-                      value={newRecipientAddress}
-                      onChange={(e) => setNewRecipientAddress(e.target.value)}
-                      placeholder="e.g. Export Processing Zone, Savar, Dhaka 1349, Bangladesh"
-                      required
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                    />
-                  </div>
-
+                  {/* Recipient Name and Phone with Country Code */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Recipient Contact Name
+                        Recipient / Consignee Contact Name <span className="text-[#EA1D2C]">*</span>
                       </label>
                       <input
                         type="text"
-                        value={newRecipientName}
-                        onChange={(e) => setNewRecipientName(e.target.value)}
-                        placeholder="e.g. Apex Fashion Retail Hub"
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                        value={recipientContactName}
+                        onChange={(e) => {
+                          setRecipientContactName(e.target.value);
+                          setNewRecipientName(e.target.value);
+                        }}
+                        placeholder={newDestCountry === 'Malaysia' ? 'e.g. Lotus Mart Sdn Bhd / David Tan' : 'e.g. Apex Fashion Retail Hub / Farhan Ahmed'}
+                        required
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Recipient Phone Number
+                        Phone Number with Country Code <span className="text-[#EA1D2C]">*</span>
                       </label>
+                      <div className="flex items-center rounded-lg border border-slate-300 overflow-hidden focus-within:ring-1 focus-within:ring-slate-900 bg-white">
+                        <select
+                          value={recipientPhoneCode}
+                          onChange={(e) => setRecipientPhoneCode(e.target.value)}
+                          className="h-10 px-2.5 bg-slate-50 border-r border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer shrink-0"
+                        >
+                          {PHONE_DIAL_CODES.map((dial) => (
+                            <option key={dial.code + dial.country} value={dial.code}>
+                              {dial.flag} {dial.code} ({dial.country})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="tel"
+                          value={recipientPhoneBody}
+                          onChange={(e) => {
+                            setRecipientPhoneBody(e.target.value);
+                            setNewRecipientPhone(`${recipientPhoneCode} ${e.target.value}`);
+                          }}
+                          placeholder={newDestCountry === 'Malaysia' ? '11 1234 5678' : '1601 111994'}
+                          required
+                          className="w-full h-10 px-3 text-xs text-slate-900 font-mono focus:outline-none bg-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Line 1 */}
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                      Address (Street / Building / Plot / Road) <span className="text-[#EA1D2C]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={addressLine1}
+                      onChange={(e) => {
+                        setAddressLine1(e.target.value);
+                        setNewRecipientAddress(e.target.value);
+                      }}
+                      placeholder={newDestCountry === 'Malaysia' ? 'e.g. Lot 2720-B, Jalan Industri 12' : 'e.g. Flat 2/B, 16, 16/1 Basubazar Lane, Dayaganj'}
+                      required
+                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                    />
+                  </div>
+
+                  {/* Address Line 2 */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Address 2 (Suite / Unit / Floor / Industrial Area)
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Optional</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={addressLine2}
+                      onChange={(e) => setAddressLine2(e.target.value)}
+                      placeholder={newDestCountry === 'Malaysia' ? 'e.g. Kampung Baru Sungai Buloh' : 'e.g. Suite 402, 4th Floor, Apex Commercial Hub'}
+                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                    />
+                  </div>
+
+                  {/* 4-Column Selectors: Country, State/Division, City, Postcode */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* Country Selector */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        Country Selector <span className="text-[#EA1D2C]">*</span>
+                      </label>
+                      <select
+                        value={newDestCountry}
+                        onChange={(e) => handleCountryChange(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
+                      >
+                        <option value="Bangladesh">🇧🇩 Bangladesh</option>
+                        <option value="Malaysia">🇲🇾 Malaysia</option>
+                      </select>
+                    </div>
+
+                    {/* State / Division Selector */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        {currentAddressConfig.stateLabel} Selector <span className="text-[#EA1D2C]">*</span>
+                      </label>
+                      <select
+                        value={recipientState}
+                        onChange={(e) => handleStateChange(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
+                      >
+                        {currentStates.map((st) => (
+                          <option key={st.name} value={st.name}>
+                            {st.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* City Selector */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                        City Selector <span className="text-[#EA1D2C]">*</span>
+                      </label>
+                      <select
+                        value={recipientCity}
+                        onChange={(e) => {
+                          setRecipientCity(e.target.value);
+                          setNewDestCity(e.target.value);
+                        }}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
+                      >
+                        {currentAvailableCities.map((ct) => (
+                          <option key={ct} value={ct}>
+                            {ct}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Postcode */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          Post Code
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Optional</span>
+                      </div>
                       <input
-                        type="tel"
-                        value={newRecipientPhone}
-                        onChange={(e) => setNewRecipientPhone(e.target.value)}
-                        placeholder="+880 1711-002233"
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                        type="text"
+                        value={recipientPostcode}
+                        onChange={(e) => setRecipientPostcode(e.target.value)}
+                        placeholder={newDestCountry === 'Malaysia' ? '47000' : '1204'}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
                   </div>
 
+                  {/* Delivery Notes & Special Handling */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Special Handling &amp; Delivery Instructions
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700">
+                        Delivery Notes &amp; Special Handling Instructions
+                      </label>
+                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Optional</span>
+                    </div>
                     <textarea
-                      value={deliveryInstructions}
-                      onChange={(e) => setDeliveryInstructions(e.target.value)}
+                      value={deliveryNotes}
+                      onChange={(e) => {
+                        setDeliveryNotes(e.target.value);
+                        setDeliveryInstructions(e.target.value);
+                      }}
                       rows={2}
                       placeholder="e.g. Direct door-to-door delivery. Call recipient 2 hours before gate arrival."
-                      className="w-full p-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none"
+                      className="w-full p-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none bg-white"
                     />
+                  </div>
+
+                  {/* Live Dispatch Coordinates Preview Box */}
+                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>📍</span> Live Dispatch Coordinates
+                      </span>
+                      <span className="text-[11px] font-mono font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                        {compiledPhone}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-slate-800 break-words leading-relaxed">
+                      {compiledAddress || 'No address specified yet'}
+                    </p>
                   </div>
                 </div>
 
@@ -2455,6 +2683,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <span className="text-slate-500">Customer</span>
                       <span className="font-semibold text-slate-900 truncate max-w-[160px]">
                         {orderCustomerMode === 'new' ? (newCustomerCompany || newCustomerFullName || 'New Customer') : (currentSelectedCustomer?.companyName || currentSelectedCustomer?.fullName || 'Assigned')}
+                      </span>
+                    </div>
+
+                    <div className="py-2 flex items-start justify-between gap-2">
+                      <span className="text-slate-500 shrink-0">Deliver To</span>
+                      <span className="font-semibold text-slate-900 text-right truncate max-w-[170px]" title={compiledAddress}>
+                        {recipientContactName || 'Consignee'} ({recipientCity}, {newDestCountry === 'Malaysia' ? 'MY' : 'BD'})
                       </span>
                     </div>
 

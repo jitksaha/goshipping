@@ -106,6 +106,7 @@ export interface ShipmentRecord {
   estimatedDelivery: string;
   actualDelivery?: string;
   bookingReference?: string;
+  notes?: string;
   items: ShipmentItem[];
   events: ShipmentEvent[];
   physicalProgress: {
@@ -833,6 +834,7 @@ export class ShipmentService {
     carrierName?: string;
     voyageOrFlightNumber?: string;
     billOfLadingNumber?: string;
+    notes?: string;
   }): Promise<ShipmentRecord> {
     const id = `shp-${Date.now().toString(36)}`;
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -918,7 +920,7 @@ export class ShipmentService {
       recipientName: data.recipientName || `${data.customerName} Receiving Hub`,
       recipientPhone: data.recipientPhone || '+880 1711-000000',
       recipientEmail: data.recipientEmail,
-      recipientAddress: data.recipientAddress || `${data.destCity}, Bangladesh`,
+      recipientAddress: data.recipientAddress || `${data.destCity}, ${data.destCountry}`,
       originCountry: data.originCountry,
       originCity: data.originCity,
       originAddress: data.originAddress || `${data.originCity} International Terminal`,
@@ -949,6 +951,7 @@ export class ShipmentService {
       billOfLadingNumber: data.billOfLadingNumber || `BL-${trackingNumber}`,
       departureTime: now,
       estimatedDelivery: data.estimatedDelivery || new Date(Date.now() + 6 * 86400000).toISOString(),
+      notes: data.notes,
       createdAt: now,
       updatedAt: now,
       lastUpdatedBst: formatBstDateTime(now),

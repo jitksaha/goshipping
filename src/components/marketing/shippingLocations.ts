@@ -124,3 +124,143 @@ export function getCitiesForCountry(countries: CountryData[], countryName: strin
   const match = getCountryData(countries, countryName);
   return match ? match.hubs : [];
 }
+
+export interface CountryAddressConfig {
+  name: string;
+  code: string;
+  flag: string;
+  dialCode: string;
+  stateLabel: string;
+  defaultPostcode: string;
+  defaultAddress1: string;
+  defaultAddress2: string;
+  states: {
+    name: string;
+    cities: string[];
+  }[];
+}
+
+export const PHONE_DIAL_CODES = [
+  { country: 'Bangladesh', code: '+880', flag: '🇧🇩' },
+  { country: 'Malaysia', code: '+60', flag: '🇲🇾' },
+  { country: 'China', code: '+86', flag: '🇨🇳' },
+  { country: 'Singapore', code: '+65', flag: '🇸🇬' },
+  { country: 'UAE', code: '+971', flag: '🇦🇪' },
+  { country: 'United States', code: '+1', flag: '🇺🇸' },
+  { country: 'United Kingdom', code: '+44', flag: '🇬🇧' }
+];
+
+export const DESTINATION_ADDRESS_CONFIGS: Record<string, CountryAddressConfig> = {
+  Bangladesh: {
+    name: 'Bangladesh',
+    code: 'BD',
+    flag: '🇧🇩',
+    dialCode: '+880',
+    stateLabel: 'Division',
+    defaultPostcode: '1204',
+    defaultAddress1: 'Flat 2/B, 16, 16/1 Basubazar Lane, Dayaganj',
+    defaultAddress2: '',
+    states: [
+      {
+        name: 'Dhaka Division',
+        cities: ['Dhaka', 'Gazipur', 'Narayanganj', 'Savar', 'Keraniganj', 'Tongi', 'Narsingdi', 'Tangail', 'Manikganj', 'Munshiganj', 'Faridpur']
+      },
+      {
+        name: 'Chittagong Division',
+        cities: ['Chittagong', 'Agrabad (CFS)', 'Cox\'s Bazar', 'Comilla', 'Feni', 'Brahmanbaria', 'Noakhali', 'Chandpur', 'Rangamati']
+      },
+      {
+        name: 'Sylhet Division',
+        cities: ['Sylhet', 'Moulvibazar', 'Habiganj', 'Sunamganj', 'Sreemangal', 'Beanibazar']
+      },
+      {
+        name: 'Rajshahi Division',
+        cities: ['Rajshahi', 'Bogra', 'Pabna', 'Sirajganj', 'Naogaon', 'Natore', 'Joypurhat']
+      },
+      {
+        name: 'Khulna Division',
+        cities: ['Khulna', 'Jessore', 'Kushtia', 'Satkhira', 'Jhenaidah', 'Bagerhat (Mongla Port)']
+      },
+      {
+        name: 'Barisal Division',
+        cities: ['Barisal', 'Patuakhali', 'Bhola', 'Pirojpur', 'Jhalokati', 'Barguna']
+      },
+      {
+        name: 'Rangpur Division',
+        cities: ['Rangpur', 'Dinajpur', 'Saidpur', 'Thakurgaon', 'Kurigram', 'Gaibandha']
+      },
+      {
+        name: 'Mymensingh Division',
+        cities: ['Mymensingh', 'Jamalpur', 'Netrokona', 'Sherpur', 'Bhaluka']
+      }
+    ]
+  },
+  Malaysia: {
+    name: 'Malaysia',
+    code: 'MY',
+    flag: '🇲🇾',
+    dialCode: '+60',
+    stateLabel: 'State / Territory',
+    defaultPostcode: '47000',
+    defaultAddress1: 'Lot 2720-B, Jalan Industri 12',
+    defaultAddress2: 'Kampung Baru Sungai Buloh',
+    states: [
+      {
+        name: 'Selangor',
+        cities: ['Sungai Buloh', 'Petaling Jaya', 'Shah Alam', 'Subang Jaya', 'Klang', 'Puchong', 'Rawang', 'Ampang', 'Kajang', 'Cyberjaya', 'Sepang']
+      },
+      {
+        name: 'Kuala Lumpur',
+        cities: ['Kuala Lumpur City', 'Cheras', 'Kepong', 'Bukit Bintang', 'Mont Kiara', 'Wangsa Maju', 'Setapak', 'Bangsar']
+      },
+      {
+        name: 'Johor',
+        cities: ['Johor Bahru', 'Iskandar Puteri', 'Batu Pahat', 'Muar', 'Kluang', 'Pasir Gudang', 'Kulai', 'Segamat']
+      },
+      {
+        name: 'Penang (Pulau Pinang)',
+        cities: ['George Town', 'Bayan Lepas', 'Butterworth', 'Bukit Mertajam', 'Seberang Perai', 'Batu Kawan']
+      },
+      {
+        name: 'Perak',
+        cities: ['Ipoh', 'Taiping', 'Teluk Intan', 'Manjung', 'Kuala Kangsar', 'Kampar']
+      },
+      {
+        name: 'Kedah',
+        cities: ['Alor Setar', 'Sungai Petani', 'Kulim', 'Langkawi', 'Jitra']
+      },
+      {
+        name: 'Melaka',
+        cities: ['Melaka City', 'Ayer Keroh', 'Alor Gajah', 'Jasin', 'Batu Berendam']
+      },
+      {
+        name: 'Negeri Sembilan',
+        cities: ['Seremban', 'Port Dickson', 'Nilai', 'Senawang', 'Bahau']
+      },
+      {
+        name: 'Pahang',
+        cities: ['Kuantan', 'Bentong', 'Temerloh', 'Cameron Highlands', 'Raub']
+      },
+      {
+        name: 'Sabah',
+        cities: ['Kota Kinabalu', 'Sandakan', 'Tawau', 'Lahad Datu', 'Penampang']
+      },
+      {
+        name: 'Sarawak',
+        cities: ['Kuching', 'Miri', 'Sibu', 'Bintulu', 'Samarahan']
+      },
+      {
+        name: 'Terengganu',
+        cities: ['Kuala Terengganu', 'Chukai', 'Dungun', 'Kerteh']
+      },
+      {
+        name: 'Kelantan',
+        cities: ['Kota Bharu', 'Pasir Mas', 'Tumpat', 'Tanah Merah']
+      },
+      {
+        name: 'Putrajaya',
+        cities: ['Putrajaya Central', 'Precinct 1-20']
+      }
+    ]
+  }
+};

@@ -372,6 +372,7 @@ const CreateShipmentSchema = z.object({
   voyageOrFlightNumber: z.string().optional(),
   billOfLadingNumber: z.string().optional(),
   estimatedDelivery: z.string().optional(),
+  notes: z.string().optional(),
   items: z.array(ShipmentItemInputSchema).optional()
 });
 
