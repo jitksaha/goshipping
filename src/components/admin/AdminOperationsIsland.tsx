@@ -810,9 +810,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         throw new Error('Please fill in product description and weight (KG) for all cargo items.');
       }
 
-      const trackingCodeToUse = newCustomTrackingNumber.trim()
-        ? newCustomTrackingNumber.trim().toUpperCase()
-        : `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      if (!newCustomTrackingNumber.trim()) {
+        throw new Error('Please enter a tracking number manually for this consignment.');
+      }
+      const trackingCodeToUse = newCustomTrackingNumber.trim().toUpperCase();
 
       const finalCustomerEmail =
         orderCustomerMode === 'new'
@@ -1564,7 +1565,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <button
               type="button"
               onClick={() => {
-                setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                setNewCustomTrackingNumber('');
                 switchTab('new_order');
               }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
@@ -3057,31 +3058,25 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </span>
                   </div>
 
-                  {/* Tracking Code Generator Box */}
+                  {/* Manual Tracking Number Input Box */}
                   <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                        Tracking Number
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)}
-                        className="text-[11px] font-medium text-[#EA1D2C] hover:underline cursor-pointer flex items-center gap-1"
-                      >
-                        <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <polyline points="23 4 23 10 17 10" />
-                          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                        </svg>
-                        <span>Regenerate</span>
-                      </button>
+                      <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                        Tracking Number <span className="text-[#EA1D2C]">*</span>
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-medium">Manual Entry</span>
                     </div>
                     <input
                       type="text"
                       value={newCustomTrackingNumber}
                       onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
-                      placeholder={`Auto-generated e.g. GOSH-${new Date().getFullYear()}-XXXX`}
+                      placeholder="e.g. GOSH-2026-9812 or Airway Bill / BL"
+                      required
                       className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
                     />
+                    <p className="text-[10px] text-slate-500">
+                      Enter the carrier airway bill (AWB), ocean B/L or consignment tracking code manually.
+                    </p>
                   </div>
 
                   {/* Initial Status Selector */}
@@ -3232,7 +3227,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <button
                   type="button"
                   onClick={() => {
-                    setNewCustomTrackingNumber(`GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+                    setNewCustomTrackingNumber('');
                     switchTab('new_order');
                   }}
                   className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-none cursor-pointer"
