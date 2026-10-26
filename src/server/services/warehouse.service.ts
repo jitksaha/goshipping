@@ -14,7 +14,22 @@ export interface WarehouseRecord {
 }
 
 let initialWarehouses: WarehouseRecord[] = [
-  // BANGLADESH HUBS
+  // 1. CHINA INTAKE HUB (Official Address)
+  {
+    id: 'wh-can-01',
+    code: 'CAN-GZ',
+    name: 'Guangzhou Central Receiving & Intake Hub',
+    country: 'China',
+    city: 'Guangzhou',
+    address: '765, Sanyuanli Avenue, Baiyun District, Guangzhou (广州市白云区三元里大道765号)',
+    contactPerson: 'Warehouse Intake Lead',
+    phone: '+86 20 8888 1234',
+    email: 'gz.ops@goshipping.com.bd',
+    capacitySqft: 50000,
+    currentOccupancyPct: 65,
+    isActive: true
+  },
+  // 2. BANGLADESH CENTRAL HUB (Official Address)
   {
     id: 'wh-dac-01',
     code: 'DAC-HUB',
@@ -29,71 +44,14 @@ let initialWarehouses: WarehouseRecord[] = [
     currentOccupancyPct: 68,
     isActive: true
   },
-  {
-    id: 'wh-ctg-01',
-    code: 'CTG-PORT',
-    name: 'Chittagong Maritime Terminal CFS',
-    country: 'Bangladesh',
-    city: 'Chittagong',
-    address: 'Port Access Road, Customs Point, Chittagong 4100, Bangladesh',
-    contactPerson: 'Zakir Ahmed',
-    phone: '+880 1819 556677',
-    email: 'ctg.cfs@goshipping.com.bd',
-    capacitySqft: 60000,
-    currentOccupancyPct: 82,
-    isActive: true
-  },
-  // CHINA HUBS
-  {
-    id: 'wh-can-01',
-    code: 'CAN-GZ',
-    name: 'Guangzhou Pearl River Logistics Facility',
-    country: 'China',
-    city: 'Guangzhou',
-    address: 'Baiyun International Logistics Park, Guangzhou, Guangdong, China',
-    contactPerson: 'Li Wei',
-    phone: '+86 20 8888 1234',
-    email: 'gz.ops@goshipping.com.bd',
-    capacitySqft: 75000,
-    currentOccupancyPct: 79,
-    isActive: true
-  },
-  {
-    id: 'wh-yiw-01',
-    code: 'YIW-01',
-    name: 'Yiwu International Commodity CFS Hub',
-    country: 'China',
-    city: 'Yiwu',
-    address: 'Chouzhou North Road, International Trade City Zone 4, Yiwu, Zhejiang, China',
-    contactPerson: 'Chen Gang',
-    phone: '+86 579 8555 6789',
-    email: 'yiw.cfs@goshipping.com.bd',
-    capacitySqft: 50000,
-    currentOccupancyPct: 84,
-    isActive: true
-  },
-  {
-    id: 'wh-szx-01',
-    code: 'SZX-01',
-    name: 'Shenzhen Qianhai Air-Ocean Gateway',
-    country: 'China',
-    city: 'Shenzhen',
-    address: 'Baoan Airport Logistics Park & Qianhai Port CFS, Shenzhen, Guangdong, China',
-    contactPerson: 'Zhang Ming',
-    phone: '+86 755 2345 8899',
-    email: 'szx.gateway@goshipping.com.bd',
-    capacitySqft: 45000,
-    currentOccupancyPct: 62,
-    isActive: true
-  },
-  // MALAYSIA HUB
+  // 3. MALAYSIA RECEIVING HUB (Official Address)
   {
     id: 'wh-my-01',
     code: 'MY-KUL',
     name: 'Malaysia Receiving & Logistics Hub',
     country: 'Malaysia',
     city: 'Selangor',
-    address: 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor, Malaysia',
+    address: 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor.',
     contactPerson: 'GoShipping Malaysia Ops',
     phone: '+60 11-1234 5678',
     email: 'my.ops@goshipping.com.bd',

@@ -1696,10 +1696,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
                 <div>
                   <h3 className="text-xs font-bold text-emerald-950 font-['Manrope',sans-serif]">
-                    China to Bangladesh Shipping Routes are Active
+                    China to Bangladesh &amp; Malaysia Shipping Routes are Active
                   </h3>
                   <p className="text-[11px] text-emerald-700">
-                    Guangzhou, Yiwu, and Shenzhen warehouses are receiving and dispatching packages normally.
+                    Guangzhou, Dhaka, and Selangor facilities are receiving and dispatching packages normally.
                   </p>
                 </div>
               </div>
@@ -3855,30 +3855,30 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
                 <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200/80">
                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block flex items-center gap-1">
-                    <span>🇨🇳</span> China Origin Hubs
+                    <span>🇨🇳</span> China Origin Hub
                   </span>
                   <span className="text-xl font-bold text-slate-900 font-['Manrope',sans-serif]">
                     {warehouses.filter((w) => w.country.toLowerCase() === 'china').length}
                   </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">Guangzhou, Yiwu, Shenzhen</span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Sanyuanli Ave, Guangzhou</span>
                 </div>
                 <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200/80">
                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block flex items-center gap-1">
-                    <span>🇧🇩</span> Bangladesh Hubs
+                    <span>🇧🇩</span> Bangladesh Hub
                   </span>
                   <span className="text-xl font-bold text-slate-900 font-['Manrope',sans-serif]">
                     {warehouses.filter((w) => w.country.toLowerCase() === 'bangladesh').length}
                   </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">Dhaka Central, Chittagong Port</span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">43/31 Sabujkanon, Dhaka</span>
                 </div>
                 <div className="bg-slate-50/70 rounded-lg p-3 border border-slate-200/80">
                   <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block flex items-center gap-1">
-                    <span>🇲🇾</span> Malaysia Hubs
+                    <span>🇲🇾</span> Malaysia Hub
                   </span>
                   <span className="text-xl font-bold text-slate-900 font-['Manrope',sans-serif]">
                     {warehouses.filter((w) => w.country.toLowerCase() === 'malaysia').length}
                   </span>
-                  <span className="text-[10px] text-slate-400 block mt-0.5">Selangor Sungai Buloh Hub</span>
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Sungai Buloh, Selangor</span>
                 </div>
               </div>
             </div>
