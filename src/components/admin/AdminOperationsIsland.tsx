@@ -2870,18 +2870,32 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                         Phone Number with Country Code <span className="text-[#EA1D2C]">*</span>
                       </label>
-                      <div className="flex items-center rounded-lg border border-slate-300 overflow-hidden focus-within:ring-1 focus-within:ring-slate-900 bg-white">
-                        <select
-                          value={recipientPhoneCode}
-                          onChange={(e) => setRecipientPhoneCode(e.target.value)}
-                          className="h-10 px-2.5 bg-slate-50 border-r border-slate-300 text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer shrink-0"
-                        >
-                          {PHONE_DIAL_CODES.map((dial) => (
-                            <option key={dial.code + dial.country} value={dial.code}>
-                              {dial.flag} {dial.code} ({dial.country})
-                            </option>
-                          ))}
-                        </select>
+                      <div className="relative flex items-center h-10 w-full rounded-lg border border-slate-300 bg-white focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                        {/* Compact Dial Code Selector with Flag & Code only */}
+                        <div className="relative flex items-center shrink-0 pl-3 pr-2.5 border-r border-slate-200">
+                          <select
+                            value={recipientPhoneCode}
+                            onChange={(e) => setRecipientPhoneCode(e.target.value)}
+                            aria-label="Select Country Code"
+                            className="appearance-none bg-transparent pr-4 text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                          >
+                            {PHONE_DIAL_CODES.map((dial) => (
+                              <option key={dial.code + dial.country} value={dial.code}>
+                                {dial.flag} {dial.code}
+                              </option>
+                            ))}
+                          </select>
+                          <svg
+                            className="w-3 h-3 text-slate-400 pointer-events-none absolute right-1.5 stroke-[2.5]"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </div>
+
+                        {/* Phone Number Body Input */}
                         <input
                           type="tel"
                           value={recipientPhoneBody}
@@ -2891,7 +2905,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           }}
                           placeholder={newDestCountry === 'Malaysia' ? '11 1234 5678' : '1601 111994'}
                           required
-                          className="w-full h-10 px-3 text-xs text-slate-900 font-mono focus:outline-none bg-transparent"
+                          className="flex-1 h-full px-3 text-xs text-slate-900 font-mono focus:outline-none bg-transparent placeholder-slate-400"
                         />
                       </div>
                     </div>
