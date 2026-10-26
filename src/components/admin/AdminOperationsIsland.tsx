@@ -399,6 +399,118 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     return warehouses.filter((w) => w.country.toLowerCase() === 'china' && w.isActive);
   }, [warehouses]);
 
+  const originWarehouseList = useMemo(() => {
+    if (activeChinaWarehouses.length > 0) return activeChinaWarehouses;
+    return [
+      {
+        id: 'wh-can-01',
+        code: 'CAN-GZ',
+        name: 'Guangzhou Central Receiving & Intake Hub',
+        country: 'China',
+        city: 'Guangzhou',
+        address: '765, Sanyuanli Avenue, Baiyun District, Guangzhou (广州市白云区三元里大道765号)',
+        contactPerson: 'Warehouse Intake Lead',
+        phone: '+86 20 8888 1234',
+        email: 'gz.ops@goshipping.com.bd',
+        capacitySqft: 50000,
+        currentOccupancyPct: 65,
+        isActive: true
+      }
+    ];
+  }, [activeChinaWarehouses]);
+
+  const selectedOriginWarehouse = useMemo(() => {
+    return (
+      originWarehouseList.find((w) => w.city.toLowerCase() === newOriginCity.toLowerCase()) ||
+      originWarehouseList[0]
+    );
+  }, [originWarehouseList, newOriginCity]);
+
+  const destinationHubList = useMemo(() => {
+    const list: { key: string; label: string; country: string; city: string; warehouse: WarehouseRecord }[] = [];
+
+    // Bangladesh
+    const bdWhs = warehouses.filter((w) => w.country.toLowerCase() === 'bangladesh' && w.isActive);
+    if (bdWhs.length > 0) {
+      bdWhs.forEach((w) => {
+        list.push({
+          key: `Bangladesh:${w.city}`,
+          label: w.city === 'Dhaka' ? 'Dhaka' : w.city,
+          country: 'Bangladesh',
+          city: w.city,
+          warehouse: w
+        });
+      });
+    } else {
+      list.push({
+        key: 'Bangladesh:Dhaka',
+        label: 'Dhaka',
+        country: 'Bangladesh',
+        city: 'Dhaka',
+        warehouse: {
+          id: 'wh-dac-01',
+          code: 'DAC-HUB',
+          name: 'Dhaka Central Hub & Pickup Point',
+          country: 'Bangladesh',
+          city: 'Dhaka',
+          address: '43/31, Sabujkanon, Dhaka- 1214, Bangladesh',
+          contactPerson: 'Kamal Hossain',
+          phone: '+880 1711 223344',
+          email: 'dhaka.hub@goshipping.com.bd',
+          capacitySqft: 25000,
+          currentOccupancyPct: 68,
+          isActive: true
+        }
+      });
+    }
+
+    // Malaysia
+    const myWhs = warehouses.filter((w) => w.country.toLowerCase() === 'malaysia' && w.isActive);
+    if (myWhs.length > 0) {
+      myWhs.forEach((w) => {
+        list.push({
+          key: `Malaysia:${w.city}`,
+          label: 'Malaysia',
+          country: 'Malaysia',
+          city: w.city,
+          warehouse: w
+        });
+      });
+    } else {
+      list.push({
+        key: 'Malaysia:Selangor',
+        label: 'Malaysia',
+        country: 'Malaysia',
+        city: 'Selangor',
+        warehouse: {
+          id: 'wh-my-01',
+          code: 'MY-KUL',
+          name: 'Malaysia Receiving & Logistics Hub',
+          country: 'Malaysia',
+          city: 'Selangor',
+          address: 'Lot 2720-B, Jalan Industri 12, Kampung Baru Sungai Buloh, 47000, Selangor.',
+          contactPerson: 'GoShipping Malaysia Ops',
+          phone: '+60 11-1234 5678',
+          email: 'my.ops@goshipping.com.bd',
+          capacitySqft: 35000,
+          currentOccupancyPct: 42,
+          isActive: true
+        }
+      });
+    }
+
+    return list;
+  }, [warehouses]);
+
+  const selectedDestWarehouse = useMemo(() => {
+    const matched = destinationHubList.find(
+      (opt) =>
+        opt.country.toLowerCase() === newDestCountry.toLowerCase() &&
+        (opt.city.toLowerCase() === newDestCity.toLowerCase() || opt.country.toLowerCase() === 'malaysia')
+    );
+    return matched?.warehouse || destinationHubList[0]?.warehouse;
+  }, [destinationHubList, newDestCountry, newDestCity]);
+
   const activeDestWarehouses = useMemo(() => {
     return warehouses.filter((w) => w.country.toLowerCase() === newDestCountry.toLowerCase() && w.isActive);
   }, [warehouses, newDestCountry]);
@@ -2168,102 +2280,214 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-semibold text-slate-700">
-                          Origin Hub (China Only)
-                        </label>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {activeChinaWarehouses.length} active
-                        </span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* 1. Origin Hub (China) */}
+                    <div className="flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-xs font-semibold text-slate-800">
+                            Origin Hub (China)
+                          </label>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {originWarehouseList.length} Active
+                          </span>
+                        </div>
+
+                        {/* Radio Buttons for Origin */}
+                        <div className="flex flex-wrap gap-2">
+                          {originWarehouseList.map((wh) => {
+                            const isSelected = newOriginCity.toLowerCase() === wh.city.toLowerCase();
+                            return (
+                              <label
+                                key={wh.id}
+                                className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-none ${
+                                  isSelected
+                                    ? 'border-[#EA1D2C] bg-red-50/60 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
+                                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="originHubRadio"
+                                  value={wh.city}
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    setNewOriginCity(wh.city);
+                                    setNewOriginCountry('China');
+                                  }}
+                                  className="w-3.5 h-3.5 text-[#EA1D2C] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#EA1D2C]"
+                                />
+                                <span>{wh.city}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <select
-                        value={newOriginCity}
-                        onChange={(e) => {
-                          setNewOriginCity(e.target.value);
-                          setNewOriginCountry('China');
-                        }}
-                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer font-medium"
-                      >
-                        {activeChinaWarehouses.length > 0 ? (
-                          activeChinaWarehouses.map((wh) => (
-                            <option key={wh.id} value={wh.city}>
-                              {wh.city} ({wh.code} — {wh.name})
-                            </option>
-                          ))
-                        ) : (
-                          <>
-                            <option value="Guangzhou">Guangzhou (CAN-GZ Hub)</option>
-                            <option value="Yiwu">Yiwu (YIW-01 Hub)</option>
-                            <option value="Shenzhen">Shenzhen (SZX-01 Hub)</option>
-                          </>
-                        )}
-                      </select>
+
+                      {/* Selected Origin Warehouse Address Box */}
+                      {selectedOriginWarehouse && (
+                        <div className="mt-2.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                          <div className="flex items-center justify-between text-slate-500 mb-0.5">
+                            <span className="font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-700">
+                              <span>📍</span> Warehouse Address
+                            </span>
+                            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
+                              {selectedOriginWarehouse.code}
+                            </span>
+                          </div>
+                          <p className="text-slate-800 font-medium leading-relaxed">
+                            {selectedOriginWarehouse.address}
+                          </p>
+                          {selectedOriginWarehouse.phone && (
+                            <div className="pt-1 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
+                              <span>Intake Contact</span>
+                              <span className="font-mono text-slate-700">{selectedOriginWarehouse.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-semibold text-slate-700">
-                          Destination Hub (BD / MY)
-                        </label>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {warehouses.filter((w) => w.country !== 'China' && w.isActive).length} active
-                        </span>
+                    {/* 2. Destination Hub (BD / MY) */}
+                    <div className="flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-xs font-semibold text-slate-800">
+                            Destination Hub
+                          </label>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            BD / MY
+                          </span>
+                        </div>
+
+                        {/* Radio Buttons for Destination Hub */}
+                        <div className="flex flex-wrap gap-2">
+                          {destinationHubList.map((opt) => {
+                            const isSelected =
+                              newDestCountry.toLowerCase() === opt.country.toLowerCase() &&
+                              (newDestCity.toLowerCase() === opt.city.toLowerCase() || opt.country.toLowerCase() === 'malaysia');
+                            return (
+                              <label
+                                key={opt.key}
+                                className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 px-3 py-2 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-none ${
+                                  isSelected
+                                    ? 'border-[#EA1D2C] bg-red-50/60 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
+                                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="destHubRadio"
+                                  value={opt.key}
+                                  checked={isSelected}
+                                  onChange={() => {
+                                    if (opt.country !== newDestCountry) {
+                                      handleCountryChange(opt.country);
+                                    }
+                                    setNewDestCity(opt.city);
+                                    setRecipientCity(opt.city);
+                                  }}
+                                  className="w-3.5 h-3.5 text-[#EA1D2C] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#EA1D2C]"
+                                />
+                                <span>{opt.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <select
-                        value={`${newDestCountry}:${newDestCity}`}
-                        onChange={(e) => {
-                          const [country, city] = e.target.value.split(':');
-                          if (country !== newDestCountry) {
-                            handleCountryChange(country);
-                          }
-                          setNewDestCity(city);
-                          setRecipientCity(city);
-                        }}
-                        className="w-full h-9 pl-3 pr-9 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 appearance-none focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer font-medium"
-                      >
-                        <optgroup label="🇧🇩 Bangladesh Hubs">
-                          {warehouses.filter((w) => w.country === 'Bangladesh' && w.isActive).length > 0 ? (
-                            warehouses.filter((w) => w.country === 'Bangladesh' && w.isActive).map((wh) => (
-                              <option key={wh.id} value={`Bangladesh:${wh.city}`}>
-                                {wh.city} ({wh.code} — {wh.name})
-                              </option>
-                            ))
-                          ) : (
-                            <option value="Bangladesh:Dhaka">Dhaka (DAC-HUB — Dhaka Central)</option>
+
+                      {/* Selected Destination Warehouse Address Box */}
+                      {selectedDestWarehouse && (
+                        <div className="mt-2.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                          <div className="flex items-center justify-between text-slate-500 mb-0.5">
+                            <span className="font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-700">
+                              <span>📍</span> Warehouse Address
+                            </span>
+                            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
+                              {selectedDestWarehouse.code}
+                            </span>
+                          </div>
+                          <p className="text-slate-800 font-medium leading-relaxed">
+                            {selectedDestWarehouse.address}
+                          </p>
+                          {selectedDestWarehouse.phone && (
+                            <div className="pt-1 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
+                              <span>Dispatch Hub</span>
+                              <span className="font-mono text-slate-700">{selectedDestWarehouse.phone}</span>
+                            </div>
                           )}
-                        </optgroup>
-                        <optgroup label="🇲🇾 Malaysia Hubs">
-                          {warehouses.filter((w) => w.country === 'Malaysia' && w.isActive).length > 0 ? (
-                            warehouses.filter((w) => w.country === 'Malaysia' && w.isActive).map((wh) => (
-                              <option key={wh.id} value={`Malaysia:${wh.city}`}>
-                                {wh.city} ({wh.code} — {wh.name})
-                              </option>
-                            ))
-                          ) : (
-                            <option value="Malaysia:Selangor">Selangor (MY-KUL — Sungai Buloh)</option>
-                          )}
-                        </optgroup>
-                      </select>
+                        </div>
+                      )}
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Shipping Method
-                      </label>
-                      <select
-                        value={newMode}
-                        onChange={(e) => {
-                          const m = e.target.value as any;
-                          setNewMode(m);
-                        }}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
-                      >
-                        <option value="air">By Air</option>
-                        <option value="sea">By Ship</option>
-                        <option value="hand_carry">Hand Carry</option>
-                      </select>
+                    {/* 3. Shipping Method */}
+                    <div className="flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-xs font-semibold text-slate-800">
+                            Shipping Method
+                          </label>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            3 Modes
+                          </span>
+                        </div>
+
+                        {/* Radio Buttons for Shipping Method */}
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { mode: 'air', label: 'By Air' },
+                            { mode: 'sea', label: 'By Ship' },
+                            { mode: 'hand_carry', label: 'Hand Carry' }
+                          ].map((m) => {
+                            const isSelected = newMode === m.mode;
+                            return (
+                              <label
+                                key={m.mode}
+                                className={`flex-1 min-w-[80px] flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-semibold cursor-pointer select-none transition-none ${
+                                  isSelected
+                                    ? 'border-[#EA1D2C] bg-red-50/60 text-[#EA1D2C] ring-1 ring-[#EA1D2C]'
+                                    : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="shippingModeRadio"
+                                  value={m.mode}
+                                  checked={isSelected}
+                                  onChange={() => setNewMode(m.mode as any)}
+                                  className="w-3.5 h-3.5 text-[#EA1D2C] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[#EA1D2C]"
+                                />
+                                <span className="whitespace-nowrap">{m.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Selected Shipping Mode SLA Box */}
+                      <div className="mt-2.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
+                        <div className="flex items-center justify-between text-slate-500 mb-0.5">
+                          <span className="font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-700">
+                            <span>⚡</span> Transit SLA
+                          </span>
+                          <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-[#EA1D2C]">
+                            {newMode === 'air' ? '7–14 Days' : newMode === 'sea' ? '30–45 Days' : '24–48 Hours'}
+                          </span>
+                        </div>
+                        <p className="text-slate-800 font-medium leading-relaxed">
+                          {newMode === 'air'
+                            ? 'Direct scheduled air cargo flight to destination airport hub.'
+                            : newMode === 'sea'
+                            ? 'Economical sea container freight with full port handling.'
+                            : 'Fast personal courier hand-carry transfer directly to destination.'}
+                        </p>
+                        <div className="pt-1 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
+                          <span>Service Type</span>
+                          <span className="font-semibold text-slate-700">
+                            {newMode === 'air' ? 'Air Freight' : newMode === 'sea' ? 'Ocean Cargo' : 'P2P Hand Carry'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
