@@ -5,6 +5,7 @@ import type { QuoteRecord } from '../../server/services/quote.service';
 import type { WarehouseRecord } from '../../server/services/warehouse.service';
 import { TRACKING_STATUSES, normalizeStatusCode, calculatePhysicalProgress, type TrackingStatusCode } from '../../server/services/tracking-status';
 import { DESTINATION_ADDRESS_CONFIGS, PHONE_DIAL_CODES } from '../marketing/shippingLocations';
+import { downloadInvoicePDF, SETTLEMENT_BANKS, type SettlementBankInfo } from '../../lib/invoicePdf';
 
 interface CustomerItem {
   id: string;
@@ -102,6 +103,29 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [invoiceStatusFilter, setInvoiceStatusFilter] = useState('all');
   const [invoicePaidOverrides, setInvoicePaidOverrides] = useState<Record<string, boolean>>({});
   const [previewInvoice, setPreviewInvoice] = useState<any | null>(null);
+  const [selectedSettlementBankId, setSelectedSettlementBankId] = useState<string>('scb-bd');
+  const [customBankDetails, setCustomBankDetails] = useState<SettlementBankInfo>({
+    id: 'custom',
+    bankName: 'City Bank PLC',
+    accountName: 'GoShipping Logistics Bangladesh Ltd.',
+    accountNumber: '1102938475001',
+    branch: 'Corporate Banking Branch, Gulshan-2, Dhaka',
+    routingNumber: '225261890',
+    swiftCode: 'CIBLBDDH',
+    currency: 'BDT',
+    binNumber: '004819273-0101',
+    taxNote: 'Mushak 6.3 Tax Compliant',
+    country: 'GLOBAL'
+  });
+  const [isEditingBank, setIsEditingBank] = useState<boolean>(false);
+
+  const currentSettlementBank: SettlementBankInfo = useMemo(() => {
+    if (selectedSettlementBankId === 'custom') {
+      return customBankDetails;
+    }
+    const found = SETTLEMENT_BANKS.find(b => b.id === selectedSettlementBankId);
+    return found || SETTLEMENT_BANKS[0];
+  }, [selectedSettlementBankId, customBankDetails]);
 
   // Modals state
   const [showPricingModal, setShowPricingModal] = useState(false);
@@ -4005,7 +4029,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
-                              onClick={() => setPreviewInvoice(inv)}
+                              onClick={() => {
+                                if (inv.destination && (inv.destination.toLowerCase().includes('malaysia') || inv.destination.toLowerCase().includes('kuala lumpur') || inv.destination.toLowerCase().includes('selangor'))) {
+                                  setSelectedSettlementBankId('maybank-my');
+                                } else {
+                                  setSelectedSettlementBankId('scb-bd');
+                                }
+                                setIsEditingBank(false);
+                                setPreviewInvoice(inv);
+                              }}
                               className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer transition-none inline-flex items-center gap-1 shadow-2xs"
                             >
                               <span>View Tax Invoice</span>
@@ -5498,39 +5530,201 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </table>
             </div>
 
-            {/* Bank details & footer */}
-            <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <span className="font-bold text-slate-900 block">Settlement Bank: Standard Chartered Bank Bangladesh</span>
-                <span className="font-mono text-[11px] text-slate-500">A/C: 01-1184920-01 · Routing: 195260124 · Swift: SCBLBDDX</span>
+            {/* Dynamic Settlement Bank & Wire Details */}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-700 space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 pb-2 border-b border-slate-200">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-900 text-xs">Settlement Bank Account</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-[#EA1D2C]/10 text-[#EA1D2C]">
+                      Dynamic Remittance
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">
+                    Remittance bank for wire / EFT transfer, tax receipt and commercial clearance
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedSettlementBankId}
+                    onChange={(e) => {
+                      setSelectedSettlementBankId(e.target.value);
+                      if (e.target.value === 'custom') {
+                        setIsEditingBank(true);
+                      }
+                    }}
+                    className="h-8 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-800 shadow-2xs focus:ring-1 focus:ring-[#EA1D2C] focus:outline-none cursor-pointer"
+                  >
+                    <optgroup label="🇧🇩 Bangladesh Settlement Banks (BDT / Foreign Ex)">
+                      <option value="scb-bd">Standard Chartered Bank BD (Gulshan)</option>
+                      <option value="city-bd">The City Bank PLC (Corporate Branch)</option>
+                      <option value="brac-bd">BRAC Bank PLC (Corporate Branch)</option>
+                      <option value="dbbl-bd">Dutch-Bangla Bank PLC (Motijheel)</option>
+                    </optgroup>
+                    <optgroup label="🇲🇾 Malaysia Operations (MYR / USD)">
+                      <option value="maybank-my">Maybank Malaysia (Menara Maybank)</option>
+                      <option value="cimb-my">CIMB Bank Berhad (KL Sentral)</option>
+                    </optgroup>
+                    <optgroup label="⚙️ Custom Entry">
+                      <option value="custom">✎ Custom Bank Account...</option>
+                    </optgroup>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingBank(!isEditingBank)}
+                    className="h-8 px-2.5 text-xs font-medium rounded-lg border border-slate-200 hover:bg-white bg-slate-100 text-slate-700 transition-none cursor-pointer inline-flex items-center gap-1"
+                    title="Customize bank name, account number or routing"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                    </svg>
+                    <span>{isEditingBank ? 'Done' : 'Edit Bank'}</span>
+                  </button>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="font-bold text-slate-900 block">BIN: 004819273-0101</span>
-                <span className="text-[10px] text-slate-500">Mushak 6.3 Tax Compliant</span>
-              </div>
+
+              {!isEditingBank ? (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1">
+                  <div className="space-y-0.5">
+                    <span className="font-bold text-slate-900 block text-xs">
+                      {currentSettlementBank.bankName}
+                    </span>
+                    <p className="text-[11px] text-slate-600">
+                      Beneficiary: <span className="font-semibold text-slate-800">{currentSettlementBank.accountName}</span>
+                    </p>
+                    <p className="font-mono text-[11px] text-slate-700">
+                      A/C: <span className="font-bold text-slate-900">{currentSettlementBank.accountNumber}</span> · Routing: {currentSettlementBank.routingNumber} · Swift: {currentSettlementBank.swiftCode}
+                    </p>
+                    <p className="text-[10px] text-slate-500">
+                      Branch: {currentSettlementBank.branch}
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right space-y-0.5 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200/80 w-full sm:w-auto">
+                    <span className="font-bold text-slate-900 block text-xs">
+                      BIN: {currentSettlementBank.binNumber}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-semibold block">
+                      {currentSettlementBank.taxNote}
+                    </span>
+                    <span className="text-[10px] text-slate-500 block">
+                      Currency: {currentSettlementBank.currency}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 bg-white p-3 rounded-lg border border-slate-200">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Bank Name</label>
+                    <input
+                      type="text"
+                      value={selectedSettlementBankId === 'custom' ? customBankDetails.bankName : currentSettlementBank.bankName}
+                      onChange={(e) => {
+                        setSelectedSettlementBankId('custom');
+                        setCustomBankDetails({ ...customBankDetails, bankName: e.target.value });
+                      }}
+                      className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#EA1D2C]"
+                      placeholder="e.g. Standard Chartered / City Bank"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Account Name / Beneficiary</label>
+                    <input
+                      type="text"
+                      value={selectedSettlementBankId === 'custom' ? customBankDetails.accountName : currentSettlementBank.accountName}
+                      onChange={(e) => {
+                        setSelectedSettlementBankId('custom');
+                        setCustomBankDetails({ ...customBankDetails, accountName: e.target.value });
+                      }}
+                      className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#EA1D2C]"
+                      placeholder="GoShipping Logistics Ltd"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Account Number</label>
+                    <input
+                      type="text"
+                      value={selectedSettlementBankId === 'custom' ? customBankDetails.accountNumber : currentSettlementBank.accountNumber}
+                      onChange={(e) => {
+                        setSelectedSettlementBankId('custom');
+                        setCustomBankDetails({ ...customBankDetails, accountNumber: e.target.value });
+                      }}
+                      className="w-full h-8 px-2.5 font-mono text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#EA1D2C]"
+                      placeholder="A/C Number"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Branch Name &amp; Location</label>
+                    <input
+                      type="text"
+                      value={selectedSettlementBankId === 'custom' ? customBankDetails.branch : currentSettlementBank.branch}
+                      onChange={(e) => {
+                        setSelectedSettlementBankId('custom');
+                        setCustomBankDetails({ ...customBankDetails, branch: e.target.value });
+                      }}
+                      className="w-full h-8 px-2.5 text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#EA1D2C]"
+                      placeholder="Branch name & location"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Routing Number</label>
+                    <input
+                      type="text"
+                      value={selectedSettlementBankId === 'custom' ? customBankDetails.routingNumber : currentSettlementBank.routingNumber}
+                      onChange={(e) => {
+                        setSelectedSettlementBankId('custom');
+                        setCustomBankDetails({ ...customBankDetails, routingNumber: e.target.value });
+                      }}
+                      className="w-full h-8 px-2.5 font-mono text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#EA1D2C]"
+                      placeholder="Routing number"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-500 block mb-1">SWIFT / BIC Code</label>
+                    <input
+                      type="text"
+                      value={selectedSettlementBankId === 'custom' ? customBankDetails.swiftCode : currentSettlementBank.swiftCode}
+                      onChange={(e) => {
+                        setSelectedSettlementBankId('custom');
+                        setCustomBankDetails({ ...customBankDetails, swiftCode: e.target.value });
+                      }}
+                      className="w-full h-8 px-2.5 font-mono text-xs rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-[#EA1D2C]"
+                      placeholder="e.g. SCBLBDDX"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setPreviewInvoice(null)}
-                className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-xs transition-none cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold text-xs transition-none shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-              >
-                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <polyline points="6 9 6 2 18 2 18 9" />
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                  <rect width="12" height="8" x="6" y="14" />
-                </svg>
-                <span>Print / Save as PDF</span>
-              </button>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline-block">
+                Direct vector PDF generation · Mushak 6.3 compliant
+              </span>
+              <div className="flex items-center gap-2.5 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => setPreviewInvoice(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-xs transition-none cursor-pointer hover:bg-slate-50"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    downloadInvoicePDF(previewInvoice, currentSettlementBank);
+                    showToast(`Invoice ${previewInvoice.invoiceNumber} PDF downloaded successfully!`, 'success');
+                  }}
+                  className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold text-xs transition-none shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span>Download PDF Invoice</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

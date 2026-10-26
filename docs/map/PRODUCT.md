@@ -39,6 +39,7 @@ Router file for product functionality, customer flows, and operations modules.
 - **Super Admin Ghost Login (Masquerade)**: 1-click instant login as any user without password, viewing their customer portal directly with an amber Masquerade notification bar and safe session restore.
 - **Shipment Management**: Create master consignments with dynamic customer profile binding (auto-populating importer details and linking tracking directly to customer portal), assign carrier flight/vessel booking, update status.
 - **Milestone Logging**: Record verified checkpoint events with location name, description, and source attribution.
+- **Commercial Tax Invoicing (`/admin?tab=invoices`)**: Complete commercial billing desk with dynamic multi-currency settlement bank routing (Bangladesh Standard Chartered, City Bank, BRAC, DBBL, Malaysia Maybank, CIMB, and editable custom accounts), Mushak 6.3 tax compliance, and direct vector PDF invoice generation and download via [`src/lib/invoicePdf.ts`](file:///Users/jitkumarsaha/Projects/Goshipping/src/lib/invoicePdf.ts) without print dialog popups.
 - **Quotation Pricing Engine**: Commercial review, tariff calculator, pricing revision builder, quote-to-shipment conversion.
 - **Warehouse Facilities**: Hub monitoring (capacity square footage and occupancy %).
 - **Audit Logs**: Immutable timeline of security logins, rate adjustments, and status transitions.
