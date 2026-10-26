@@ -441,7 +441,7 @@ let initialShipments: ShipmentRecord[] = [
     destAddress: 'Motijheel Commercial Area, Dhaka-1000, Bangladesh',
     destLat: 23.7337,
     destLng: 90.4178,
-    mode: 'road',
+    mode: 'hand_carry',
     serviceLevel: 'priority',
     status: 'out_for_delivery',
     statusCode: 'out_for_delivery',

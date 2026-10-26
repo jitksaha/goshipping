@@ -421,7 +421,7 @@ export default function QuoteCalculatorIsland({
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-[#EA1D2C]">7–14 Days</span>
                       </div>
                       <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
-                        Air
+                        By Air
                       </span>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
                         Scheduled air cargo flight from Guangzhou to Dhaka.
@@ -458,7 +458,7 @@ export default function QuoteCalculatorIsland({
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">30–45 Days</span>
                       </div>
                       <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
-                        Sea
+                        By Ship
                       </span>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
                         Economical ocean container freight to Chittagong / Dhaka.
@@ -496,10 +496,10 @@ export default function QuoteCalculatorIsland({
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif] block">
-                          P2P Transfer
+                          Hand Carry
                         </span>
                         <span className="text-[10px] font-medium text-amber-800 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60">
-                          Hand carry
+                          Express P2P
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-snug">
@@ -1083,7 +1083,7 @@ export default function QuoteCalculatorIsland({
                   <div className="flex justify-between text-slate-600">
                     <span>Service Mode:</span>
                     <span className="font-semibold text-slate-900">
-                      {mode === 'air' ? 'Air Freight' : mode === 'sea' ? 'Sea Freight' : 'P2P Transfer (Hand carry)'}
+                      {mode === 'air' ? 'By Air' : mode === 'sea' ? 'By Ship' : 'Hand Carry'}
                     </span>
                   </div>
                   <div className="flex justify-between text-slate-600">

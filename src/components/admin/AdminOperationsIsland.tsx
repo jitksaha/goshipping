@@ -123,7 +123,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newOriginCity, setNewOriginCity] = useState('Guangzhou');
   const [newDestCountry, setNewDestCountry] = useState('Bangladesh');
   const [newDestCity, setNewDestCity] = useState('Dhaka');
-  const [newMode, setNewMode] = useState<'air' | 'sea' | 'road' | 'hand_carry'>('air');
+  const [newMode, setNewMode] = useState<'air' | 'sea' | 'hand_carry'>('air');
   const [newServiceLevel, setNewServiceLevel] = useState<'standard' | 'express' | 'priority'>('express');
   const [newCarrier, setNewCarrier] = useState('Cathay Cargo / GoShipping Air');
   const [newVoyage, setNewVoyage] = useState('Flight CX-068');
@@ -1944,15 +1944,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             setNewCarrier('COSCO Shipping Line');
                             setNewVoyage('Voyage CS-912');
                           } else {
-                            setNewCarrier('Cross-Border Fleet Transport');
-                            setNewVoyage('Truck T-448');
+                            setNewCarrier('Special Courier Express');
+                            setNewVoyage('Hand Carry Protocol');
                           }
                         }}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 cursor-pointer"
                       >
-                        <option value="air">Air Freight</option>
-                        <option value="sea">Sea Freight</option>
-                        <option value="road">Road Freight</option>
+                        <option value="air">By Air</option>
+                        <option value="sea">By Ship</option>
                         <option value="hand_carry">Hand Carry</option>
                       </select>
                     </div>
@@ -2429,7 +2428,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                     <div className="py-2 flex items-center justify-between">
                       <span className="text-slate-500">Mode &amp; Carrier</span>
-                      <span className="font-semibold text-slate-900">{newMode.toUpperCase()} ({newVoyage})</span>
+                      <span className="font-semibold text-slate-900">{(newMode === 'air' ? 'BY AIR' : newMode === 'sea' ? 'BY SHIP' : 'HAND CARRY')} ({newVoyage})</span>
                     </div>
 
                     <div className="py-2 flex items-center justify-between">
@@ -2613,9 +2612,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer focus:border-slate-400 focus:outline-none"
                 >
                   <option value="all">All Shipping Modes</option>
-                  <option value="air">Air Priority</option>
-                  <option value="sea">Ocean Freight</option>
-                  <option value="road">Road Freight</option>
+                  <option value="air">By Air</option>
+                  <option value="sea">By Ship</option>
                   <option value="hand_carry">Hand Carry</option>
                 </select>
 
@@ -2726,7 +2724,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                               ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
                               : 'bg-amber-50 text-amber-700 border-amber-200'
                           }`}>
-                            {s.mode.toUpperCase()}
+                            {s.mode === 'air' ? 'BY AIR' : s.mode === 'sea' ? 'BY SHIP' : s.mode === 'hand_carry' ? 'HAND CARRY' : s.mode.toUpperCase()}
                           </span>
                           <span className="text-[10px] font-mono text-slate-500 truncate max-w-[100px]">
                             {s.voyageOrFlightNumber}

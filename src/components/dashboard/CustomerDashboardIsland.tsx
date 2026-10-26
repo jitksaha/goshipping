@@ -435,7 +435,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                         <span className="font-semibold text-slate-800">{s.originCity}</span> →{' '}
                         <span className="font-semibold text-slate-800">{s.destCity}</span>
                       </td>
-                      <td className="py-3.5 px-4 uppercase font-mono">{s.mode}</td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-xs">{s.mode === 'air' ? 'By Air' : s.mode === 'sea' ? 'By Ship' : s.mode === 'hand_carry' ? 'Hand Carry' : s.mode.toUpperCase()}</td>
                       <td className="py-3.5 px-4 tabular-nums font-medium">{s.totalWeightKg} KG</td>
                       <td className="py-3.5 px-4 max-w-[200px] truncate font-medium text-slate-700">
                         {s.currentLocation}
@@ -514,9 +514,9 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                 className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer"
               >
                 <option value="all">All Modes</option>
-                <option value="air">Air Cargo</option>
-                <option value="sea">Ocean Freight</option>
-                <option value="road">Road / D2D</option>
+                <option value="air">By Air</option>
+                <option value="sea">By Ship</option>
+                <option value="hand_carry">Hand Carry</option>
               </select>
 
               <select
