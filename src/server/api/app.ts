@@ -1032,7 +1032,8 @@ app.get('/admin/audit-logs', async (c) => {
 
 // 16. Admin Customers & Importers
 app.get('/admin/customers', async (c) => {
-  const accounts = getAllAccounts();
+  const staffRoles = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'];
+  const accounts = getAllAccounts().filter((acc) => !staffRoles.includes(acc.role));
   const shipments = await ShipmentService.listShipments();
   const quotes = await QuoteService.listQuotes();
 
@@ -1043,7 +1044,7 @@ app.get('/admin/customers', async (c) => {
       id: acc.id,
       fullName: acc.fullName,
       email: acc.email,
-      role: acc.role,
+      role: acc.role || 'customer',
       status: acc.status,
       phone: acc.phone,
       companyName: acc.companyName,
@@ -1051,7 +1052,7 @@ app.get('/admin/customers', async (c) => {
       binNumber: acc.binNumber,
       activeShipmentsCount: userShipments.filter((s) => s.status !== 'delivered').length,
       totalQuotesCount: userQuotes.length,
-      tier: acc.role === 'customer' ? 'Commercial Importer' : 'Staff Admin'
+      tier: 'Commercial Importer'
     };
   });
 
@@ -1146,16 +1147,28 @@ app.post('/admin/users', async (c) => {
     });
 
     // Send welcome onboarding email to the created user with login credentials
-    EmailService.sendWelcomeUserEmail({
-      fullName: newUser.fullName,
-      email: newUser.email,
-      role: newUser.role,
-      companyName: newUser.companyName,
-      phone: newUser.phone,
-      password: parsed.data.password
-    }).catch((err) => console.error('[EmailService] User onboarding email error:', err));
+    let emailResult: { success: boolean; id?: string; error?: string; fallback?: boolean } = { success: false };
+    try {
+      emailResult = await EmailService.sendWelcomeUserEmail({
+        fullName: newUser.fullName,
+        email: newUser.email,
+        role: newUser.role,
+        companyName: newUser.companyName,
+        phone: newUser.phone,
+        password: parsed.data.password
+      });
+    } catch (err: any) {
+      console.error('[EmailService] User onboarding email error:', err);
+      emailResult = { success: false, error: err.message };
+    }
 
-    return c.json({ success: true, user: newUser }, 201);
+    return c.json({
+      success: true,
+      user: newUser,
+      emailSent: emailResult.success,
+      emailFallback: emailResult.fallback || false,
+      emailWarning: emailResult.error || (!emailResult.success ? 'Email pending domain verification' : undefined)
+    }, 201);
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to create user' }, 500);
   }

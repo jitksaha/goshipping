@@ -392,8 +392,22 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   }, [users, customerSearchQuery]);
 
   const allCustomerOptions = useMemo(() => {
-    const customerUsers = users.filter((u) => u.role === 'customer' || !u.role);
-    const combined = [...customerUsers, ...customers.filter((c) => !customerUsers.some((u) => u.id === c.id))];
+    const staffRoles = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'];
+    const isStaff = (r?: string) => staffRoles.includes(r || '');
+
+    const customerUsers = users.filter((u) => u.role === 'customer' || (!isStaff(u.role) && !u.role));
+    const validCustomers = customers.filter((c) => c.role === 'customer' || (!isStaff(c.role) && !c.role));
+
+    const seen = new Set<string>();
+    const combined: any[] = [];
+    for (const item of [...customerUsers, ...validCustomers]) {
+      const key = item.id || item.email?.toLowerCase();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        combined.push(item);
+      }
+    }
+
     if (combined.length > 0) return combined;
     return [
       { id: 'usr-customer-01', fullName: 'Farhan Ahmed', companyName: 'Apex Textiles Ltd', email: 'farhan@apextextiles.com', phone: '+880 1711-223344', role: 'customer', address: 'Export Processing Zone, Savar, Dhaka 1349, Bangladesh' },
@@ -812,6 +826,19 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           }
 
           const createdUser = await userRes.json();
+          if (createdUser.user) {
+            setUsers((prev) => [createdUser.user, ...prev.filter((u) => u.id !== createdUser.user.id)]);
+            setCustomers((prev) => [
+              {
+                ...createdUser.user,
+                activeShipmentsCount: 0,
+                totalQuotesCount: 0,
+                tier: 'Commercial Importer'
+              },
+              ...prev.filter((c) => c.id !== createdUser.user.id)
+            ]);
+            setSelectedCustomerId(createdUser.user.id);
+          }
           finalCustomerId = createdUser.user?.id || `usr-${Date.now()}`;
           finalCustName = newCustomerCompany.trim() || newCustomerFullName.trim();
           finalRecipientName = newCustomerFullName.trim();
@@ -828,6 +855,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         if (!finalRecipientName) {
           finalRecipientName = currentSelectedCustomer?.fullName || finalCustName;
         }
+      }
+
+      if (finalCustName.length < 2) {
+        finalCustName = 'Valued Customer';
       }
 
       const invalidItems = orderItems.filter((it) => !it.description.trim() || !(Number(it.weightKg) > 0));
@@ -870,17 +901,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           serviceLevel: newServiceLevel,
           carrierName: newCarrier,
           voyageOrFlightNumber: newVoyage,
-          totalWeightKg: orderTotals.totalWeight || 500,
-          totalCbm: orderTotals.totalCbm || 2.5,
-          totalPieces: orderTotals.totalPieces || 1,
+          totalWeightKg: Math.max(0.1, Number(orderTotals.totalWeight) || 10),
+          totalCbm: Math.max(0.01, Number(orderTotals.totalCbm) || 0.1),
+          totalPieces: Math.max(1, Math.round(Number(orderTotals.totalPieces) || 1)),
           notes: deliveryNotes.trim() || deliveryInstructions.trim(),
           items: orderItems.map((it, idx) => ({
             itemCode: `#ITM-${1000 + idx}`,
             description: it.description.trim() || 'Commercial Cargo Item',
             packagingType: it.packagingType,
-            quantity: Number(it.quantity) || 1,
-            weightKg: Number(it.weightKg) || 10,
-            cbm: Number(it.cbm) || 0.05,
+            quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
+            weightKg: Math.max(0.1, Number(it.weightKg) || 10),
+            cbm: Math.max(0.01, Number(it.cbm) || 0.05),
             categoryTag: it.categoryTag,
             declaredValue: Number(it.declaredValue) || undefined,
             currency: 'BDT'
@@ -890,7 +921,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || 'Failed to create consignment');
+        let errMsg = errJson.error || 'Failed to create consignment';
+        if (Array.isArray(errJson.details) && errJson.details.length > 0) {
+          const detailMsgs = errJson.details
+            .map((d: any) => `${d.path?.join('.') || 'field'}: ${d.message}`)
+            .join(' | ');
+          errMsg = `${errMsg} [${detailMsgs}]`;
+        }
+        throw new Error(errMsg);
       }
 
       const data = await res.json();
@@ -911,7 +949,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         mode: newMode.toUpperCase()
       });
 
-      setShowConsignmentModal(false);
       setCustomerSearchQuery('');
       setNewCustomerFullName('');
       setNewCustomerEmail('');
@@ -1177,7 +1214,33 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create user');
-      alert(`User profile created successfully for ${data.user.fullName}!`);
+
+      // Instantly update local state so user appears dynamically across all dropdowns
+      if (data.user) {
+        setUsers((prev) => [data.user, ...prev.filter((u) => u.id !== data.user.id)]);
+        if (data.user.role === 'customer') {
+          setCustomers((prev) => [
+            {
+              ...data.user,
+              activeShipmentsCount: 0,
+              totalQuotesCount: 0,
+              tier: 'Commercial Importer'
+            },
+            ...prev.filter((c) => c.id !== data.user.id)
+          ]);
+        }
+      }
+
+      let emailNotice = '';
+      if (data.emailFallback) {
+        emailNotice = '\n\n📧 Note: Email forwarded to goshippingbd@gmail.com via Resend Sandbox (Recipient: ' + data.user.email + '). Hostinger DNS verification for support.goshipping.com.bd is currently pending.';
+      } else if (data.emailSent) {
+        emailNotice = `\n\n📧 Onboarding credentials email dispatched directly to ${data.user.email}!`;
+      } else if (data.emailWarning) {
+        emailNotice = `\n\n📧 Email status: ${data.emailWarning}`;
+      }
+
+      alert(`User profile created successfully for ${data.user.fullName}!${emailNotice}`);
       setShowAddUserModal(false);
       resetUserForm();
       loadData();
