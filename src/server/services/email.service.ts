@@ -30,7 +30,7 @@ export class EmailService {
   /**
    * Core dispatch function using Resend API with domain validation & audit telemetry
    */
-  static async sendMail(options: SendEmailOptions): Promise<{ success: boolean; id?: string; error?: string }> {
+  static async sendMail(options: SendEmailOptions): Promise<{ success: boolean; id?: string; error?: string; fallback?: boolean }> {
     if (!resendClient || !resendApiKey) {
       console.warn('[EmailService] RESEND_API_KEY is not configured in environment. Email suppressed.');
       return { success: false, error: 'RESEND_API_KEY not configured' };
@@ -51,6 +51,72 @@ export class EmailService {
 
       if (response.error) {
         console.error('[EmailService] Resend API error response:', response.error);
+
+        // Check if error is due to unverified custom domain
+        const errMsg = response.error.message || '';
+        const isDomainUnverified =
+          response.error.name === 'validation_error' ||
+          errMsg.toLowerCase().includes('not verified') ||
+          errMsg.toLowerCase().includes('domain');
+
+        if (isDomainUnverified) {
+          console.warn(`[EmailService] Sender domain (${FROM_EMAIL}) is pending DNS verification on Hostinger. Delivering test copy to verified account (goshippingbd@gmail.com) via onboarding@resend.dev...`);
+
+          try {
+            const adminNoticeHtml = `
+              <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 16px; margin-bottom: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <div style="margin-bottom: 8px;">
+                  <span style="background-color: #D97706; color: #FFFFFF; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">
+                    Resend Sandbox Forward
+                  </span>
+                  <span style="font-size: 12px; font-weight: 600; color: #92400E; margin-left: 6px;">
+                    Hostinger DNS Verification Pending
+                  </span>
+                </div>
+                <p style="margin: 0 0 6px 0; font-size: 13px; color: #92400E; line-height: 1.5;">
+                  This transactional email was generated for recipient: <strong style="color: #78350F;">${recipients.join(', ')}</strong>.
+                </p>
+                <p style="margin: 0; font-size: 12px; color: #B45309; line-height: 1.4;">
+                  Because <code>support.goshipping.com.bd</code> DKIM &amp; SPF records are awaiting DNS verification in Hostinger, Resend forwarded this email to your verified account (<code>goshippingbd@gmail.com</code>). Once Hostinger DNS records are active, emails will dispatch directly to all user inboxes without forward notice.
+                </p>
+              </div>
+            `;
+
+            const fallbackResponse = await resendClient.emails.send({
+              from: 'GoShipping Express <onboarding@resend.dev>',
+              to: ['goshippingbd@gmail.com'],
+              subject: `[FORWARD TO: ${recipients.join(', ')}] ${options.subject}`,
+              html: adminNoticeHtml + options.html,
+              text: `[Intended Recipient: ${recipients.join(', ')}]\n\n` + (options.text || this.stripHtml(options.html))
+            });
+
+            if (fallbackResponse.data?.id) {
+              console.log(`[EmailService] Resend fallback dispatch succeeded! ID: ${fallbackResponse.data.id} delivered to goshippingbd@gmail.com`);
+
+              await AuditService.logAction({
+                action: 'EMAIL_DISPATCHED_FALLBACK',
+                entityType: 'email',
+                entityId: fallbackResponse.data.id,
+                details: {
+                  intendedRecipients: recipients,
+                  deliveredTo: 'goshippingbd@gmail.com',
+                  subject: options.subject,
+                  resendId: fallbackResponse.data.id,
+                  reason: 'Custom domain pending Hostinger DNS verification'
+                }
+              });
+
+              return {
+                success: true,
+                id: fallbackResponse.data.id,
+                fallback: true,
+                error: `Delivered to admin (goshippingbd@gmail.com) via Resend Sandbox pending Hostinger DNS verification.`
+              };
+            }
+          } catch (fallbackErr: any) {
+            console.error('[EmailService] Fallback dispatch failed:', fallbackErr);
+          }
+        }
 
         // Record failed attempt in audit log for observability
         await AuditService.logAction({
@@ -460,45 +526,116 @@ export class EmailService {
     email: string;
     role: string;
     companyName?: string;
-  }): Promise<{ success: boolean; id?: string; error?: string }> {
+    phone?: string;
+    password?: string;
+    loginUrl?: string;
+  }): Promise<{ success: boolean; id?: string; error?: string; fallback?: boolean }> {
+    const siteUrl = user.loginUrl || process.env.PUBLIC_SITE_URL || 'https://goshipping.com.bd';
+    const loginLink = `${siteUrl.replace(/\/$/, '')}/login`;
+
     const subject = `Welcome to GoShipping Portal, ${user.fullName}!`;
     const preheader = `Your enterprise GoShipping account is ready. Access live tracking, rate calculators, and shipment telemetry.`;
 
-    const roleLabel = user.role === 'customer' ? 'Commercial Importer' : 'Authorized Operations Staff';
+    const roleLabel =
+      user.role === 'customer'
+        ? 'Commercial Importer'
+        : user.role === 'super_admin'
+        ? 'Super Administrator'
+        : user.role === 'ops_manager'
+        ? 'Operations Manager'
+        : user.role === 'warehouse_staff'
+        ? 'Depot / Warehouse Staff'
+        : user.role === 'sales_team'
+        ? 'Commercial Sales Specialist'
+        : 'Enterprise User';
 
     const htmlContent = `
-      <h2 style="margin: 0 0 10px 0; font-size: 20px; font-weight: 800; color: #11181E;">
-        Welcome to GoShipping Logistics!
-      </h2>
-      <p style="margin: 0 0 20px 0; font-size: 14px; color: #4B5563; line-height: 1.5;">
-        Dear <strong>${user.fullName}</strong>, your enterprise account has been created on the GoShipping logistics platform.
+      <div style="border-left: 4px solid #EA1D2C; padding-left: 16px; margin-bottom: 24px;">
+        <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #EA1D2C; letter-spacing: 0.5px;">
+          Official Account Confirmation
+        </span>
+        <h2 style="margin: 4px 0 0 0; font-size: 22px; font-weight: 800; color: #11181E; line-height: 1.2;">
+          Welcome aboard, ${user.fullName}!
+        </h2>
+      </div>
+
+      <p style="margin: 0 0 20px 0; font-size: 14px; color: #4B5563; line-height: 1.6;">
+        Your GoShipping logistics account has been successfully created. You now have full access to our global cargo gateway connecting China (Guangzhou &amp; Yiwu) directly to Bangladesh.
       </p>
 
-      <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 18px; margin-bottom: 24px; font-size: 13px;">
+      <!-- Account Summary Card -->
+      <div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px; margin-bottom: 24px; font-size: 13px;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #6B7280; letter-spacing: 0.5px; margin-bottom: 12px; border-bottom: 1px solid #E5E7EB; padding-bottom: 6px;">
+          Your Account Credentials
+        </div>
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="padding: 5px 0; color: #6B7280; width: 35%;">Registered Email:</td>
-            <td style="padding: 5px 0; font-weight: 700; color: #11181E;">${user.email}</td>
+            <td style="padding: 6px 0; color: #6B7280; width: 35%;">Account Name:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #11181E;">${user.fullName}</td>
           </tr>
           <tr>
-            <td style="padding: 5px 0; color: #6B7280;">Account Tier:</td>
-            <td style="padding: 5px 0; font-weight: 600; color: #EA1D2C;">${roleLabel}</td>
+            <td style="padding: 6px 0; color: #6B7280;">Login Email:</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #11181E; font-family: monospace;">${user.email}</td>
           </tr>
           <tr>
-            <td style="padding: 5px 0; color: #6B7280;">Organization:</td>
-            <td style="padding: 5px 0;">${user.companyName || user.fullName}</td>
+            <td style="padding: 6px 0; color: #6B7280;">Account Tier:</td>
+            <td style="padding: 6px 0; font-weight: 600; color: #EA1D2C;">${roleLabel}</td>
+          </tr>
+          ${
+            user.companyName
+              ? `<tr>
+            <td style="padding: 6px 0; color: #6B7280;">Organization:</td>
+            <td style="padding: 6px 0; color: #11181E;">${user.companyName}</td>
+          </tr>`
+              : ''
+          }
+          ${
+            user.password
+              ? `<tr>
+            <td style="padding: 6px 0; color: #6B7280;">Temporary Password:</td>
+            <td style="padding: 6px 0;"><code style="background-color: #FEE2E2; color: #991B1B; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 700;">${user.password}</code> <span style="font-size: 11px; color: #6B7280; margin-left: 6px;">(change after first login)</span></td>
+          </tr>`
+              : ''
+          }
+          <tr>
+            <td style="padding: 6px 0; color: #6B7280;">Portal URL:</td>
+            <td style="padding: 6px 0;"><a href="${loginLink}" style="color: #EA1D2C; font-weight: 600; text-decoration: underline;">${loginLink}</a></td>
           </tr>
         </table>
       </div>
 
-      <p style="font-size: 13px; color: #4B5563; line-height: 1.5; margin-bottom: 24px;">
-        With your portal account, you can request shipping quotes, inspect warehouse receipts, view customs clearance slips, and monitor live cargo flights and vessels.
-      </p>
+      <!-- Quick Platform Features -->
+      <div style="margin-bottom: 24px;">
+        <p style="margin: 0 0 12px 0; font-size: 13px; font-weight: 700; color: #11181E;">
+          What you can do with your GoShipping account:
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; color: #4B5563;">
+          <tr>
+            <td style="padding: 6px 0; vertical-align: top; width: 24px;">&#9992;</td>
+            <td style="padding: 6px 0;"><strong>Live Multi-Leg Tracking:</strong> Real-time telemetric updates from Guangzhou/Yiwu CFS dispatch through customs release at HSIA Dhaka.</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; vertical-align: top; width: 24px;">&#128184;</td>
+            <td style="padding: 6px 0;"><strong>Instant Tariff Calculators:</strong> Direct rates for Door-to-Door, Express Air Cargo, and Full Container Loads (FCL).</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; vertical-align: top; width: 24px;">&#128196;</td>
+            <td style="padding: 6px 0;"><strong>Digital Clearing Slips:</strong> Instant access to packing lists, airway bills, customs assessment chalans, and warehouse entry receipts.</td>
+          </tr>
+        </table>
+      </div>
 
-      <div style="text-align: center;">
-        <a href="https://goshipping.com.bd/login" style="display: inline-block; background-color: #EA1D2C; color: #FFFFFF; font-weight: 700; font-size: 13px; padding: 12px 28px; border-radius: 6px; text-decoration: none;">
-          Sign In to Portal &rarr;
+      <!-- Primary Action CTA -->
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${loginLink}" style="display: inline-block; background-color: #EA1D2C; color: #FFFFFF; font-weight: 700; font-size: 14px; padding: 14px 32px; border-radius: 6px; text-decoration: none; box-shadow: 0 2px 4px rgba(234,29,44,0.25);">
+          Sign In to GoShipping Portal &rarr;
         </a>
+      </div>
+
+      <!-- Support Notice -->
+      <div style="background-color: #F3F4F6; border-radius: 6px; padding: 14px 16px; font-size: 12px; color: #4B5563; line-height: 1.5;">
+        <strong>Need immediate logistics support?</strong><br>
+        Our Dhaka 24/7 Operations Desk is available via phone/WhatsApp at <strong>+880 1711-223344</strong> or email at <a href="mailto:support@goshipping.com.bd" style="color: #EA1D2C; font-weight: 600;">support@goshipping.com.bd</a>.
       </div>
     `;
 

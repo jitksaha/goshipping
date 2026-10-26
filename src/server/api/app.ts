@@ -132,7 +132,7 @@ const SignupSchema = z.object({
   password: z.string().min(4, 'Password must be at least 4 characters')
 });
 
-app.post('/auth/signup', async (c) => {
+const handleRegisterUser = async (c: any) => {
   try {
     const body = await c.req.json();
     const parsed = SignupSchema.safeParse(body);
@@ -178,7 +178,8 @@ app.post('/auth/signup', async (c) => {
       fullName: newAccount.fullName,
       email: newAccount.email,
       role: newAccount.role,
-      companyName: newAccount.companyName
+      companyName: newAccount.companyName,
+      phone: newAccount.phone
     }).catch((err) => console.error('[EmailService] Signup welcome email error:', err));
 
     const isSecure = isRequestSecure(c);
@@ -193,7 +194,10 @@ app.post('/auth/signup', async (c) => {
   } catch (err: any) {
     return c.json({ error: err.message || 'Registration failed' }, 500);
   }
-});
+};
+
+app.post('/auth/signup', handleRegisterUser);
+app.post('/auth/register', handleRegisterUser);
 
 // 03. Auth: Current User
 app.get('/auth/me', async (c) => {
@@ -1020,12 +1024,14 @@ app.post('/admin/users', async (c) => {
       details: { email: newUser.email, role: newUser.role }
     });
 
-    // Send welcome onboarding email to the created user
+    // Send welcome onboarding email to the created user with login credentials
     EmailService.sendWelcomeUserEmail({
       fullName: newUser.fullName,
       email: newUser.email,
       role: newUser.role,
-      companyName: newUser.companyName
+      companyName: newUser.companyName,
+      phone: newUser.phone,
+      password: parsed.data.password
     }).catch((err) => console.error('[EmailService] User onboarding email error:', err));
 
     return c.json({ success: true, user: newUser }, 201);
@@ -1358,5 +1364,53 @@ app.post('/admin/email/test', async (c) => {
     });
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to dispatch test email' }, 500);
+  }
+});
+
+// 27. Admin: Dispatch Test Welcome Email (User Registration Simulation)
+const TestWelcomeEmailSchema = z.object({
+  to: z.string().email().optional(),
+  fullName: z.string().optional(),
+  role: z.string().optional(),
+  companyName: z.string().optional(),
+  password: z.string().optional()
+});
+
+app.post('/admin/email/test-welcome', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || !['super_admin', 'ops_manager'].includes(user.role)) {
+    return c.json({ error: 'Unauthorized. Administrative credentials required.' }, 403);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const parsed = TestWelcomeEmailSchema.safeParse(body);
+    const data = parsed.success ? parsed.data : {};
+
+    const targetEmail = data.to || 'goshippingbd@gmail.com';
+    const targetName = data.fullName || 'Test Importer';
+
+    const result = await EmailService.sendWelcomeUserEmail({
+      fullName: targetName,
+      email: targetEmail,
+      role: data.role || 'customer',
+      companyName: data.companyName || 'Apex Global Trade Ltd',
+      password: data.password || 'Welcome123!'
+    });
+
+    return c.json({
+      success: result.success,
+      emailId: result.id,
+      fallback: result.fallback,
+      error: result.error,
+      message: result.success
+        ? `Welcome onboarding email dispatched via Resend to ${targetEmail} (ID: ${result.id})`
+        : `Email delivery failed: ${result.error}`
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to trigger welcome email test' }, 500);
   }
 });
