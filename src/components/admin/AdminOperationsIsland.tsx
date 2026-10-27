@@ -2154,7 +2154,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     Consignment Dispatch Page
                   </span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-[11px] font-mono text-slate-500">Live Multi-Product Manifest</span>
+                  <span className="text-[11px] font-mono text-slate-500">Live Order Total Summary</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tracking-tight">
                   Create Consignment Order
@@ -2829,7 +2829,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-xs space-y-2">
                     <div className="flex items-center justify-between text-xs border-b border-slate-700 pb-2">
                       <span className="font-semibold text-slate-300 uppercase tracking-wider text-[10px]">
-                        Manifest Totals Summary
+                        Order Total Summary
                       </span>
                       <span className="text-emerald-400 font-mono text-[11px] font-semibold">
                         Auto-Summed across {orderTotals.totalItems} products
@@ -3111,7 +3111,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
-                      Consignment Manifest
+                      Consignment Order Summary
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Ready to Dispatch
