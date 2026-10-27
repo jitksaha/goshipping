@@ -92,7 +92,7 @@ export function SearchableSelect({
         </label>
       )}
 
-      {/* Main Trigger Button: Generous right padding with crisp SVG chevron */}
+      {/* Main Trigger Button: Relative positioning ensures chevron is perfectly centered */}
       <button
         id={id}
         type="button"
@@ -101,20 +101,20 @@ export function SearchableSelect({
           setIsOpen(!isOpen);
           setSearch('');
         }}
-        className={`w-full h-9 pl-3 pr-9 rounded-lg border text-xs text-left bg-white flex items-center justify-between transition-none cursor-pointer focus:outline-none ${
+        className={`relative w-full h-9 pl-3 pr-8 rounded-lg border text-xs text-left bg-white flex items-center justify-between transition-none cursor-pointer focus:outline-none ${
           isOpen
             ? 'border-slate-900 ring-1 ring-slate-900'
             : 'border-slate-300 hover:border-slate-400'
         } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : ''}`}
       >
-        <span className={`truncate ${selectedOption ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
+        <span className={`truncate mr-2 ${selectedOption ? 'text-slate-900 font-medium' : 'text-slate-400'}`}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
 
-        {/* Chevron Icon with perfect right margin (never touching edge) */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
+        {/* Chevron Icon vertically centered in the exact middle of the button */}
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center text-slate-500">
           <svg
-            className={`w-3.5 h-3.5 stroke-[2] text-slate-500 transition-transform duration-100 ${
+            className={`w-3.5 h-3.5 stroke-[2] transition-transform duration-100 ${
               isOpen ? 'rotate-180' : ''
             }`}
             viewBox="0 0 24 24"
@@ -123,7 +123,7 @@ export function SearchableSelect({
           >
             <polyline points="6 9 12 15 18 9" />
           </svg>
-        </div>
+        </span>
       </button>
 
       {/* Dropdown Popover with Integrated Instant Search */}
