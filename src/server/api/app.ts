@@ -8,6 +8,7 @@ import {
   getAllAccounts,
   registerAccount,
   updateAccount,
+  updateAccountPassword,
   findAccountById,
   deleteAccount,
   findAccountByEmail,
@@ -211,19 +212,38 @@ app.get('/auth/me', async (c) => {
   });
 });
 
+// 03. Auth: Current User Profile
+app.get('/auth/me', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user) {
+    return c.json({ error: 'Unauthorized. Please sign in.' }, 401);
+  }
+
+  const fresh = findAccountById(user.id) || user;
+  return c.json({
+    authenticated: true,
+    user: fresh
+  });
+});
+
 // 03b. Auth: Update Profile
 const UpdateProfileSchema = z.object({
-  fullName: z.string().min(2).optional(),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').optional(),
+  email: z.string().email('Invalid email address format').optional(),
   phone: z.string().optional(),
   companyName: z.string().optional(),
   address: z.string().optional(),
-  binNumber: z.string().optional()
+  binNumber: z.string().optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional()
 });
 
 app.patch('/auth/profile', async (c) => {
   let user = c.get('user' as any) as AuthUser | undefined;
   if (!user && process.env.NODE_ENV !== 'production') {
-    user = DEFAULT_ACCOUNTS[4]; // Default to customer
+    user = DEFAULT_ACCOUNTS[0]; // Fallback in non-prod
   }
   if (!user) {
     return c.json({ error: 'Unauthorized. Please sign in.' }, 401);
@@ -233,12 +253,35 @@ app.patch('/auth/profile', async (c) => {
     const body = await c.req.json();
     const parsed = UpdateProfileSchema.safeParse(body);
     if (!parsed.success) {
-      return c.json({ error: 'Invalid profile data', details: parsed.error.issues }, 400);
+      return c.json({ error: parsed.error.issues[0]?.message || 'Invalid profile data', details: parsed.error.issues }, 400);
     }
 
-    const updated = updateAccount(user.id, parsed.data);
+    const { password, email, ...otherFields } = parsed.data;
+
+    // If changing email, ensure it is not already used by another account
+    if (email && email.toLowerCase() !== user.email.toLowerCase()) {
+      const all = getAllAccounts();
+      const conflict = all.find(
+        (a) => a.id !== user!.id && a.email.toLowerCase().trim() === email.toLowerCase().trim()
+      );
+      if (conflict) {
+        return c.json({ error: 'This email address is already registered to another account.' }, 409);
+      }
+    }
+
+    const updates: Partial<AuthUser> = {
+      ...otherFields,
+      ...(email ? { email: email.toLowerCase().trim() } : {})
+    };
+
+    const updated = updateAccount(user.id, updates);
     if (!updated) {
       return c.json({ error: 'User account not found' }, 404);
+    }
+
+    // If password provided, update credentials in memory & persistent store
+    if (password && password.trim()) {
+      updateAccountPassword(updated.email, password.trim());
     }
 
     await AuditService.logAction({

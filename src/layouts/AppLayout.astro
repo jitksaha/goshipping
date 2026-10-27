@@ -257,6 +257,22 @@ const user = Astro.locals.user as AuthUser;
                 </svg>
                 <span>Email Settings</span>
               </a>
+
+              <a
+                href="/admin?tab=settings"
+                data-tab="settings"
+                class={`dashboard-nav-link flex items-center gap-3 px-3 py-2 rounded-r-lg font-medium transition-none border-l-4 ${
+                  activeTab === 'settings' || activeTab === 'profile'
+                    ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                }`}
+              >
+                <svg class="w-3.5 h-3.5 stroke-[1.8] shrink-0 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <span>Profile Settings</span>
+              </a>
             </div>
           </>
         ) : (
@@ -414,14 +430,18 @@ const user = Astro.locals.user as AuthUser;
       </div>
 
       <!-- Operator / User Status Profile Card -->
-      <div class="p-3 m-3 rounded-lg bg-slate-50 border border-slate-200 shrink-0">
+      <a
+        href={portalType === 'admin' ? '/admin?tab=settings' : '/dashboard?tab=settings'}
+        class="p-3 m-3 rounded-lg bg-slate-50 hover:bg-slate-100/90 border border-slate-200 shrink-0 block transition-none cursor-pointer group"
+        title="Click to view and edit your profile settings"
+      >
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs font-mono shrink-0">
+          <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs font-mono shrink-0 group-hover:bg-[#EA1D2C] transition-none">
             {portalType === 'admin' ? 'AD' : (user?.fullName ? user.fullName.substring(0, 2).toUpperCase() : 'CU')}
           </div>
           <div class="min-w-0 flex-1">
-            <div class="text-xs font-bold text-slate-900 truncate">
-              {portalType === 'admin' ? 'Operations Director' : (user?.fullName || 'Verified Customer')}
+            <div class="text-xs font-bold text-slate-900 truncate group-hover:text-[#EA1D2C] transition-none">
+              {portalType === 'admin' ? (user?.fullName || 'Operations Director') : (user?.fullName || 'Verified Customer')}
             </div>
             <div class="text-[10px] text-slate-500 font-mono truncate">
               {user?.email || (portalType === 'admin' ? 'admin@goshipping.com' : 'customer@goshipping.com')}
@@ -429,7 +449,7 @@ const user = Astro.locals.user as AuthUser;
           </div>
           <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active"></span>
         </div>
-      </div>
+      </a>
 
 
       <!-- Bottom Utilities -->

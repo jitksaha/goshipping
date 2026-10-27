@@ -56,6 +56,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   const [profilePhone, setProfilePhone] = useState(user?.phone || '+880 1711 000000');
   const [profileAddress, setProfileAddress] = useState(user?.address || 'Export Processing Zone, Savar, Dhaka 1349, Bangladesh');
   const [profileBin, setProfileBin] = useState(user?.binNumber || '002918291-0102');
+  const [profilePassword, setProfilePassword] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
 
@@ -232,15 +233,18 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: profileName,
+          email: profileEmail,
           companyName: profileCompany,
           phone: profilePhone,
           address: profileAddress,
-          binNumber: profileBin
+          binNumber: profileBin,
+          ...(profilePassword ? { password: profilePassword } : {})
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update profile');
       setProfileSuccessMsg('Profile information updated and saved successfully!');
+      setProfilePassword('');
       setTimeout(() => setProfileSuccessMsg(''), 4000);
     } catch (err: any) {
       alert(err.message || 'Failed to update profile');
@@ -1107,8 +1111,9 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                 <input
                   type="email"
                   value={profileEmail}
-                  disabled
-                  className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 font-mono text-slate-500 cursor-not-allowed"
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  required
+                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900"
                 />
               </div>
 
@@ -1124,15 +1129,28 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               </div>
             </div>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">Tax ID / BIN (Business Identification Number)</label>
-              <input
-                type="text"
-                value={profileBin}
-                onChange={(e) => setProfileBin(e.target.value)}
-                required
-                className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Tax ID / BIN (Business Identification Number)</label>
+                <input
+                  type="text"
+                  value={profileBin}
+                  onChange={(e) => setProfileBin(e.target.value)}
+                  required
+                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">Update Password (optional)</label>
+                <input
+                  type="password"
+                  value={profilePassword}
+                  onChange={(e) => setProfilePassword(e.target.value)}
+                  placeholder="Leave blank to keep current"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-900"
+                />
+              </div>
             </div>
 
             <div>

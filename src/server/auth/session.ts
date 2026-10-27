@@ -185,6 +185,18 @@ export function updateAccount(id: string, updates: Partial<AuthUser>): AuthUser 
   const accounts = getAllAccounts();
   const idx = accounts.findIndex((a) => a.id === id || a.email.toLowerCase() === id.toLowerCase());
   if (idx === -1) return null;
+
+  // Handle email change and password migration
+  if (updates.email && accounts[idx].email.toLowerCase() !== updates.email.toLowerCase()) {
+    const oldEmail = accounts[idx].email.toLowerCase().trim();
+    const newEmail = updates.email.toLowerCase().trim();
+    if (memoryPasswords.has(oldEmail)) {
+      const pwd = memoryPasswords.get(oldEmail)!;
+      memoryPasswords.delete(oldEmail);
+      memoryPasswords.set(newEmail, pwd);
+    }
+  }
+
   accounts[idx] = { ...accounts[idx], ...updates };
 
   // Also update any active session memory for this user
@@ -194,8 +206,33 @@ export function updateAccount(id: string, updates: Partial<AuthUser>): AuthUser 
     }
   }
 
+  // Update MySQL database if connected
+  try {
+    const dbUpdates: any = {};
+    if (updates.fullName) dbUpdates.fullName = updates.fullName;
+    if (updates.email) dbUpdates.email = updates.email;
+    if (updates.phone) dbUpdates.phone = updates.phone;
+    if (updates.companyName) dbUpdates.companyName = updates.companyName;
+    if (updates.address) dbUpdates.address = updates.address;
+    if (updates.binNumber) dbUpdates.binNumber = updates.binNumber;
+    if (updates.status) dbUpdates.status = updates.status;
+    if (updates.role) dbUpdates.role = updates.role;
+    if (Object.keys(dbUpdates).length > 0) {
+      db.update(schema.users).set(dbUpdates).where(eq(schema.users.id, accounts[idx].id)).catch(() => {});
+    }
+  } catch {}
+
   saveAuthStore();
   return accounts[idx];
+}
+
+/**
+ * Update an account password in memory and persistent auth store
+ */
+export function updateAccountPassword(email: string, newPassword: string): void {
+  const normalized = email.toLowerCase().trim();
+  memoryPasswords.set(normalized, newPassword);
+  saveAuthStore();
 }
 
 /**
