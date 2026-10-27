@@ -8,6 +8,8 @@ dist/
 .output/
 .cache/
 .vite/
+*.zip
+*.tar.gz
 
 # Dependencies
 node_modules/
