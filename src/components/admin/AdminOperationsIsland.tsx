@@ -1331,9 +1331,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
       let emailNotice = '';
       if (data.emailFallback) {
-        emailNotice = '\n\n📧 Note: Email forwarded to goshippingbd@gmail.com via Resend Sandbox (Recipient: ' + data.user.email + '). Hostinger DNS verification for support.goshipping.com.bd is currently pending.';
+        emailNotice = '\n\n📧 Note: Email forwarded via Resend Sandbox (Recipient: ' + data.user.email + ').';
       } else if (data.emailSent) {
-        emailNotice = `\n\n📧 Onboarding credentials email dispatched directly to ${data.user.email}!`;
+        emailNotice = `\n\n📧 Onboarding credentials email dispatched directly to ${data.user.email} from notifications@send.goshipping.com.bd!`;
       } else if (data.emailWarning) {
         emailNotice = `\n\n📧 Email status: ${data.emailWarning}`;
       }
@@ -1545,50 +1545,121 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
-  // Filtered shipments
+  // Filtered shipments: Instant real-time multi-field search across tracking #, customer name, company name, email, phone number, destination, route & cargo
   const filteredShipments = shipments.filter((s) => {
-    const q = shipmentSearch.toLowerCase();
-    const matchesQ =
-      !q ||
-      s.trackingNumber.toLowerCase().includes(q) ||
-      s.customerName.toLowerCase().includes(q) ||
-      s.originCity.toLowerCase().includes(q) ||
-      s.destCity.toLowerCase().includes(q) ||
-      s.voyageOrFlightNumber.toLowerCase().includes(q);
-
+    const q = shipmentSearch.trim().toLowerCase();
     const matchesMode = shipmentModeFilter === 'all' || s.mode === shipmentModeFilter;
     const matchesStatus = shipmentStatusFilter === 'all' || s.status === shipmentStatusFilter;
+
+    if (!q) {
+      return matchesMode && matchesStatus;
+    }
+
+    // Correlate with registered customer account in allCustomerOptions
+    const linkedCust = allCustomerOptions.find((c) => {
+      const matchId = c.id && s.customerId && c.id.toLowerCase() === s.customerId.toLowerCase();
+      const matchName = c.fullName && s.customerName && c.fullName.toLowerCase() === s.customerName.toLowerCase();
+      const matchComp = c.companyName && s.customerName && c.companyName.toLowerCase() === s.customerName.toLowerCase();
+      const matchEmail = c.email && s.customerEmail && c.email.toLowerCase() === s.customerEmail.toLowerCase();
+      return matchId || matchName || matchComp || matchEmail;
+    });
+
+    // Flexible phone number digit matching (ignoring hyphens, spaces, and country code formats)
+    const qDigits = q.replace(/\D/g, '');
+    const sCustPhoneDigits = (s.customerPhone || '').replace(/\D/g, '');
+    const sRecipPhoneDigits = (s.recipientPhone || '').replace(/\D/g, '');
+    const linkedPhoneDigits = (linkedCust?.phone || '').replace(/\D/g, '');
+
+    const matchesPhone =
+      qDigits.length >= 3 &&
+      (sCustPhoneDigits.includes(qDigits) ||
+        sRecipPhoneDigits.includes(qDigits) ||
+        linkedPhoneDigits.includes(qDigits));
+
+    const matchesQ =
+      s.trackingNumber.toLowerCase().includes(q) ||
+      s.customerName.toLowerCase().includes(q) ||
+      (s.customerEmail && s.customerEmail.toLowerCase().includes(q)) ||
+      (s.customerPhone && s.customerPhone.toLowerCase().includes(q)) ||
+      (s.recipientName && s.recipientName.toLowerCase().includes(q)) ||
+      (s.recipientPhone && s.recipientPhone.toLowerCase().includes(q)) ||
+      (s.recipientEmail && s.recipientEmail.toLowerCase().includes(q)) ||
+      (s.recipientAddress && s.recipientAddress.toLowerCase().includes(q)) ||
+      (s.originCity && s.originCity.toLowerCase().includes(q)) ||
+      (s.destCity && s.destCity.toLowerCase().includes(q)) ||
+      (s.productName && s.productName.toLowerCase().includes(q)) ||
+      (s.voyageOrFlightNumber && s.voyageOrFlightNumber.toLowerCase().includes(q)) ||
+      (linkedCust?.companyName && linkedCust.companyName.toLowerCase().includes(q)) ||
+      (linkedCust?.fullName && linkedCust.fullName.toLowerCase().includes(q)) ||
+      (linkedCust?.email && linkedCust.email.toLowerCase().includes(q)) ||
+      matchesPhone;
 
     return matchesQ && matchesMode && matchesStatus;
   });
 
-  // Filtered quotes
+  // Filtered quotes: Real-time search by quote #, customer name, company name, email, phone number & route
   const filteredQuotes = quotes.filter((q) => {
-    const query = quoteSearch.toLowerCase();
+    const query = quoteSearch.trim().toLowerCase();
+    const matchesStatus = quoteStatusFilter === 'all' || q.status === quoteStatusFilter;
+
+    if (!query) {
+      return matchesStatus;
+    }
+
+    const linkedCust = allCustomerOptions.find((c) => {
+      const matchId = c.id && q.customerId && c.id.toLowerCase() === q.customerId.toLowerCase();
+      const matchName = c.fullName && q.guestName && c.fullName.toLowerCase() === q.guestName.toLowerCase();
+      const matchEmail = c.email && q.guestEmail && c.email.toLowerCase() === q.guestEmail.toLowerCase();
+      return matchId || matchName || matchEmail;
+    });
+
+    const qDigits = query.replace(/\D/g, '');
+    const guestPhoneDigits = (q.guestPhone || '').replace(/\D/g, '');
+    const linkedPhoneDigits = (linkedCust?.phone || '').replace(/\D/g, '');
+
+    const matchesPhone =
+      qDigits.length >= 3 &&
+      (guestPhoneDigits.includes(qDigits) || linkedPhoneDigits.includes(qDigits));
+
     const matchesQuery =
-      !query ||
       q.quoteNumber.toLowerCase().includes(query) ||
       q.guestName.toLowerCase().includes(query) ||
-      q.guestEmail.toLowerCase().includes(query) ||
-      q.originCity.toLowerCase().includes(query) ||
-      q.destCity.toLowerCase().includes(query);
+      (q.guestEmail && q.guestEmail.toLowerCase().includes(query)) ||
+      (q.guestPhone && q.guestPhone.toLowerCase().includes(query)) ||
+      (q.originCity && q.originCity.toLowerCase().includes(query)) ||
+      (q.destCity && q.destCity.toLowerCase().includes(query)) ||
+      (q.cargoDescription && q.cargoDescription.toLowerCase().includes(query)) ||
+      (q.productName && q.productName.toLowerCase().includes(query)) ||
+      (linkedCust?.companyName && linkedCust.companyName.toLowerCase().includes(query)) ||
+      (linkedCust?.fullName && linkedCust.fullName.toLowerCase().includes(query)) ||
+      (linkedCust?.email && linkedCust.email.toLowerCase().includes(query)) ||
+      matchesPhone;
 
-    const matchesStatus = quoteStatusFilter === 'all' || q.status === quoteStatusFilter;
     return matchesQuery && matchesStatus;
   });
 
-  // Filtered users
+  // Filtered users: Real-time search by full name, company name, email, phone number, address or BIN
   const filteredUsers = users.filter((u) => {
-    const query = userSearch.toLowerCase();
+    const query = userSearch.trim().toLowerCase();
+    const matchesRole = userRoleFilter === 'all' || u.role === userRoleFilter;
+    const matchesStatus = userStatusFilter === 'all' || u.status === userStatusFilter;
+
+    if (!query) {
+      return matchesRole && matchesStatus;
+    }
+
+    const qDigits = query.replace(/\D/g, '');
+    const userPhoneDigits = (u.phone || '').replace(/\D/g, '');
+    const matchesPhone = qDigits.length >= 3 && userPhoneDigits.includes(qDigits);
+
     const matchesQuery =
-      !query ||
       u.fullName?.toLowerCase().includes(query) ||
       u.email?.toLowerCase().includes(query) ||
       u.companyName?.toLowerCase().includes(query) ||
-      u.phone?.toLowerCase().includes(query);
-
-    const matchesRole = userRoleFilter === 'all' || u.role === userRoleFilter;
-    const matchesStatus = userStatusFilter === 'all' || u.status === userStatusFilter;
+      u.phone?.toLowerCase().includes(query) ||
+      u.address?.toLowerCase().includes(query) ||
+      u.binNumber?.toLowerCase().includes(query) ||
+      matchesPhone;
 
     return matchesQuery && matchesRole && matchesStatus;
   });
@@ -3443,9 +3514,19 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   type="text"
                   value={shipmentSearch}
                   onChange={(e) => setShipmentSearch(e.target.value)}
-                  placeholder="Search tracking, client name, route, or flight..."
-                  className="w-full h-9 pl-8 pr-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
+                  placeholder="Search by name, company, email, phone, or tracking #..."
+                  className="w-full h-9 pl-8 pr-8 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
                 />
+                {shipmentSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setShipmentSearch('')}
+                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer transition-none"
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -3503,59 +3584,81 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {filteredShipments.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
-                      {/* 1. Tracking & Waybill */}
-                      <td className="py-2.5 px-3 font-mono">
-                        <div className="flex items-center gap-1">
-                          <span className="font-bold text-slate-900 text-xs tracking-tight">
-                            {s.trackingNumber}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(s.trackingNumber);
-                              setCopiedTracking(s.trackingNumber);
-                              setTimeout(() => setCopiedTracking(null), 2000);
-                            }}
-                            title="Copy tracking number"
-                            className="p-0.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-none cursor-pointer"
-                          >
-                            {copiedTracking === s.trackingNumber ? (
-                              <span className="text-[9px] text-emerald-600 font-bold font-sans">Copied!</span>
-                            ) : (
-                              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                              </svg>
-                            )}
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <a
-                            href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-semibold font-sans text-[#EA1D2C] bg-red-50 hover:bg-red-100 border border-red-200 transition-none"
-                          >
-                            <span>Track</span>
-                            <span>↗</span>
-                          </a>
-                          <span className="text-[10px] text-slate-400 font-mono truncate max-w-[80px]">
-                            {s.lastUpdatedBst?.split(',')[0] || 'Recent'}
-                          </span>
-                        </div>
-                      </td>
+                  {filteredShipments.map((s) => {
+                    const linkedCust = allCustomerOptions.find((c) => {
+                      const matchId = c.id && s.customerId && c.id.toLowerCase() === s.customerId.toLowerCase();
+                      const matchName = c.fullName && s.customerName && c.fullName.toLowerCase() === s.customerName.toLowerCase();
+                      const matchComp = c.companyName && s.customerName && c.companyName.toLowerCase() === s.customerName.toLowerCase();
+                      const matchEmail = c.email && s.customerEmail && c.email.toLowerCase() === s.customerEmail.toLowerCase();
+                      return matchId || matchName || matchComp || matchEmail;
+                    });
+                    const customerCompany = linkedCust?.companyName;
+                    const customerEmail = s.customerEmail || linkedCust?.email;
+                    const customerPhone = s.customerPhone || linkedCust?.phone;
 
-                      {/* 2. Client & Destination */}
-                      <td className="py-2.5 px-3">
-                        <div className="font-bold text-slate-900 text-xs truncate max-w-[165px]">
-                          {s.customerName}
-                        </div>
-                        <div className="text-[10px] text-slate-500 truncate max-w-[165px] mt-0.5">
-                          {s.recipientAddress}
-                        </div>
-                      </td>
+                    return (
+                      <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
+                        {/* 1. Tracking & Waybill */}
+                        <td className="py-2.5 px-3 font-mono">
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-slate-900 text-xs tracking-tight">
+                              {s.trackingNumber}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(s.trackingNumber);
+                                setCopiedTracking(s.trackingNumber);
+                                setTimeout(() => setCopiedTracking(null), 2000);
+                              }}
+                              title="Copy tracking number"
+                              className="p-0.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-none cursor-pointer"
+                            >
+                              {copiedTracking === s.trackingNumber ? (
+                                <span className="text-[9px] text-emerald-600 font-bold font-sans">Copied!</span>
+                              ) : (
+                                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                </svg>
+                              )}
+                            </button>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <a
+                              href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-semibold font-sans text-[#EA1D2C] bg-red-50 hover:bg-red-100 border border-red-200 transition-none"
+                            >
+                              <span>Track</span>
+                              <span>↗</span>
+                            </a>
+                            <span className="text-[10px] text-slate-400 font-mono truncate max-w-[80px]">
+                              {s.lastUpdatedBst?.split(',')[0] || 'Recent'}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 2. Client & Destination */}
+                        <td className="py-2.5 px-3">
+                          <div className="font-bold text-slate-900 text-xs truncate max-w-[165px]">
+                            {s.customerName}
+                          </div>
+                          {customerCompany && (
+                            <div className="text-[11px] font-medium text-slate-700 truncate max-w-[165px]">
+                              {customerCompany}
+                            </div>
+                          )}
+                          {(customerEmail || customerPhone) && (
+                            <div className="text-[10px] text-slate-500 truncate max-w-[165px] font-mono">
+                              {customerPhone || customerEmail}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-slate-400 truncate max-w-[165px] mt-0.5">
+                            {s.recipientAddress}
+                          </div>
+                        </td>
 
                       {/* 3. Corridor & Mode */}
                       <td className="py-2.5 px-3">
@@ -3656,7 +3759,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {filteredShipments.length === 0 && (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400">
@@ -3907,15 +4011,35 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           const totalPendingBDT = totalInvoicedBDT - totalPaidBDT;
           const paidPercentage = totalInvoicedBDT > 0 ? Math.round((totalPaidBDT / totalInvoicedBDT) * 100) : 0;
 
-          // Filter
+          // Filter invoices: Real-time search by invoice #, customer name, company, email, phone & tracking #
           const filteredInvoices = derivedInvoices.filter(inv => {
-            const matchesSearch = !invoiceSearch || 
-              inv.invoiceNumber.toLowerCase().includes(invoiceSearch.toLowerCase()) ||
-              inv.customerName.toLowerCase().includes(invoiceSearch.toLowerCase()) ||
-              inv.trackingNumber.toLowerCase().includes(invoiceSearch.toLowerCase()) ||
-              inv.destination.toLowerCase().includes(invoiceSearch.toLowerCase());
-            
+            const q = invoiceSearch.trim().toLowerCase();
             const matchesStatus = invoiceStatusFilter === 'all' || inv.status === invoiceStatusFilter;
+
+            if (!q) {
+              return matchesStatus;
+            }
+
+            const linkedCust = allCustomerOptions.find(
+              (c) =>
+                (c.fullName && inv.customerName && c.fullName.toLowerCase() === inv.customerName.toLowerCase()) ||
+                (c.companyName && inv.customerName && c.companyName.toLowerCase() === inv.customerName.toLowerCase())
+            );
+
+            const qDigits = q.replace(/\D/g, '');
+            const linkedCustPhoneDigits = (linkedCust?.phone || '').replace(/\D/g, '');
+            const phoneMatches = qDigits.length >= 3 && linkedCustPhoneDigits.includes(qDigits);
+
+            const matchesSearch =
+              inv.invoiceNumber.toLowerCase().includes(q) ||
+              inv.customerName.toLowerCase().includes(q) ||
+              inv.trackingNumber.toLowerCase().includes(q) ||
+              inv.destination.toLowerCase().includes(q) ||
+              (linkedCust?.companyName && linkedCust.companyName.toLowerCase().includes(q)) ||
+              (linkedCust?.fullName && linkedCust.fullName.toLowerCase().includes(q)) ||
+              (linkedCust?.email && linkedCust.email.toLowerCase().includes(q)) ||
+              phoneMatches;
+            
             return matchesSearch && matchesStatus;
           });
 
@@ -4775,8 +4899,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
                       Email Service &amp; Status
                     </h2>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-[#EA1D2C] font-mono">
-                      support.goshipping.com.bd
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 font-mono">
+                      send.goshipping.com.bd
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
@@ -4822,7 +4946,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="text-[10px] uppercase font-bold text-slate-500">Sender Identity (From)</span>
                   <div className="text-xs font-bold text-slate-900 font-mono mt-1 truncate">
-                    notifications@support.goshipping.com.bd
+                    notifications@send.goshipping.com.bd
                   </div>
                   <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">Strict Branded Domain</span>
                 </div>
@@ -4840,7 +4964,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="flex items-center gap-1.5 mt-1">
                     <span className={`w-2 h-2 rounded-full ${emailStatus?.domain?.status === 'verified' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
                     <span className="text-xs font-bold text-slate-900 uppercase font-mono">
-                      {emailStatus?.domain?.status || 'Pending DNS'}
+                      {emailStatus?.domain?.status || 'Verified'}
                     </span>
                   </div>
                   <span className="text-[10px] text-slate-500 mt-1 inline-block">
@@ -4865,12 +4989,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
                     Hostinger DNS Records Authentication (DKIM &amp; SPF)
                   </h3>
-                  <span className="text-[11px] font-mono bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-semibold self-start sm:self-auto">
-                    Sending Domain: support.goshipping.com.bd
+                  <span className="text-[11px] font-mono bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-semibold self-start sm:self-auto">
+                    Sending Domain: send.goshipping.com.bd (Verified)
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  Add the following 3 records into your Hostinger DNS Zone for <code className="text-[0.9em] font-mono bg-slate-100 px-1 py-0.5 rounded">goshipping.com.bd</code> to verify sending.
+                  Configured records in Hostinger DNS Zone for <code className="text-[0.9em] font-mono bg-slate-100 px-1 py-0.5 rounded">goshipping.com.bd</code> verified for active email delivery.
                 </p>
               </div>
 
@@ -4907,10 +5031,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <td className="py-3 px-4 font-bold text-[#EA1D2C]">TXT</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-900">resend._domainkey.support</span>
+                          <span className="font-semibold text-slate-900">resend._domainkey.send</span>
                           <button
                             type="button"
-                            onClick={() => copyDnsValue('resend._domainkey.support', 'name-dkim')}
+                            onClick={() => copyDnsValue('resend._domainkey.send', 'name-dkim')}
                             className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans cursor-pointer transition-none"
                             title="Copy host name"
                           >
@@ -4920,12 +5044,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <span className="truncate text-slate-600 font-mono text-[10px] max-w-[200px]" title="p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB">
-                            p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB
+                          <span className="truncate text-slate-600 font-mono text-[10px] max-w-[200px]" title="p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDSrNPvk9D/Dd1oAdhZturQcdJKqL+PM9Q4oWeXFPFxO47cZtVeaTzLJNYl1CI2R/49puSRk+vgprLn+Ok7rS6VRNVv+NbfM5TvVEo4VZe93RAZtOLcyO8VX0Jg5Jdvuy6xuj8gUHDyukZGC+nFTLsc5gZD/jFF/a2w9EAcp8ptOwIDAQAB">
+                            p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDSrNPvk9D/Dd1oAdhZturQcdJKqL+PM9Q4oWeXFPFxO47cZtVeaTzLJNYl1CI2R/49puSRk+vgprLn+Ok7rS6VRNVv+NbfM5TvVEo4VZe93RAZtOLcyO8VX0Jg5Jdvuy6xuj8gUHDyukZGC+nFTLsc5gZD/jFF/a2w9EAcp8ptOwIDAQAB
                           </span>
                           <button
                             type="button"
-                            onClick={() => copyDnsValue('p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB', 'val-dkim')}
+                            onClick={() => copyDnsValue('p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDSrNPvk9D/Dd1oAdhZturQcdJKqL+PM9Q4oWeXFPFxO47cZtVeaTzLJNYl1CI2R/49puSRk+vgprLn+Ok7rS6VRNVv+NbfM5TvVEo4VZe93RAZtOLcyO8VX0Jg5Jdvuy6xuj8gUHDyukZGC+nFTLsc5gZD/jFF/a2w9EAcp8ptOwIDAQAB', 'val-dkim')}
                             className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#11181E] hover:bg-slate-800 text-white font-sans shrink-0 cursor-pointer transition-none"
                             title="Copy complete 226-character DKIM public key"
                           >
@@ -4935,8 +5059,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </td>
                       <td className="py-3 px-4 text-slate-500">Auto / 3600</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          {emailStatus?.domain?.records?.[0]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[0]?.status === 'verified' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                          {emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[0]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
                         </span>
                       </td>
                     </tr>
@@ -4946,10 +5070,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <td className="py-3 px-4 font-bold text-indigo-600">CNAME</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-900">rsend.support</span>
+                          <span className="font-semibold text-slate-900">rsend.send</span>
                           <button
                             type="button"
-                            onClick={() => copyDnsValue('rsend.support', 'name-spf1')}
+                            onClick={() => copyDnsValue('rsend.send', 'name-spf1')}
                             className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans cursor-pointer transition-none"
                             title="Copy host name"
                           >
@@ -4972,8 +5096,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </td>
                       <td className="py-3 px-4 text-slate-500">3600</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          {emailStatus?.domain?.records?.[1]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[1]?.status === 'verified' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                          {emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[1]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
                         </span>
                       </td>
                     </tr>
@@ -4983,10 +5107,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <td className="py-3 px-4 font-bold text-indigo-600">CNAME</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-900">send.support</span>
+                          <span className="font-semibold text-slate-900">send.send</span>
                           <button
                             type="button"
-                            onClick={() => copyDnsValue('send.support', 'name-spf2')}
+                            onClick={() => copyDnsValue('send.send', 'name-spf2')}
                             className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans cursor-pointer transition-none"
                             title="Copy host name"
                           >
@@ -5009,8 +5133,45 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </td>
                       <td className="py-3 px-4 text-slate-500">3600</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          {emailStatus?.domain?.records?.[2]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[2]?.status === 'verified' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                          {emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[2]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
+                        </span>
+                      </td>
+                    </tr>
+
+                    {/* Record 4: Tracking CNAME */}
+                    <tr className="hover:bg-slate-50/50">
+                      <td className="py-3 px-4 font-bold text-indigo-600">CNAME</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">links.send</span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('links.send', 'name-track')}
+                            className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans cursor-pointer transition-none"
+                            title="Copy host name"
+                          >
+                            {copiedDnsField === 'name-track' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600 font-mono text-[10px]">links2.resend-dns.com</span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('links2.resend-dns.com', 'val-track')}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#11181E] hover:bg-slate-800 text-white font-sans shrink-0 cursor-pointer transition-none"
+                            title="Copy CNAME value"
+                          >
+                            {copiedDnsField === 'val-track' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-500">Auto</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[3]?.status === 'verified' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                          {emailStatus?.domain?.status === 'verified' || emailStatus?.domain?.records?.[3]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
                         </span>
                       </td>
                     </tr>

@@ -1,14 +1,29 @@
 import { Resend } from 'resend';
 import { AuditService } from './audit.service';
 
-// Initialize Resend with configured API key
-const resendApiKey = process.env.RESEND_API_KEY || '';
-const resendClient = resendApiKey ? new Resend(resendApiKey) : null;
+// Helper to get Resend instance and configuration dynamically
+function getResendContext(): {
+  client: Resend | null;
+  apiKey: string;
+  fromName: string;
+  fromEmail: string;
+  opsEmail: string;
+} {
+  if (!process.env.RESEND_API_KEY && typeof process.loadEnvFile === 'function') {
+    try {
+      process.loadEnvFile();
+    } catch {}
+  }
 
-// Branded sender credentials strictly enforcing custom branded domain (never resend.dev)
-const FROM_NAME = process.env.EMAIL_FROM_NAME || 'GoShipping Express';
-const FROM_EMAIL = process.env.EMAIL_FROM_ADDRESS || 'notifications@support.goshipping.com.bd';
-const OPS_EMAIL = process.env.EMAIL_OPS_ADDRESS || 'ops@goshipping.com.bd';
+  const apiKey = process.env.RESEND_API_KEY || '';
+  return {
+    client: apiKey ? new Resend(apiKey) : null,
+    apiKey,
+    fromName: process.env.EMAIL_FROM_NAME || 'GoShipping Express',
+    fromEmail: process.env.EMAIL_FROM_ADDRESS || 'notifications@send.goshipping.com.bd',
+    opsEmail: process.env.EMAIL_OPS_ADDRESS || 'ops@goshipping.com.bd'
+  };
+}
 
 export interface SendEmailOptions {
   to: string | string[];
@@ -21,17 +36,40 @@ export interface SendEmailOptions {
 
 export class EmailService {
   /**
-   * Get the formatted branded From header (e.g. "GoShipping Express <notifications@support.goshipping.com.bd>")
+   * Check if Resend is configured
+   */
+  static isConfigured(): boolean {
+    return Boolean(getResendContext().apiKey);
+  }
+
+  /**
+   * Get the configured sender email address
+   */
+  static getFromEmail(): string {
+    return getResendContext().fromEmail;
+  }
+
+  /**
+   * Get the configured ops alert desk email address
+   */
+  static getOpsEmail(): string {
+    return getResendContext().opsEmail;
+  }
+
+  /**
+   * Get the formatted branded From header (e.g. "GoShipping Express <notifications@send.goshipping.com.bd>")
    */
   static getFromHeader(): string {
-    return `"${FROM_NAME}" <${FROM_EMAIL}>`;
+    const { fromName, fromEmail } = getResendContext();
+    return `"${fromName}" <${fromEmail}>`;
   }
 
   /**
    * Core dispatch function using Resend API with domain validation & audit telemetry
    */
   static async sendMail(options: SendEmailOptions): Promise<{ success: boolean; id?: string; error?: string; fallback?: boolean }> {
-    if (!resendClient || !resendApiKey) {
+    const { client, apiKey, fromEmail, opsEmail } = getResendContext();
+    if (!client || !apiKey) {
       console.warn('[EmailService] RESEND_API_KEY is not configured in environment. Email suppressed.');
       return { success: false, error: 'RESEND_API_KEY not configured' };
     }
@@ -40,13 +78,13 @@ export class EmailService {
     const recipients = Array.isArray(options.to) ? options.to : [options.to];
 
     try {
-      const response = await resendClient.emails.send({
+      const response = await client.emails.send({
         from: fromAddress,
         to: recipients,
         subject: options.subject,
         html: options.html,
         text: options.text || this.stripHtml(options.html),
-        replyTo: options.replyTo || `support@${FROM_EMAIL.split('@')[1] || 'goshipping.com.bd'}`
+        replyTo: options.replyTo || 'support@goshipping.com.bd'
       });
 
       if (response.error) {
@@ -60,7 +98,7 @@ export class EmailService {
           errMsg.toLowerCase().includes('domain');
 
         if (isDomainUnverified) {
-          console.warn(`[EmailService] Sender domain (${FROM_EMAIL}) is pending DNS verification on Hostinger. Delivering test copy to verified account (goshippingbd@gmail.com) via onboarding@resend.dev...`);
+          console.warn(`[EmailService] Sender domain (${fromEmail}) is pending DNS verification on Hostinger. Delivering test copy to verified account (goshippingbd@gmail.com) via onboarding@resend.dev...`);
 
           try {
             const adminNoticeHtml = `
@@ -77,12 +115,12 @@ export class EmailService {
                   This transactional email was generated for recipient: <strong style="color: #78350F;">${recipients.join(', ')}</strong>.
                 </p>
                 <p style="margin: 0; font-size: 12px; color: #B45309; line-height: 1.4;">
-                  Because <code>support.goshipping.com.bd</code> DKIM &amp; SPF records are awaiting DNS verification in Hostinger, Resend forwarded this email to your verified account (<code>goshippingbd@gmail.com</code>). Once Hostinger DNS records are active, emails will dispatch directly to all user inboxes without forward notice.
+                  Because <code>send.goshipping.com.bd</code> DKIM &amp; SPF records are awaiting DNS verification in Hostinger, Resend forwarded this email to your verified account (<code>goshippingbd@gmail.com</code>). Once Hostinger DNS records are active, emails will dispatch directly to all user inboxes without forward notice.
                 </p>
               </div>
             `;
 
-            const fallbackResponse = await resendClient.emails.send({
+            const fallbackResponse = await client.emails.send({
               from: 'GoShipping Express <onboarding@resend.dev>',
               to: ['goshippingbd@gmail.com'],
               subject: `[FORWARD TO: ${recipients.join(', ')}] ${options.subject}`,
@@ -369,7 +407,7 @@ export class EmailService {
     `;
 
     return this.sendMail({
-      to: OPS_EMAIL,
+      to: this.getOpsEmail(),
       subject,
       html: this.renderBaseTemplate(subject, preheader, htmlContent)
     });
@@ -690,7 +728,7 @@ export class EmailService {
     `;
 
     return this.sendMail({
-      to: OPS_EMAIL,
+      to: this.getOpsEmail(),
       subject,
       replyTo: inquiry.email,
       html: this.renderBaseTemplate(subject, preheader, htmlContent)
@@ -701,17 +739,18 @@ export class EmailService {
    * 7. Check Resend Domain Status & DNS Records
    */
   static async getDomainStatus(): Promise<{ success: boolean; domain?: any; error?: string }> {
-    if (!resendClient || !resendApiKey) {
+    const { client, apiKey, fromEmail } = getResendContext();
+    if (!client || !apiKey) {
       return { success: false, error: 'RESEND_API_KEY not configured' };
     }
     try {
-      const list = await resendClient.domains.list();
+      const list = await client.domains.list();
       const domainList = (list.data as any)?.data || list.data || [];
       const domain = Array.isArray(domainList)
-        ? domainList.find((d: any) => d.name === FROM_EMAIL.split('@')[1] || d.name.includes('goshipping')) || domainList[0]
+        ? domainList.find((d: any) => d.name === fromEmail.split('@')[1] || d.name.includes('goshipping')) || domainList[0]
         : domainList;
       if (domain?.id) {
-        const details = await resendClient.domains.get(domain.id);
+        const details = await client.domains.get(domain.id);
         return { success: true, domain: details.data };
       }
       return { success: true, domain: domain || null };
@@ -724,12 +763,13 @@ export class EmailService {
    * 8. Trigger Domain Verification
    */
   static async triggerDomainVerify(domainId?: string): Promise<{ success: boolean; result?: any; error?: string }> {
-    if (!resendClient || !resendApiKey) {
+    const { client, apiKey } = getResendContext();
+    if (!client || !apiKey) {
       return { success: false, error: 'RESEND_API_KEY not configured' };
     }
     try {
-      const id = domainId || '0fd57dbf-1604-4ef3-9398-7fb9ec4f3bfa';
-      const result = await resendClient.domains.verify(id);
+      const id = domainId || '7a9d6dd2-008f-4a1e-ad9c-81023292441a';
+      const result = await client.domains.verify(id);
       return { success: true, result: result.data };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -741,7 +781,7 @@ export class EmailService {
    */
   static async sendTestEmail(targetEmail: string, senderName: string = 'Super Admin'): Promise<{ success: boolean; id?: string; error?: string }> {
     const subject = `GoShipping Telemetry Test: Resend Integration Verification`;
-    const preheader = `Diagnostic confirmation of enterprise email notifications via Resend API and support.goshipping.com.bd.`;
+    const preheader = `Diagnostic confirmation of enterprise email notifications via Resend API and send.goshipping.com.bd.`;
 
     const htmlContent = `
       <div style="border-left: 4px solid #10B981; padding-left: 16px; margin-bottom: 20px;">
@@ -760,7 +800,7 @@ export class EmailService {
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td style="padding: 6px 0; color: #6B7280; width: 35%;">Sender Address:</td>
-            <td style="padding: 6px 0; font-weight: 700; color: #11181E; font-family: monospace;">${FROM_EMAIL}</td>
+            <td style="padding: 6px 0; font-weight: 700; color: #11181E; font-family: monospace;">${this.getFromEmail()}</td>
           </tr>
           <tr>
             <td style="padding: 6px 0; color: #6B7280;">Target Recipient:</td>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <rect width="48" height="48" rx="8" fill="#F0FDF4" />
+  <!-- Circuit PCB Board -->
+  <rect x="8" y="10" width="32" height="28" rx="4" fill="#047857" stroke="#065F46" stroke-width="1.5"/>
+  <!-- Microchip Center -->
+  <rect x="18" y="18" width="12" height="12" rx="2" fill="#1E293B" stroke="#0F172A" stroke-width="1"/>
+  <!-- Chip Pins -->
+  <path d="M15 21h3m-3 3h3m-3 3h3m12-6h3m-3 3h3m-3 3h3" stroke="#FBBF24" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M21 15v3m3-3v3m3-3v3m-6 12v3m3-3v3m3-3v3" stroke="#FBBF24" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Status LEDs -->
+  <circle cx="12" cy="14" r="1.5" fill="#22C55E"/>
+  <circle cx="12" cy="18" r="1.5" fill="#EF4444"/>
+  <circle cx="36" cy="34" r="1.5" fill="#3B82F6"/>
+  <!-- Circuit traces -->
+  <path d="M12 28h4l2 2v4M36 14h-4l-2 2" stroke="#34D399" stroke-width="1" stroke-linecap="round"/>
+</svg>

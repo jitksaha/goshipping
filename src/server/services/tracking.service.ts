@@ -5,6 +5,8 @@ import { formatBstDateTime } from '../utils/date';
 export interface PublicTrackingResponse {
   trackingNumber: string;
   productName: string;
+  productImage?: string;
+  productImages?: string[];
   originCountry: string;
   originCity: string;
   originAddress: string;
@@ -69,16 +71,32 @@ export interface PublicTrackingResponse {
 export interface MatchingShipmentSummary {
   trackingNumber: string;
   productName: string;
+  productImage?: string;
   status: TrackingStatusCode;
   statusCode: TrackingStatusCode;
   statusLabel: string;
   originCity: string;
+  originCountry?: string;
   destCity: string;
+  destCountry?: string;
   mode: 'air' | 'sea' | 'road' | 'hand_carry';
+  serviceLevel?: string;
   totalWeightKg: number;
   totalPieces: number;
+  totalCbm?: number;
+  carrierWaybillNumber?: string;
+  billOfLadingNumber?: string;
+  currentLocation?: string;
+  estimatedDeliveryBst?: string;
   createdAt: string;
   lastUpdatedBst: string;
+  eventsCount?: number;
+  recentMilestones?: {
+    title: string;
+    locationName: string;
+    occurredAtBst: string;
+    statusCode: string;
+  }[];
 }
 
 export class TrackingService {
@@ -120,6 +138,8 @@ export class TrackingService {
     const publicData: PublicTrackingResponse = {
       trackingNumber: primaryShipment.trackingNumber,
       productName: primaryShipment.productName || 'Commercial Cargo Consignment',
+      productImage: primaryShipment.productImage || primaryShipment.items?.[0]?.imageUrl || '/assets/products/cotton-fabrics.svg',
+      productImages: primaryShipment.productImages || [],
       originCountry: primaryShipment.originCountry,
       originCity: primaryShipment.originCity,
       originAddress: primaryShipment.originAddress,
@@ -152,7 +172,10 @@ export class TrackingService {
       actualDelivery: primaryShipment.actualDelivery,
       recipientName: primaryShipment.recipientName,
       recipientAddress: primaryShipment.recipientAddress,
-      items: primaryShipment.items,
+      items: primaryShipment.items.map((it) => ({
+        ...it,
+        imageUrl: it.imageUrl || primaryShipment.productImage || '/assets/products/cotton-fabrics.svg'
+      })),
       updatedAt: primaryShipment.updatedAt,
       lastUpdatedBst: primaryShipment.lastUpdatedBst || formatBstDateTime(primaryShipment.updatedAt),
       lastHash: contentHash,
@@ -178,16 +201,35 @@ export class TrackingService {
     const matchingShipments: MatchingShipmentSummary[] = shipments.map((s) => ({
       trackingNumber: s.trackingNumber,
       productName: s.productName,
+      productImage: s.productImage || s.items?.[0]?.imageUrl || '/assets/products/cotton-fabrics.svg',
       status: s.status,
       statusCode: s.statusCode || s.status,
       statusLabel: s.statusLabel || TRACKING_STATUSES[s.status]?.label || s.status.toUpperCase(),
       originCity: s.originCity,
+      originCountry: s.originCountry,
       destCity: s.destCity,
+      destCountry: s.destCountry,
       mode: s.mode,
+      serviceLevel: s.serviceLevel,
       totalWeightKg: s.totalWeightKg,
       totalPieces: s.totalPieces,
+      totalCbm: s.totalCbm,
+      carrierWaybillNumber: s.carrierWaybillNumber,
+      billOfLadingNumber: s.billOfLadingNumber,
+      currentLocation: s.currentLocation,
+      estimatedDeliveryBst: s.estimatedDelivery,
       createdAt: s.createdAt,
-      lastUpdatedBst: s.lastUpdatedBst || formatBstDateTime(s.updatedAt)
+      lastUpdatedBst: s.lastUpdatedBst || formatBstDateTime(s.updatedAt),
+      eventsCount: s.events ? s.events.length : 0,
+      recentMilestones: (s.events || [])
+        .filter((evt) => evt.statusCode !== 'payment_received' && evt.status !== 'payment_received')
+        .slice(0, 4)
+        .map((evt) => ({
+        title: evt.title,
+        locationName: evt.locationName,
+        occurredAtBst: evt.occurredAtBst || formatBstDateTime(evt.eventTime),
+        statusCode: evt.statusCode || evt.status
+      }))
     }));
 
     return {

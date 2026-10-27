@@ -1514,7 +1514,7 @@ app.get('/admin/email/status', async (c) => {
   return c.json({
     success: true,
     configuredFrom: EmailService.getFromHeader(),
-    resendConfigured: Boolean(process.env.RESEND_API_KEY),
+    resendConfigured: EmailService.isConfigured(),
     domain: domainStatus.domain || null,
     error: domainStatus.error || null
   });

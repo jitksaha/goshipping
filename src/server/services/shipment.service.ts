@@ -36,6 +36,7 @@ export interface ShipmentItem {
   shipmentId: string;
   itemCode: string; // e.g. '#GA5133'
   description: string;
+  imageUrl?: string;
   packagingType: '40ft_hq' | '20ft_container' | '10ft_container' | 'air_uld' | 'pallet' | 'carton' | string;
   quantity: number;
   weightKg: number;
@@ -67,6 +68,8 @@ export interface ShipmentRecord {
   id: string;
   trackingNumber: string;
   productName: string;
+  productImage?: string;
+  productImages?: string[];
   customerId: string;
   customerName: string;
   customerEmail?: string;
@@ -127,6 +130,8 @@ let initialShipments: ShipmentRecord[] = [
     id: 'shp-9812-dac',
     trackingNumber: 'GOSH-2026-9812',
     productName: 'High-Density Interlock Cotton Knit Fabrics & Sample Garments',
+    productImage: '/assets/products/cotton-fabrics.svg',
+    productImages: ['/assets/products/cotton-fabrics.svg', '/assets/products/electronics.svg'],
     customerId: 'usr-customer-01',
     customerName: 'Apex Textiles Ltd',
     customerEmail: 'client@apextextiles.com',
@@ -179,6 +184,7 @@ let initialShipments: ShipmentRecord[] = [
         shipmentId: 'shp-9812-dac',
         itemCode: '#AF-9812A',
         description: 'Air Freight LD3 ULD Container (Interlock Cotton Knit Fabrics & Accessories)',
+        imageUrl: '/assets/products/cotton-fabrics.svg',
         packagingType: 'air_uld',
         quantity: 24,
         weightKg: 450.0,
@@ -192,6 +198,7 @@ let initialShipments: ShipmentRecord[] = [
         shipmentId: 'shp-9812-dac',
         itemCode: '#AF-9812B',
         description: 'Reinforced Industrial Palletized Cartons (Electronic Testing Sensors)',
+        imageUrl: '/assets/products/electronics.svg',
         packagingType: 'pallet',
         quantity: 18,
         weightKg: 400.5,
@@ -633,6 +640,236 @@ let initialShipments: ShipmentRecord[] = [
         eventVersion: 1
       }
     ]
+  },
+  {
+    id: 'shp-yt0719-can',
+    trackingNumber: 'YT0719701262824',
+    productName: 'Ready-to-Wear Apparel & Boutique Fashion Samples',
+    customerId: 'usr-customer-01',
+    customerName: 'Apex Textiles Ltd',
+    customerEmail: 'client@apextextiles.com',
+    customerPhone: '+880 1711-223344',
+    recipientName: 'Farhan Ahmed',
+    recipientPhone: '+880 1711-223344',
+    recipientAddress: 'Plot 14, Sector 7, Uttara Model Town, Dhaka-1230, Bangladesh',
+    originCountry: 'China',
+    originCity: 'Guangzhou',
+    originAddress: 'Baiyun International Logistics Park, Guangzhou, Guangdong, China',
+    originLat: 23.3924,
+    originLng: 113.2988,
+    destCountry: 'Bangladesh',
+    destCity: 'Dhaka',
+    destAddress: 'Cargo Village, Hazrat Shahjalal International Airport, Dhaka-1229',
+    destLat: 23.8433,
+    destLng: 90.4029,
+    mode: 'air',
+    serviceLevel: 'priority',
+    status: 'dispatched_from_china',
+    statusCode: 'dispatched_from_china',
+    statusLabel: 'DISPATCHED FROM CHINA',
+    paymentStatus: 'payment_received',
+    eventVersion: 3,
+    currentLocation: 'Guangzhou Baiyun Airport / In-Flight Linehaul',
+    currentLat: 22.8,
+    currentLng: 105.4,
+    totalWeightKg: 124.5,
+    totalCbm: 0.85,
+    totalPieces: 8,
+    carrierName: 'YTO Express / GoShipping Air Express',
+    carrierWaybillNumber: 'YT0719701262824',
+    voyageOrFlightNumber: 'Flight YG-9014 (Guangzhou → Dhaka)',
+    billOfLadingNumber: 'AWB-YTO-07197012',
+    departureTime: '2026-10-26T04:30:00Z',
+    estimatedDelivery: '2026-10-29T16:00:00Z',
+    createdAt: '2026-10-25T02:00:00Z',
+    updatedAt: '2026-10-26T04:30:00Z',
+    lastUpdatedBst: '26 Oct 2026, 10:30 AM BST',
+    physicalProgress: {
+      completedStagesCount: 3,
+      totalStagesCount: 8,
+      percentage: 38,
+      currentPhysicalStageIndex: 2,
+      isComplete: false
+    },
+    items: [
+      {
+        id: 'itm-yt-01',
+        shipmentId: 'shp-yt0719-can',
+        itemCode: '#YT-GAR-01',
+        description: 'Boutique Knitted Polo Shirts & Hoodies',
+        packagingType: 'carton',
+        quantity: 5,
+        weightKg: 80.0,
+        cbm: 0.55,
+        categoryTag: 'Commercial',
+        declaredValue: 245000,
+        currency: 'BDT'
+      },
+      {
+        id: 'itm-yt-02',
+        shipmentId: 'shp-yt0719-can',
+        itemCode: '#YT-GAR-02',
+        description: 'Cotton Fabric Swatch Books & Trims',
+        packagingType: 'carton',
+        quantity: 3,
+        weightKg: 44.5,
+        cbm: 0.30,
+        categoryTag: 'General',
+        declaredValue: 95000,
+        currency: 'BDT'
+      }
+    ],
+    events: [
+      {
+        id: 'evt-yt-03',
+        shipmentId: 'shp-yt0719-can',
+        status: 'dispatched_from_china',
+        statusCode: 'dispatched_from_china',
+        statusLabel: 'DISPATCHED FROM CHINA',
+        title: 'DISPATCHED FROM CHINA',
+        description: 'Export customs cleared and departed Baiyun Airport on scheduled linehaul flight YG-9014.',
+        locationName: 'Guangzhou Baiyun Airport (CAN), China',
+        eventTime: '2026-10-26T04:30:00Z',
+        occurredAtBst: '26 Oct 2026, 10:30 AM BST',
+        lat: 23.3924,
+        lng: 113.2988,
+        source: 'carrier_api',
+        visibility: 'public',
+        eventVersion: 3
+      },
+      {
+        id: 'evt-yt-02',
+        shipmentId: 'shp-yt0719-can',
+        status: 'cn_warehouse_received',
+        statusCode: 'cn_warehouse_received',
+        statusLabel: 'CN WAREHOUSE RECEIVED',
+        title: 'CN WAREHOUSE RECEIVED',
+        description: 'Consignment safely checked in and security weighed at GoShipping Guangzhou terminal.',
+        locationName: 'GoShipping Guangzhou Receiving Hub',
+        eventTime: '2026-10-25T11:00:00Z',
+        occurredAtBst: '25 Oct 2026, 05:00 PM BST',
+        lat: 23.3924,
+        lng: 113.2988,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 2
+      },
+      {
+        id: 'evt-yt-01',
+        shipmentId: 'shp-yt0719-can',
+        status: 'purchased',
+        statusCode: 'purchased',
+        statusLabel: 'PURCHASED',
+        title: 'PURCHASED',
+        description: 'Order confirmed with 1688 manufacturer. Carrier waybill YT0719701262824 assigned.',
+        locationName: 'Merchant Supplier Hub, Guangzhou, China',
+        eventTime: '2026-10-25T02:00:00Z',
+        occurredAtBst: '25 Oct 2026, 08:00 AM BST',
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 1
+      }
+    ]
+  },
+  {
+    id: 'shp-777456-szx',
+    trackingNumber: '777456943703045',
+    productName: 'Smart LED Display Controllers & Industrial Sensors',
+    customerId: 'usr-customer-02',
+    customerName: 'Standard Composite Mills',
+    customerEmail: 'shakil@standardcomposite.com',
+    customerPhone: '+880 1819-334455',
+    recipientName: 'Shakil Mahmud',
+    recipientPhone: '+880 1819-334455',
+    recipientAddress: 'Industrial Area, Baizid Bostami Road, Chittagong, Bangladesh',
+    originCountry: 'China',
+    originCity: 'Shenzhen',
+    originAddress: 'Baoan International Logistics Center, Shenzhen, Guangdong, China',
+    originLat: 22.5431,
+    originLng: 114.0579,
+    destCountry: 'Bangladesh',
+    destCity: 'Chittagong',
+    destAddress: 'Chittagong Port Authority / Custom House, Chittagong',
+    destLat: 22.3193,
+    destLng: 91.8105,
+    mode: 'sea',
+    serviceLevel: 'express',
+    status: 'cn_warehouse_received',
+    statusCode: 'cn_warehouse_received',
+    statusLabel: 'CN WAREHOUSE RECEIVED',
+    paymentStatus: 'pending',
+    eventVersion: 2,
+    currentLocation: 'Shenzhen Consolidation Hub, China',
+    currentLat: 22.5431,
+    currentLng: 114.0579,
+    totalWeightKg: 460.0,
+    totalCbm: 2.1,
+    totalPieces: 15,
+    carrierName: 'SF Express / GoShipping Fast Line',
+    carrierWaybillNumber: '777456943703045',
+    voyageOrFlightNumber: 'Vessel PACIFIC STAR (Voyage 128S)',
+    billOfLadingNumber: 'BOL-SF-77745694',
+    departureTime: '2026-10-28T08:00:00Z',
+    estimatedDelivery: '2026-11-06T12:00:00Z',
+    createdAt: '2026-10-26T06:00:00Z',
+    updatedAt: '2026-10-27T09:15:00Z',
+    lastUpdatedBst: '27 Oct 2026, 03:15 PM BST',
+    physicalProgress: {
+      completedStagesCount: 2,
+      totalStagesCount: 8,
+      percentage: 25,
+      currentPhysicalStageIndex: 1,
+      isComplete: false
+    },
+    items: [
+      {
+        id: 'itm-sf-01',
+        shipmentId: 'shp-777456-szx',
+        itemCode: '#SF-LED-01',
+        description: 'Industrial LED Modules & Microcontrollers',
+        packagingType: 'carton',
+        quantity: 15,
+        weightKg: 460.0,
+        cbm: 2.1,
+        categoryTag: 'Electronics',
+        declaredValue: 890000,
+        currency: 'BDT'
+      }
+    ],
+    events: [
+      {
+        id: 'evt-sf-02',
+        shipmentId: 'shp-777456-szx',
+        status: 'cn_warehouse_received',
+        statusCode: 'cn_warehouse_received',
+        statusLabel: 'CN WAREHOUSE RECEIVED',
+        title: 'CN WAREHOUSE RECEIVED',
+        description: 'Goods received, barcoded, and palletized at GoShipping Shenzhen warehouse.',
+        locationName: 'GoShipping Shenzhen Receiving Center, Baoan',
+        eventTime: '2026-10-27T09:15:00Z',
+        occurredAtBst: '27 Oct 2026, 03:15 PM BST',
+        lat: 22.5431,
+        lng: 114.0579,
+        source: 'warehouse',
+        visibility: 'public',
+        eventVersion: 2
+      },
+      {
+        id: 'evt-sf-01',
+        shipmentId: 'shp-777456-szx',
+        status: 'purchased',
+        statusCode: 'purchased',
+        statusLabel: 'PURCHASED',
+        title: 'PURCHASED',
+        description: 'Supplier order booked with tracking identifier 777456943703045.',
+        locationName: 'Shenzhen Electronics Market, Huaqiangbei',
+        eventTime: '2026-10-26T06:00:00Z',
+        occurredAtBst: '26 Oct 2026, 12:00 PM BST',
+        source: 'admin',
+        visibility: 'public',
+        eventVersion: 1
+      }
+    ]
   }
 ];
 
@@ -700,7 +937,15 @@ export class ShipmentService {
     const digitsOnly = normalizePhoneDigits(raw);
 
     const isEmail = cleanLower.includes('@');
-    const isPhone = !isEmail && digitsOnly.length >= 6 && /^[\d\s+\-()]{6,}$/.test(raw);
+    // Check if query is directly a known tracking number or carrier waybill before guessing phone number
+    const isDirectTracking = initialShipments.some(
+      (s) =>
+        s.trackingNumber.toUpperCase() === cleanUpper ||
+        s.id.toLowerCase() === cleanLower ||
+        (s.carrierWaybillNumber && s.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
+        (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper)
+    );
+    const isPhone = !isDirectTracking && !isEmail && digitsOnly.length >= 6 && /^[\d\s+\-()]{6,}$/.test(raw);
     const searchType: 'tracking_code' | 'email' | 'phone' = isEmail ? 'email' : isPhone ? 'phone' : 'tracking_code';
 
     // Look up accounts matching email or phone

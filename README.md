@@ -61,13 +61,13 @@ Built on a unified single-process architecture powered by **Astro v5 SSR**, **Re
   - Live consignment board, status transition workflow, and waybill PDF generation.
   - User Directory with status toggles (Active / Suspended) and CRUD capabilities.
   - **Ghost Login (Masquerade)**: Super Admins can securely view the portal through any customer's profile without passwords to verify orders.
-  - Resend Mailer diagnostics with real-time DNS status checks (`support.goshipping.com.bd`).
+  - Resend Mailer diagnostics with real-time DNS status checks (`send.goshipping.com.bd`).
 - **Customer Shipping Portal (`/dashboard`)**:
   - Active consignments overview, interactive milestone progress indicators, and invoice ledger.
   - One-click shareable tracking links and automated email delivery updates.
 
 ### 5. 📬 Branded Enterprise Communications (Resend Integration)
-- Branded transactional email notifications dispatched via `notifications@support.goshipping.com.bd`.
+- Branded transactional email notifications dispatched via `notifications@send.goshipping.com.bd`.
 - Automated notification triggers on:
   - Account signup & onboarding credentials
   - Consignment creation & quotation issuance
@@ -129,7 +129,7 @@ GoShipping rejects generic SaaS templates, arbitrary floating cards, and glowing
 | **CSS Engine** | **Tailwind CSS v4** | Modern theme tokens, CSS variables, and layout discipline |
 | **API Router** | **Hono v4** | Lightweight, typed micro-framework embedded directly in Astro endpoints |
 | **Database** | **MySQL 8.0 / MariaDB** | Production relational persistence managed via **Drizzle ORM** |
-| **Email Gateway**| **Resend API** | Branded transactional delivery via `support.goshipping.com.bd` |
+| **Email Gateway**| **Resend API** | Branded transactional delivery via `send.goshipping.com.bd` |
 | **Motion** | **Motion / GSAP** | Lightweight, accessible micro-interactions (`prefers-reduced-motion`) |
 
 ---
@@ -223,7 +223,7 @@ JWT_SECRET=goshipping_jwt_dev_secret_token_secure_string_2026
 
 # Resend API Key
 RESEND_API_KEY=re_your_api_key_here
-EMAIL_FROM_ADDRESS=notifications@support.goshipping.com.bd
+EMAIL_FROM_ADDRESS=notifications@send.goshipping.com.bd
 ```
 
 ### 5. Start Development Server

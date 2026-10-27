@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <rect width="48" height="48" rx="8" fill="#EFF6FF" />
+  <!-- T-Shirt / Polo -->
+  <path d="M16 10l-6 4 4 6 3-2v18h20V18l3 2 4-6-6-4-5 3c-2 1-4 1-6 0l-5-3z" fill="#2563EB" stroke="#1D4ED8" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- Collar -->
+  <path d="M18 10c1 2 3 3 6 3s5-1 6-3" stroke="#93C5FD" stroke-width="1.5"/>
+  <!-- Pocket / Brand Tag -->
+  <rect x="26" y="19" width="5" height="6" rx="1" fill="#1D4ED8" stroke="#93C5FD" stroke-width="0.8"/>
+  <circle cx="28.5" cy="21.5" r="1" fill="#FBBF24"/>
+</svg>

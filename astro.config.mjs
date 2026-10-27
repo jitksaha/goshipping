@@ -3,6 +3,13 @@ import node from '@astrojs/node';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
+// Automatically load local .env into process.env in Node standalone / dev environments
+if (typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile();
+  } catch {}
+}
+
 // https://astro.build/config
 export default defineConfig({
   output: 'server',

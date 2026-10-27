@@ -470,8 +470,8 @@ export default function QuoteCalculatorIsland({
                   </div>
                 </div>
 
-                {/* 4 Clean Selectors in 1 Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
+                {/* 2 Selectors per row on desktop/tablet, 1 on mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                   {/* Selector 1: Origin Warehouse */}
                   <div>
                     <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">

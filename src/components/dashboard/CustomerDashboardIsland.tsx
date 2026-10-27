@@ -23,12 +23,157 @@ interface Props {
   userEmail?: string;
 }
 
+function StatusIconBadge({ status }: { status: string }) {
+  const normalized = (status || '').toLowerCase().trim();
+
+  let label = status.replace(/_/g, ' ').toUpperCase();
+  let iconColor = 'text-slate-500 hover:text-slate-800';
+  let icon = (
+    <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+
+  switch (normalized) {
+    case 'purchased':
+    case 'order_created':
+      label = 'PURCHASED';
+      iconColor = 'text-slate-600 hover:text-slate-900';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="8" cy="21" r="1" />
+          <circle cx="19" cy="21" r="1" />
+          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+        </svg>
+      );
+      break;
+
+    case 'cn_warehouse_received':
+    case 'warehouse_received':
+      label = 'CN WAREHOUSE RECEIVED';
+      iconColor = 'text-blue-600 hover:text-blue-800';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      );
+      break;
+
+    case 'dispatched_from_china':
+    case 'in_transit':
+      label = 'DISPATCHED FROM CHINA';
+      iconColor = 'text-indigo-600 hover:text-indigo-800';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z" />
+        </svg>
+      );
+      break;
+
+    case 'arrived_dhaka_airport':
+      label = 'ARRIVED DHAKA AIRPORT';
+      iconColor = 'text-purple-600 hover:text-purple-800';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M2 22h20" />
+          <path d="M19 16l-7-3-4 1-2-2 1.5-1.5L11 12l7-2 3 3z" />
+        </svg>
+      );
+      break;
+
+    case 'awaiting_customs':
+    case 'customs_clearance':
+      label = 'AWAITING CUSTOMS CLEARANCE';
+      iconColor = 'text-amber-500 hover:text-amber-700';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      );
+      break;
+
+    case 'bd_warehouse_received':
+      label = 'BD WAREHOUSE RECEIVED';
+      iconColor = 'text-sky-600 hover:text-sky-800';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 21h18" />
+          <path d="M5 21V7l8-4v18" />
+          <path d="M19 21V11l-6-4" />
+          <path d="M9 9v.01" />
+          <path d="M9 13v.01" />
+        </svg>
+      );
+      break;
+
+    case 'payment_received':
+      label = 'PAYMENT RECEIVED';
+      iconColor = 'text-emerald-600 hover:text-emerald-800';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" x2="22" y1="10" y2="10" />
+        </svg>
+      );
+      break;
+
+    case 'out_for_delivery':
+      label = 'OUT FOR DELIVERY';
+      iconColor = 'text-orange-500 hover:text-orange-700';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect width="16" height="13" x="1" y="6" rx="2" />
+          <circle cx="5.5" cy="18.5" r="2.5" />
+          <circle cx="18.5" cy="18.5" r="2.5" />
+          <path d="M17 10h4l3 3v3h-3" />
+        </svg>
+      );
+      break;
+
+    case 'delivered':
+      label = 'DELIVERED';
+      iconColor = 'text-green-600 hover:text-green-800';
+      icon = (
+        <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      );
+      break;
+  }
+
+  return (
+    <div className="relative group inline-flex items-center cursor-pointer">
+      <div
+        className={`flex items-center justify-center transition-colors ${iconColor}`}
+        title={label}
+        aria-label={label}
+      >
+        {icon}
+      </div>
+
+      {/* Floating Hover Tooltip */}
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-30 flex flex-col items-center">
+        <div className="bg-slate-900 text-white text-[11px] font-semibold px-2.5 py-1 rounded shadow-lg whitespace-nowrap tracking-wide border border-slate-700">
+          {label}
+        </div>
+        <div className="w-2 h-1 bg-slate-900 [clip-path:polygon(0_0,100%_0,50%_100%)]"></div>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomerDashboardIsland({ initialTab = 'overview', user, userEmail = '' }: Props) {
   const [tab, setTab] = useState(initialTab);
   const [shipments, setShipments] = useState<ShipmentRecord[]>([]);
   const [quotes, setQuotes] = useState<QuoteRecord[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<QuoteRecord | null>(null);
   const [selectedTrackingCode, setSelectedTrackingCode] = useState<string>('');
+  const [selectedOrderInfo, setSelectedOrderInfo] = useState<ShipmentRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Search & Filter for My Shipments
@@ -65,7 +210,10 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   useEffect(() => {
     const handleUrlChange = () => {
       const params = new URLSearchParams(window.location.search);
-      const urlTab = params.get('tab') || 'overview';
+      let urlTab = params.get('tab') || 'overview';
+      if (urlTab === 'invoices' || urlTab === 'invoice') urlTab = 'documents';
+      if (urlTab === 'profile') urlTab = 'settings';
+      if (urlTab === 'get-quote' || urlTab === 'quote') urlTab = 'request-quote';
       if (urlTab !== tab) {
         setTab(urlTab);
       }
@@ -432,8 +580,26 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {shipments.slice(0, 5).map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/70 transition-none">
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">{s.trackingNumber}</td>
+                    <tr
+                      key={s.id}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (!target.closest('button') && !target.closest('a')) {
+                          setSelectedOrderInfo(s);
+                        }
+                      }}
+                      className="hover:bg-slate-50/70 transition-none cursor-pointer"
+                    >
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrderInfo(s)}
+                          className="text-left font-bold text-slate-900 hover:text-[#EA1D2C] cursor-pointer transition-colors block text-xs"
+                          title="Click to view order info"
+                        >
+                          {s.trackingNumber}
+                        </button>
+                      </td>
                       <td className="py-3.5 px-4">
                         <span className="font-semibold text-slate-800">{s.originCity}</span> →{' '}
                         <span className="font-semibold text-slate-800">{s.destCity}</span>
@@ -444,9 +610,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                         {s.currentLocation}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium border ${getStatusBadge(s.status)}`}>
-                          {s.status.replace(/_/g, ' ')}
-                        </span>
+                        <StatusIconBadge status={s.status} />
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <button
@@ -558,18 +722,44 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredShipments.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr
+                    key={s.id}
+                    onClick={(e) => {
+                      const target = e.target as HTMLElement;
+                      if (!target.closest('button') && !target.closest('a')) {
+                        setSelectedOrderInfo(s);
+                      }
+                    }}
+                    className="hover:bg-slate-50/70 transition-colors cursor-pointer"
+                  >
                     <td className="py-4 px-4 font-mono font-bold text-slate-900">
-                      <div>{s.trackingNumber}</div>
-                      <a
-                        href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-[#EA1D2C] hover:underline font-sans font-medium flex items-center gap-1 mt-0.5"
+                      <button
+                        type="button"
+                        onClick={() => setSelectedOrderInfo(s)}
+                        className="text-left font-bold text-slate-900 hover:text-[#EA1D2C] cursor-pointer transition-colors block text-xs"
+                        title="Click to view full order info"
                       >
-                        <span>Public View</span>
-                        <span>↗</span>
-                      </a>
+                        {s.trackingNumber}
+                      </button>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOrderInfo(s)}
+                          className="text-[10px] text-slate-500 hover:text-[#EA1D2C] font-sans font-medium hover:underline cursor-pointer"
+                        >
+                          Order Info
+                        </button>
+                        <span className="text-slate-300">·</span>
+                        <a
+                          href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-[#EA1D2C] hover:underline font-sans font-medium flex items-center gap-0.5"
+                        >
+                          <span>Public</span>
+                          <span>↗</span>
+                        </a>
+                      </div>
                     </td>
                     <td className="py-4 px-4">
                       <div className="font-semibold text-slate-800">
@@ -590,9 +780,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                       <div className="text-[10px] text-slate-400 font-normal">{s.events.length} verified events</div>
                     </td>
                     <td className="py-4 px-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase border ${getStatusBadge(s.status)}`}>
-                        {s.status.replace(/_/g, ' ')}
-                      </span>
+                      <StatusIconBadge status={s.status} />
                     </td>
                     <td className="py-4 px-4 text-right pr-5">
                       <button
@@ -600,9 +788,9 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                           setSelectedTrackingCode(s.trackingNumber);
                           switchTab('tracking');
                         }}
-                        className="px-3 py-1.5 rounded bg-[#F8E9EB] text-[#EA1D2C] font-bold hover:bg-[#EA1D2C] hover:text-white transition-colors"
+                        className="px-2.5 py-1 rounded bg-[#F8E9EB] text-[#EA1D2C] font-semibold hover:bg-[#EA1D2C] hover:text-white transition-none"
                       >
-                        Live Tracking
+                        Track
                       </button>
                     </td>
                   </tr>
@@ -1204,6 +1392,247 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                 </svg>
                 <span>Sign Out of Account</span>
               </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* ORDER INFO MODAL DIALOG                                   */}
+      {/* ========================================================= */}
+      {selectedOrderInfo && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in-0 duration-150">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 font-mono">
+                      Order Info
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-200 text-slate-700">
+                      {selectedOrderInfo.mode.toUpperCase()} · {selectedOrderInfo.serviceLevel.toUpperCase()}
+                    </span>
+                  </div>
+                  <h3 className="font-extrabold font-mono text-slate-900 text-lg flex items-center gap-1.5">
+                    <span>{selectedOrderInfo.trackingNumber}</span>
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOrderInfo(null)}
+                className="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-lg font-bold transition-none cursor-pointer"
+                title="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs">
+              {/* Product Header with 48x48 Image */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-lg border border-slate-200 bg-white overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                    {selectedOrderInfo.productImage ? (
+                      <img
+                        src={selectedOrderInfo.productImage}
+                        alt={selectedOrderInfo.productName}
+                        className="w-12 h-12 object-cover rounded-lg"
+                        width={48}
+                        height={48}
+                      />
+                    ) : (
+                      <svg className="w-6 h-6 text-slate-400 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                      </svg>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Product Name</div>
+                    <div className="font-bold text-slate-900 text-sm truncate max-w-sm">
+                      {selectedOrderInfo.productName}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      {selectedOrderInfo.totalWeightKg.toLocaleString()} KG · {selectedOrderInfo.totalCbm} CBM · {selectedOrderInfo.totalPieces || selectedOrderInfo.items.length} units
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0 space-y-1">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <StatusIconBadge status={selectedOrderInfo.status} />
+                    <span className="font-bold text-xs text-slate-800">
+                      {selectedOrderInfo.statusLabel || selectedOrderInfo.status.replace(/_/g, ' ').toUpperCase()}
+                    </span>
+                  </div>
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase border ${
+                      selectedOrderInfo.paymentStatus === 'payment_received'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}
+                  >
+                    {selectedOrderInfo.paymentStatus === 'payment_received' ? 'PAID' : 'PAYMENT PENDING'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Transit Corridor & Waypoints */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-lg border border-slate-200 bg-white space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                    Origin Warehouse / Intake
+                  </span>
+                  <div className="font-bold text-slate-900 text-xs">
+                    {selectedOrderInfo.originCity}, {selectedOrderInfo.originCountry}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    {selectedOrderInfo.originAddress}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-lg border border-slate-200 bg-white space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                    Destination & Delivery
+                  </span>
+                  <div className="font-bold text-slate-900 text-xs">
+                    {selectedOrderInfo.destCity}, {selectedOrderInfo.destCountry}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">
+                    {selectedOrderInfo.recipientAddress || selectedOrderInfo.destAddress}
+                  </p>
+                </div>
+              </div>
+
+              {/* Shipping Logistics Specs */}
+              <div className="p-4 rounded-lg border border-slate-200 bg-white">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Carrier</span>
+                    <span className="font-semibold text-slate-900 text-xs">{selectedOrderInfo.carrierName}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Flight / Voyage</span>
+                    <span className="font-mono text-slate-900 text-xs">{selectedOrderInfo.voyageOrFlightNumber}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Waybill / BOL</span>
+                    <span className="font-mono text-slate-900 text-xs">{selectedOrderInfo.billOfLadingNumber}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[10px] uppercase tracking-wider font-semibold">Est. Delivery</span>
+                    <span className="font-mono text-slate-900 text-xs">
+                      {selectedOrderInfo.estimatedDelivery ? new Date(selectedOrderInfo.estimatedDelivery).toLocaleDateString('en-GB') : 'In Transit'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cargo Package Items */}
+              {selectedOrderInfo.items && selectedOrderInfo.items.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                    <span>Package Contents &amp; Declarations ({selectedOrderInfo.items.length})</span>
+                    <span className="font-mono text-slate-500 text-[11px]">
+                      {selectedOrderInfo.totalWeightKg} KG · {selectedOrderInfo.totalCbm} CBM
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 overflow-hidden">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-[11px]">
+                        <tr>
+                          <th className="py-2 px-3">Item</th>
+                          <th className="py-2 px-3">Packaging</th>
+                          <th className="py-2 px-3 text-right">Qty</th>
+                          <th className="py-2 px-3 text-right">Weight</th>
+                          <th className="py-2 px-3 text-right">Declared Value</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {selectedOrderInfo.items.map((it) => (
+                          <tr key={it.id} className="hover:bg-slate-50/50">
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-md border border-slate-200 bg-slate-50 overflow-hidden shrink-0 flex items-center justify-center">
+                                  {it.imageUrl || selectedOrderInfo.productImage ? (
+                                    <img
+                                      src={it.imageUrl || selectedOrderInfo.productImage}
+                                      alt={it.description}
+                                      className="w-full h-full object-cover"
+                                      width={36}
+                                      height={36}
+                                    />
+                                  ) : (
+                                    <svg className="w-4 h-4 text-slate-400 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-slate-900">{it.description}</div>
+                                  <div className="font-mono text-[10px] text-slate-400">{it.itemCode} · {it.categoryTag}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 uppercase font-mono text-[11px] text-slate-600">
+                              {it.packagingType.replace(/_/g, ' ')}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono tabular-nums">{it.quantity}</td>
+                            <td className="py-2.5 px-3 text-right font-mono tabular-nums">{it.weightKg} KG</td>
+                            <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">
+                              {it.declaredValue ? `৳${it.declaredValue.toLocaleString()} BDT` : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer / Actions */}
+            <div className="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
+              <a
+                href={`/tracking?code=${encodeURIComponent(selectedOrderInfo.trackingNumber)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-white text-slate-700 text-xs font-semibold transition-none shadow-2xs"
+              >
+                <span>Public Tracking Page</span>
+                <span>↗</span>
+              </a>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderInfo(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 hover:bg-white text-slate-700 text-xs font-semibold transition-none"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const code = selectedOrderInfo.trackingNumber;
+                    setSelectedOrderInfo(null);
+                    setSelectedTrackingCode(code);
+                    switchTab('tracking');
+                  }}
+                  className="px-4 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold transition-none shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  <span>Open Live Tracker</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

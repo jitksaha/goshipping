@@ -14,6 +14,144 @@ interface Props {
   pollIntervalMs?: number;
 }
 
+// Live status icon helper without background box, with hover tooltip
+function LiveStatusIcon({ status, className = 'w-5 h-5' }: { status: string; className?: string }) {
+  const normalized = (status || '').toLowerCase().trim();
+  let label = status.replace(/_/g, ' ').toUpperCase();
+  let iconColor = 'text-slate-500';
+  let icon = (
+    <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  );
+
+  switch (normalized) {
+    case 'purchased':
+    case 'order_created':
+      label = 'PURCHASED';
+      iconColor = 'text-slate-600 dark:text-slate-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <circle cx="8" cy="21" r="1" />
+          <circle cx="19" cy="21" r="1" />
+          <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
+        </svg>
+      );
+      break;
+
+    case 'cn_warehouse_received':
+    case 'warehouse_received':
+      label = 'CN WAREHOUSE RECEIVED';
+      iconColor = 'text-blue-600 dark:text-blue-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      );
+      break;
+
+    case 'dispatched_from_china':
+    case 'in_transit':
+      label = 'DISPATCHED FROM CHINA';
+      iconColor = 'text-indigo-600 dark:text-indigo-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z" />
+        </svg>
+      );
+      break;
+
+    case 'arrived_dhaka_airport':
+      label = 'ARRIVED DHAKA AIRPORT';
+      iconColor = 'text-purple-600 dark:text-purple-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M2 22h20" />
+          <path d="M19 16l-7-3-4 1-2-2 1.5-1.5L11 12l7-2 3 3z" />
+        </svg>
+      );
+      break;
+
+    case 'awaiting_customs':
+    case 'customs_clearance':
+      label = 'AWAITING CUSTOMS CLEARANCE';
+      iconColor = 'text-amber-500 dark:text-amber-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      );
+      break;
+
+    case 'bd_warehouse_received':
+      label = 'BD WAREHOUSE RECEIVED';
+      iconColor = 'text-sky-600 dark:text-sky-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 21h18" />
+          <path d="M5 21V7l8-4v18" />
+          <path d="M19 21V11l-6-4" />
+          <path d="M9 9v.01" />
+          <path d="M9 13v.01" />
+        </svg>
+      );
+      break;
+
+    case 'payment_received':
+      label = 'PAYMENT RECEIVED';
+      iconColor = 'text-emerald-600 dark:text-emerald-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" x2="22" y1="10" y2="10" />
+        </svg>
+      );
+      break;
+
+    case 'out_for_delivery':
+      label = 'OUT FOR DELIVERY';
+      iconColor = 'text-orange-500 dark:text-orange-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect width="16" height="13" x="1" y="6" rx="2" />
+          <circle cx="5.5" cy="18.5" r="2.5" />
+          <circle cx="18.5" cy="18.5" r="2.5" />
+          <path d="M17 10h4l3 3v3h-3" />
+        </svg>
+      );
+      break;
+
+    case 'delivered':
+      label = 'DELIVERED';
+      iconColor = 'text-green-600 dark:text-green-400';
+      icon = (
+        <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      );
+      break;
+  }
+
+  return (
+    <div className="relative group inline-flex items-center cursor-pointer">
+      <div className={`flex items-center justify-center transition-colors ${iconColor}`} title={label} aria-label={label}>
+        {icon}
+      </div>
+      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-30 flex flex-col items-center">
+        <div className="px-2.5 py-1 text-[10px] font-mono font-bold text-white bg-slate-900 dark:bg-slate-800 rounded shadow-lg whitespace-nowrap border border-slate-700">
+          {label}
+        </div>
+        <div className="w-1.5 h-1.5 bg-slate-900 dark:bg-slate-800 rotate-45 -mt-1 border-r border-b border-slate-700"></div>
+      </div>
+    </div>
+  );
+}
+
 export default function LiveTrackingIsland({
   initialTrackingNumber = '',
   pollIntervalMs = 12000
@@ -48,6 +186,9 @@ export default function LiveTrackingIsland({
   const lastVersionRef = useRef<number>(1);
   const prevTrackingRef = useRef<PublicTrackingResponse | null>(null);
 
+  const [expandedShipmentNumber, setExpandedShipmentNumber] = useState<string | null>(null);
+  const liveTrackerSectionRef = useRef<HTMLDivElement | null>(null);
+
   // 1. Fetch Realtime Client Configuration
   useEffect(() => {
     fetch('/api/realtime/config')
@@ -61,7 +202,7 @@ export default function LiveTrackingIsland({
   }, []);
 
   // 2. Fetch tracking data with 304 conditional check
-  const fetchTracking = async (code: string, isSilentPoll = false) => {
+  const fetchTracking = async (code: string, isSilentPoll = false, keepHistory = false) => {
     if (!code) return;
     if (!isSilentPoll) setLoading(true);
     setError(null);
@@ -91,17 +232,16 @@ export default function LiveTrackingIsland({
       if (data.tracking) {
         const newTracking: PublicTrackingResponse = data.tracking;
 
-        if (data.matchingShipments && Array.isArray(data.matchingShipments) && data.matchingShipments.length > 1) {
-          setMatchingShipments(data.matchingShipments);
-        } else {
-          setMatchingShipments([]);
-        }
+        if (!keepHistory) {
+          if (data.matchingShipments && Array.isArray(data.matchingShipments) && data.matchingShipments.length > 0) {
+            setMatchingShipments(data.matchingShipments);
+          } else {
+            setMatchingShipments([]);
+          }
 
-        if (data.searchType) {
-          setSearchType(data.searchType);
-        }
-
-        if (!isSilentPoll) {
+          if (data.searchType) {
+            setSearchType(data.searchType);
+          }
           setLastSearchedQuery(code);
         }
 
@@ -342,9 +482,36 @@ export default function LiveTrackingIsland({
       )}
 
       {/* ========================================================================= */}
-      {/* 01. SEARCH & CONSIGNMENT SWITCHER BAR                                     */}
+      {/* 01. SEARCH & CONSIGNMENT SWITCHER BAR (Unified Tracking & History)        */}
       {/* ========================================================================= */}
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 p-4 shadow-xs">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-4">
+        {/* Unified Top Header Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#EA1D2C]"></div>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Cargo & Consignment Tracker
+            </span>
+          </div>
+
+          {/* Sync indicator */}
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="font-mono">
+              {realtimeProvider === 'pusher' ? 'Live Push Sync' : 'Adaptive Polling (12s)'}
+            </span>
+            {lastRefreshed && (
+              <span className="text-slate-400 font-mono hidden md:inline">
+                · {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Unified Search Input Form */}
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1">
             <svg
@@ -360,7 +527,7 @@ export default function LiveTrackingIsland({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter Tracking Code, Email, or Phone Number (e.g. GOSH-XXXX, client@apextextiles.com, 01711...)"
+              placeholder="Enter Tracking Code, AWB, B/L, Account Email, or Phone Number..."
               className="w-full h-10 pl-10 pr-4 text-xs font-mono font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]/20 transition-none outline-none"
             />
           </div>
@@ -369,7 +536,7 @@ export default function LiveTrackingIsland({
             <button
               type="submit"
               disabled={loading}
-              className="h-10 px-5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-none cursor-pointer disabled:opacity-50"
+              className="h-10 px-5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-semibold flex items-center justify-center gap-2 transition-none cursor-pointer disabled:opacity-50 shadow-xs"
             >
               {loading ? (
                 <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -381,7 +548,7 @@ export default function LiveTrackingIsland({
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               )}
-              <span>Track Shipment</span>
+              <span>Track</span>
             </button>
 
             <button
@@ -408,112 +575,368 @@ export default function LiveTrackingIsland({
                   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                 </svg>
-                <span className="hidden sm:inline">{linkCopied ? 'Link Copied!' : 'Direct Link'}</span>
+                <span className="hidden sm:inline">{linkCopied ? 'Copied!' : 'Link'}</span>
               </button>
             )}
           </div>
         </form>
 
-        {/* Unified Search Quick Guidance & Sync indicator */}
-        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5 text-slate-500 dark:text-slate-400 text-[11px]">
-            <span className="font-semibold text-slate-700 dark:text-slate-300">Track by:</span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]"></span>
-              Tracking Code (AWB/BL)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              Email
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Phone Number
-            </span>
+        {/* Security & Multi-Method Guidance Strip */}
+        <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-[11px]">
+            <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span>Live telemetry, customs clearance, and consignment history.</span>
           </div>
 
-          {/* Sync indicator */}
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="font-mono">
-              {realtimeProvider === 'pusher' ? 'Live Push Sync' : 'Adaptive Polling (12s)'}
-            </span>
-            {lastRefreshed && (
-              <span className="text-slate-400 font-mono hidden md:inline">
-                · Updated: {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </span>
-            )}
-          </div>
+          <span className="text-[11px] text-slate-400 font-medium">
+            No login or password required for public tracking.
+          </span>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 01.B MULTIPLE SHIPMENTS FOUND SELECTOR (Unified Search: Email / Phone)     */}
+      {/* 01.B CUSTOMER CONSIGNMENT HISTORY & MULTI-TRACKING (No Login Required)    */}
       {/* ========================================================================= */}
-      {matchingShipments.length > 1 && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-2xs space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-red-100 text-[#EA1D2C] dark:bg-red-950/60 dark:text-red-300 flex items-center justify-center font-bold text-xs shrink-0">
-                {matchingShipments.length}
+      {matchingShipments && matchingShipments.length > 0 && (searchType === 'email' || searchType === 'phone' || matchingShipments.length > 1) && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs space-y-4">
+          {/* History Header & KPI Summary */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase tracking-wider flex items-center gap-1.5 ${
+                  searchType === 'email'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
+                    : searchType === 'phone'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                    : 'bg-red-50 text-[#EA1D2C] border border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800'
+                }`}>
+                  {searchType === 'email' ? (
+                    <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                      <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                  ) : searchType === 'phone' ? (
+                    <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                  )}
+                  <span>{searchType === 'email' ? 'EMAIL CONSIGNMENT HISTORY' : searchType === 'phone' ? 'MOBILE CONSIGNMENT HISTORY' : 'CONSIGNMENT MATCHES'}</span>
+                </span>
+                <span className="text-xs text-slate-400 font-mono">
+                  Query: <strong className="text-slate-800 dark:text-slate-200">{lastSearchedQuery || query}</strong>
+                </span>
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
-                  {matchingShipments.length} Shipments Found for "{lastSearchedQuery || query}"
-                </h4>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Select any shipment below to inspect its live status, timeline milestones, and GPS details.
-                </p>
+
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
+                Customer Consignment History ({matchingShipments.length} Found)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Guest access without login. Click any consignment card to expand full cargo specifications inline, or click <strong>"Track Live"</strong> to view its 8-stage progress bar and GPS waypoints below.
+              </p>
+            </div>
+
+            {/* Quick KPI Strip */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="text-[10px] text-slate-400 font-mono uppercase">Total</div>
+                <div className="text-sm font-extrabold text-slate-900 dark:text-white font-mono">{matchingShipments.length}</div>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-center">
+                <div className="text-[10px] text-indigo-500 dark:text-indigo-400 font-mono uppercase">In Transit</div>
+                <div className="text-sm font-extrabold text-indigo-700 dark:text-indigo-300 font-mono">
+                  {matchingShipments.filter((s) => s.status !== 'delivered').length}
+                </div>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-center">
+                <div className="text-[10px] text-green-600 dark:text-green-400 font-mono uppercase">Delivered</div>
+                <div className="text-sm font-extrabold text-green-700 dark:text-green-300 font-mono">
+                  {matchingShipments.filter((s) => s.status === 'delivered').length}
+                </div>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+                <div className="text-[10px] text-slate-400 font-mono uppercase">Gross Cargo</div>
+                <div className="text-sm font-extrabold text-slate-900 dark:text-white font-mono">
+                  {matchingShipments.reduce((sum, s) => sum + (s.totalWeightKg || 0), 0).toFixed(0)} <span className="text-[10px] font-sans font-medium">KG</span>
+                </div>
               </div>
             </div>
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase">
-              {searchType === 'email' ? 'Email Match' : searchType === 'phone' ? 'Phone Match' : 'Search Matches'}
-            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+          {/* Consignment Items Accordion Cards */}
+          <div className="space-y-3 pt-1">
             {matchingShipments.map((s) => {
               const isSelected = trackingData?.trackingNumber === s.trackingNumber;
+              const isExpanded = expandedShipmentNumber === s.trackingNumber;
+
               return (
-                <button
+                <div
                   key={s.trackingNumber}
-                  type="button"
-                  onClick={() => {
-                    setQuery(s.trackingNumber);
-                    fetchTracking(s.trackingNumber);
-                    if (typeof window !== 'undefined') {
-                      const url = new URL(window.location.href);
-                      url.searchParams.set('code', s.trackingNumber);
-                      window.history.replaceState({}, '', url.toString());
-                    }
-                  }}
-                  className={`p-3 rounded-lg border text-left transition-none cursor-pointer flex flex-col justify-between gap-2 ${
+                  className={`rounded-xl border transition-none overflow-hidden ${
                     isSelected
-                      ? 'border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/40 ring-1 ring-[#EA1D2C] shadow-2xs'
-                      : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 hover:border-slate-300 dark:hover:border-slate-600'
+                      ? 'border-[#EA1D2C] ring-2 ring-[#EA1D2C]/20 bg-red-50/20 dark:bg-red-950/20 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono font-bold text-xs text-[#EA1D2C]">
-                      {s.trackingNumber}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-mono">
-                      {s.mode.toUpperCase()}
-                    </span>
+                  {/* Card Main Row: Entire card row is clickable to expand/collapse */}
+                  <div
+                    onClick={() => {
+                      setExpandedShipmentNumber(isExpanded ? null : s.trackingNumber);
+                      if (trackingData?.trackingNumber !== s.trackingNumber) {
+                        fetchTracking(s.trackingNumber, false, true);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setExpandedShipmentNumber(isExpanded ? null : s.trackingNumber);
+                        if (trackingData?.trackingNumber !== s.trackingNumber) {
+                          fetchTracking(s.trackingNumber, false, true);
+                        }
+                      }
+                    }}
+                    className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer select-none hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-none"
+                  >
+                    {/* Left: 48x48 Product Image + Identifiers */}
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                      <img
+                        src={s.productImage || '/assets/products/cotton-fabrics.svg'}
+                        alt={s.productName}
+                        className="w-12 h-12 rounded-lg object-cover border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shrink-0 shadow-2xs"
+                        onError={(e) => {
+                          (e.target as any).src = '/assets/products/cotton-fabrics.svg';
+                        }}
+                      />
+
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono font-bold text-sm text-[#EA1D2C]">
+                            {s.trackingNumber}
+                          </span>
+
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
+                            {s.mode.toUpperCase()} · {s.serviceLevel || 'Standard'}
+                          </span>
+
+                          {isSelected && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#EA1D2C] text-white flex items-center gap-1 shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                              Active in Live Tracker
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+                          {s.productName}
+                        </h4>
+
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                            {s.originCity} → {s.destCity}
+                          </span>
+                          <span>·</span>
+                          <span className="font-mono">
+                            {s.totalWeightKg} KG · {s.totalPieces} Pcs {s.totalCbm ? `· ${s.totalCbm} CBM` : ''}
+                          </span>
+                          {s.billOfLadingNumber && (
+                            <>
+                              <span>·</span>
+                              <span className="font-mono text-[11px] text-slate-500">
+                                B/L: {s.billOfLadingNumber}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Status Icon + Actions + Visual Indicator */}
+                    <div className="flex flex-wrap items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                      {/* Live Status Icon & Label */}
+                      <div className="flex items-center gap-2.5 pr-2">
+                        <LiveStatusIcon status={s.status} className="w-6 h-6" />
+                        <div className="text-left">
+                          <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {s.statusLabel}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            {s.lastUpdatedBst ? `BST: ${s.lastUpdatedBst.replace(/\d{4},\s*/, '')}` : 'Live'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons & Expand Indicator */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fetchTracking(s.trackingNumber, false, true);
+                            if (typeof window !== 'undefined') {
+                              const url = new URL(window.location.href);
+                              url.searchParams.set('code', s.trackingNumber);
+                              window.history.replaceState({}, '', url.toString());
+                            }
+                            if (liveTrackerSectionRef.current) {
+                              liveTrackerSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 transition-none cursor-pointer shadow-xs"
+                        >
+                          <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                          <span>Track Live</span>
+                        </button>
+
+                        <div
+                          className={`w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 ${
+                            isExpanded ? 'text-[#EA1D2C] border-[#EA1D2C]/40 bg-red-50/50 dark:bg-red-950/30' : ''
+                          }`}
+                          title={isExpanded ? 'Click to collapse' : 'Click to expand cargo specifications'}
+                        >
+                          <svg
+                            className={`w-3.5 h-3.5 stroke-[2.5] transition-transform ${isExpanded ? 'rotate-180 text-[#EA1D2C]' : ''}`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-[11.5px] font-medium text-slate-800 dark:text-slate-200 line-clamp-1">
-                    {s.productName}
-                  </div>
-                  <div className="flex items-center justify-between text-[10.5px] pt-1.5 border-t border-slate-100 dark:border-slate-700/60 text-slate-500">
-                    <span>{s.originCity} → {s.destCity}</span>
-                    <span className={`font-semibold ${isSelected ? 'text-[#EA1D2C]' : 'text-slate-700 dark:text-slate-300'}`}>
-                      {s.statusLabel}
-                    </span>
-                  </div>
-                </button>
+
+                  {/* Inline Expanded Drawer (Full specs & recent milestones) */}
+                  {isExpanded && (
+                    <div className="px-4 pb-5 pt-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                        {/* Specs Box */}
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+                          <div className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] border-b border-slate-100 dark:border-slate-800 pb-1.5 flex items-center justify-between">
+                            <span>Consignment Specifications</span>
+                            <span className="font-mono text-[#EA1D2C]">{s.mode.toUpperCase()}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-[11.5px]">
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Gross Weight</span>
+                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{s.totalWeightKg} KG</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Quantity / Boxes</span>
+                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{s.totalPieces} Pcs</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">CBM Volume</span>
+                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{s.totalCbm || 'Standard'} CBM</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Waybill / BOL</span>
+                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200 truncate block">
+                                {s.billOfLadingNumber || s.carrierWaybillNumber || 'Direct'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Route & Schedule Box */}
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+                          <div className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] border-b border-slate-100 dark:border-slate-800 pb-1.5 flex items-center justify-between">
+                            <span>Transit Route & Schedule</span>
+                            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">Active</span>
+                          </div>
+                          <div className="space-y-1.5 text-[11.5px]">
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Current Waypoint</span>
+                              <span className="font-medium text-slate-800 dark:text-slate-200">
+                                {s.currentLocation || `${s.originCity} to ${s.destCity}`}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Estimated Delivery</span>
+                              <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                                {s.estimatedDeliveryBst || 'Estimated on schedule'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Origin Port → Destination</span>
+                              <span className="font-medium text-slate-600 dark:text-slate-400">
+                                {s.originCity}, {s.originCountry || 'China'} → {s.destCity}, {s.destCountry || 'Bangladesh'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Verified Milestones Preview */}
+                        <div className="bg-white dark:bg-slate-900 p-3.5 rounded-lg border border-slate-200 dark:border-slate-800 space-y-2">
+                          <div className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[11px] border-b border-slate-100 dark:border-slate-800 pb-1.5 flex items-center justify-between">
+                            <span>Verified Milestone Checkpoints</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{s.eventsCount || 0} events</span>
+                          </div>
+
+                          {s.recentMilestones && s.recentMilestones.length > 0 ? (
+                            <div className="space-y-2 pt-0.5">
+                              {s.recentMilestones.map((evt, idx) => (
+                                <div key={idx} className="flex items-start gap-2 text-[11px]">
+                                  <div className="mt-0.5 shrink-0">
+                                    <LiveStatusIcon status={evt.statusCode} className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                                      {evt.title}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 flex items-center justify-between gap-1">
+                                      <span className="truncate">{evt.locationName}</span>
+                                      <span className="font-mono shrink-0">{evt.occurredAtBst ? evt.occurredAtBst.replace(/\d{4},\s*/, '') : ''}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-slate-400 text-[11px] italic">
+                              Cargo in transit with GoShipping logistics network.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Consignment booked on {new Date(s.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            fetchTracking(s.trackingNumber, false, true);
+                            if (typeof window !== 'undefined') {
+                              const url = new URL(window.location.href);
+                              url.searchParams.set('code', s.trackingNumber);
+                              window.history.replaceState({}, '', url.toString());
+                            }
+                            if (liveTrackerSectionRef.current) {
+                              liveTrackerSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          className="font-bold text-[#EA1D2C] hover:text-[#D41523] flex items-center gap-1 cursor-pointer hover:underline text-[11.5px]"
+                        >
+                          <span>Scroll Down to 8-Stage Progress Stepper &amp; Live Waypoints ↓</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -560,18 +983,18 @@ export default function LiveTrackingIsland({
             </p>
           </div>
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3 text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700">
               <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]"></span>
-              By Tracking Code (AWB/BL)
-            </span>
-            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+              <span className="font-medium text-slate-700 dark:text-slate-300">Tracking Code / AWB / B/L</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              By Account Email
-            </span>
-            <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">
+              <span className="font-medium text-slate-700 dark:text-slate-300">Account Email (Consignment History)</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              By Phone Number
-            </span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">Phone Number (Consignee Deliveries)</span>
+            </div>
           </div>
         </div>
       )}
@@ -580,7 +1003,7 @@ export default function LiveTrackingIsland({
       {/* 03. REDESIGNED TRACKING HEADER (Section 5.A)                              */}
       {/* ========================================================================= */}
       {trackingData && (
-        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+        <div ref={liveTrackerSectionRef} className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
           {/* Top Brand & Metadata Bar */}
           <div className="bg-slate-50/80 dark:bg-slate-800/60 px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -659,49 +1082,60 @@ export default function LiveTrackingIsland({
                   </span>
                 </div>
 
-                {/* Product Name */}
-                <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  <span className="text-slate-400 font-normal">Product:</span>
-                  <span>{trackingData.productName}</span>
-                </div>
+                {/* Product Name & 48x48 Product Image */}
+                <div className="flex items-center gap-3 pt-1">
+                  <div className="w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                    {trackingData.productImage ? (
+                      <img
+                        src={trackingData.productImage}
+                        alt={trackingData.productName}
+                        className="w-12 h-12 object-cover rounded-lg"
+                        width={48}
+                        height={48}
+                      />
+                    ) : (
+                      <svg className="w-6 h-6 text-slate-400 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                      </svg>
+                    )}
+                  </div>
 
-                {/* Origin to Destination Route */}
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400 pt-0.5">
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {trackingData.originCity}, {trackingData.originCountry}
-                  </span>
-                  <span className="text-slate-400">→</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">
-                    {trackingData.destCity}, {trackingData.destCountry}
-                  </span>
-                  <span className="text-slate-400">·</span>
-                  <span className="font-mono tabular-nums">{trackingData.totalPieces} Pcs</span>
-                  <span className="text-slate-400">·</span>
-                  <span className="font-mono tabular-nums">{trackingData.totalWeightKg.toLocaleString()} KG</span>
+                  <div className="space-y-0.5 min-w-0">
+                    <div className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                      <span className="text-slate-400 font-normal text-xs uppercase tracking-wider">Product:</span>
+                      <span className="text-slate-900 dark:text-slate-100">{trackingData.productName}</span>
+                    </div>
+
+                    {/* Origin to Destination Route */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {trackingData.originCity}, {trackingData.originCountry}
+                      </span>
+                      <span className="text-slate-400">→</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {trackingData.destCity}, {trackingData.destCountry}
+                      </span>
+                      <span className="text-slate-400">·</span>
+                      <span className="font-mono tabular-nums">{trackingData.totalPieces} Pcs</span>
+                      <span className="text-slate-400">·</span>
+                      <span className="font-mono tabular-nums">{trackingData.totalWeightKg.toLocaleString()} KG</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Right Column: Status Badge, Payment Milestone, and Last Updated */}
+              {/* Right Column: Stage Update Badge and Last Updated */}
               <div className="flex flex-col sm:items-end gap-2 shrink-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  {/* Current Shipment Status Badge */}
+                  {/* Current Shipment Status / Stage Update Badge */}
                   <span
                     className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide border shadow-2xs ${getStatusBadgeStyle(
                       trackingData.status
                     )}`}
                   >
                     {trackingData.statusLabel || trackingData.status.replace(/_/g, ' ')}
-                  </span>
-
-                  {/* Independent Payment Milestone Badge */}
-                  <span
-                    className={`px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wide border ${
-                      trackingData.paymentStatus === 'payment_received'
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
-                        : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
-                    }`}
-                  >
-                    {trackingData.paymentStatus === 'payment_received' ? 'PAYMENT RECEIVED' : 'PAYMENT PENDING'}
                   </span>
                 </div>
 
@@ -739,16 +1173,16 @@ export default function LiveTrackingIsland({
               {/* Responsive Stepper Container */}
               <div className="overflow-x-auto pb-3 pt-1 scrollbar-none">
                 <div className="min-w-[760px] relative pt-2 pb-2">
-                  {/* Background Track */}
-                  <div className="absolute top-[58px] left-8 right-8 h-0.5 bg-slate-200 dark:bg-slate-700 z-0" />
+                  {/* Background Track: Exactly between center of first node (42.5px) and last node (42.5px) */}
+                  <div className="absolute top-[58px] left-[42.5px] right-[42.5px] h-0.5 bg-slate-200 dark:bg-slate-700 z-0" />
                   {/* Active Progress Fill */}
                   <div
-                    className="absolute top-[58px] left-8 h-0.5 bg-emerald-500 z-0 transition-none motion-reduce:transition-none"
+                    className="absolute top-[58px] left-[42.5px] h-0.5 bg-emerald-500 z-0 transition-none motion-reduce:transition-none"
                     style={{
-                      width: `${Math.min(
-                        100,
-                        Math.max(0, ((progress.completedStagesCount - 1) / (progress.totalStagesCount - 1)) * 100)
-                      )}%`
+                      width: `calc((100% - 85px) * ${Math.min(
+                        1,
+                        Math.max(0, (progress.completedStagesCount - 1) / (progress.totalStagesCount - 1))
+                      )})`
                     }}
                   />
 
@@ -982,69 +1416,59 @@ export default function LiveTrackingIsland({
                   </span>
                 </div>
 
-                <div className="relative pl-6 sm:pl-8 space-y-8 before:absolute before:left-3 sm:before:left-4 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
-                  {trackingData.events.map((evt, idx) => {
-                    const isLatest = idx === 0;
-                    const isPayment = evt.statusCode === 'payment_received';
-                    const isHighlighted = evt.id === recentlyUpdatedEventId;
+                <div className="relative space-y-8">
+                  {/* Continuous Vertical Connecting Line (Dead-Center at 16px) */}
+                  <div className="absolute left-4 top-3 bottom-3 w-0.5 -translate-x-1/2 bg-slate-200 dark:bg-slate-700 pointer-events-none" />
 
-                    return (
-                      <div
-                        key={evt.id}
-                        className={`relative group transition-none motion-reduce:transition-none ${
-                          isHighlighted ? 'p-3 rounded-lg bg-red-50/70 dark:bg-red-950/30 ring-1 ring-[#EA1D2C]/40' : ''
-                        }`}
-                      >
-                        {/* Node Icon */}
+                  {trackingData.events
+                    .filter((evt) => evt.statusCode !== 'payment_received' && evt.status !== 'payment_received')
+                    .map((evt, idx) => {
+                      const isLatest = idx === 0;
+                      const isHighlighted = evt.id === recentlyUpdatedEventId;
+
+                      return (
                         <div
-                          className={`absolute -left-6 sm:-left-8 top-1 w-6 h-6 rounded-full flex items-center justify-center border-2 transition-none ${
-                            isLatest && !isPayment
-                              ? 'bg-[#EA1D2C] border-white text-white ring-4 ring-[#EA1D2C]/20 shadow-xs'
-                              : isPayment
-                              ? 'bg-emerald-600 border-white text-white ring-2 ring-emerald-300'
-                              : 'bg-emerald-500 border-white text-white ring-1 ring-emerald-200'
+                          key={evt.id}
+                          className={`relative flex items-start gap-3 sm:gap-4 group transition-none motion-reduce:transition-none ${
+                            isHighlighted ? 'p-3 rounded-lg bg-red-50/70 dark:bg-red-950/30 ring-1 ring-[#EA1D2C]/40' : ''
                           }`}
                         >
-                          {isPayment ? (
-                            <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-                              <line x1="1" y1="10" x2="23" y2="10" />
-                            </svg>
-                          ) : isLatest ? (
-                            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                          ) : (
-                            <svg className="w-3 h-3 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          )}
-                        </div>
-
-                        {/* Event Details */}
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <h4
-                                className={`text-sm font-bold tracking-tight ${
-                                  isLatest
-                                    ? 'text-[#EA1D2C]'
-                                    : isPayment
-                                    ? 'text-emerald-700 dark:text-emerald-400'
-                                    : 'text-slate-900 dark:text-white'
-                                }`}
-                              >
-                                {evt.statusLabel || evt.title}
-                              </h4>
-                              {isLatest && !isPayment && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-red-100 text-[#EA1D2C] dark:bg-red-950 dark:text-red-300 uppercase">
-                                  Current Status
-                                </span>
-                              )}
-                              {isPayment && (
-                                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 uppercase">
-                                  Financial Milestone
-                                </span>
+                          {/* Dedicated 32px (w-8) Icon Column: Flex Center ensures the 24px (w-6) circle icon is at exactly 16px center */}
+                          <div className="relative z-10 shrink-0 w-8 flex items-center justify-center pt-0.5">
+                            <div
+                              className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-none ${
+                                isLatest
+                                  ? 'bg-[#EA1D2C] border-white text-white ring-4 ring-[#EA1D2C]/20 shadow-xs'
+                                  : 'bg-emerald-500 border-white text-white ring-1 ring-emerald-200'
+                              }`}
+                            >
+                              {isLatest ? (
+                                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                              ) : (
+                                <svg className="w-3 h-3 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
                               )}
                             </div>
+                          </div>
+
+                          {/* Event Details */}
+                          <div className="flex-1 min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <h4
+                                  className={`text-sm font-bold tracking-tight ${
+                                    isLatest ? 'text-[#EA1D2C]' : 'text-slate-900 dark:text-white'
+                                  }`}
+                                >
+                                  {evt.statusLabel || evt.title}
+                                </h4>
+                                {isLatest && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-red-100 text-[#EA1D2C] dark:bg-red-950 dark:text-red-300 uppercase">
+                                    Current Status
+                                  </span>
+                                )}
+                              </div>
 
                             {/* Actual Timestamp in Bangladesh Time: 25 Oct 2026, 08:15 PM BST */}
                             <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
@@ -1059,10 +1483,6 @@ export default function LiveTrackingIsland({
                               <circle cx="12" cy="10" r="3" />
                             </svg>
                             <span>{evt.locationName}</span>
-                            <span className="text-slate-300 dark:text-slate-600">·</span>
-                            <span className="text-[11px] font-mono uppercase text-slate-400">
-                              Source: {evt.source}
-                            </span>
                           </div>
 
                           {/* Description */}
@@ -1111,8 +1531,29 @@ export default function LiveTrackingIsland({
                           <td className="py-3 px-3 font-mono font-bold text-slate-900 dark:text-white">
                             {item.itemCode}
                           </td>
-                          <td className="py-3 px-3 font-medium text-slate-800 dark:text-slate-200">
-                            {item.description}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                                {item.imageUrl ? (
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={item.description}
+                                    className="w-12 h-12 object-cover rounded-lg"
+                                    width={48}
+                                    height={48}
+                                  />
+                                ) : (
+                                  <svg className="w-5 h-5 text-slate-400 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="font-medium text-slate-800 dark:text-slate-200 text-xs leading-snug">
+                                {item.description}
+                              </div>
+                            </div>
                           </td>
                           <td className="py-3 px-3 font-mono text-slate-600 dark:text-slate-400 uppercase">
                             {item.packagingType.replace(/_/g, ' ')}

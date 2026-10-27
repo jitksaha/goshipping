@@ -19,7 +19,7 @@ Router file for product functionality, customer flows, and operations modules.
 - **Frequently Asked Questions (`/faq`)**: Categorized questions with Schema.org `FAQPage` rich snippet accordions.
 - **Network & Fleet (`/about`)**: Corporate credentials, China warehouse network, and AboutPage schema.
 - **Global Hubs (`/contact`)**: Regional dispatch directory (Dhaka, Chittagong, Guangzhou, Yiwu, Shenzhen).
-- **Public Tracking Portal (`/tracking`)**: Waypoint timeline search with quick test codes.
+- **Public Tracking Portal (`/tracking`)**: Unified universal searchbar (single input for Tracking Code / AWB / BOL, Importer Account Email, or Consignee Phone Number) with dynamic real-time database queries, single-action `Track` button, direct `Link` share copier, zero sample mock strings, guest Consignment History (no login required), 48x48 product thumbnails, inline accordion details expansion, and 8-stage live progress bar.
 - **Compliance & Legal (`/privacy` & `/terms`)**: Data privacy and maritime/air carriage terms.
 - **SEO Infrastructure (`/sitemap.xml` & `/robots.txt`)**: Dynamic XML sitemap and search engine crawler instructions.
 - **Enterprise Auth (`/login`, `/signup` & `/logout`)**: Horizon split-modal authentication with brand crimson `#EA1D2C` actions, live dashboard previews, 1-click role testing, dynamic session sync, and one-click secure sign-out.
@@ -43,7 +43,7 @@ Router file for product functionality, customer flows, and operations modules.
 - **Quotation Pricing Engine**: Commercial review, tariff calculator, pricing revision builder, quote-to-shipment conversion.
 - **Warehouse Facilities**: Hub monitoring (capacity square footage and occupancy %).
 - **Audit Logs**: Immutable timeline of security logins, rate adjustments, and status transitions.
-- **Resend Email Telemetry & DNS Diagnostics**: Transactional email dispatch from branded domain `support.goshipping.com.bd` via Resend API, with automated triggers for quotes, waybills, milestone events, and onboarding.
+- **Resend Email Telemetry & DNS Diagnostics**: Transactional email dispatch from verified branded domain `send.goshipping.com.bd` via Resend API, with automated triggers for quotes, waybills, milestone events, and onboarding.
 
 ---
 

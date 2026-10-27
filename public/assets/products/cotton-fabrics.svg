@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <rect width="48" height="48" rx="8" fill="#F1F5F9" />
+  <!-- Fabric Roll -->
+  <ellipse cx="14" cy="24" rx="4" ry="10" fill="#CBD5E1" stroke="#475569" stroke-width="1.5"/>
+  <ellipse cx="14" cy="24" rx="1.5" ry="4" fill="#94A3B8"/>
+  <path d="M14 14h20c2.2 0 4 4.5 4 10s-1.8 10-4 10H14" fill="#E2E8F0" stroke="#475569" stroke-width="1.5"/>
+  <ellipse cx="34" cy="24" rx="4" ry="10" fill="#F8FAFC" stroke="#475569" stroke-width="1.5"/>
+  <ellipse cx="34" cy="24" rx="1.5" ry="4" fill="#CBD5E1"/>
+  <!-- Knit texture lines -->
+  <path d="M18 16c2 1 4 1 6 0m-6 5c2 1 4 1 6 0m-6 5c2 1 4 1 6 0m-6 5c2 1 4 1 6 0" stroke="#94A3B8" stroke-width="1" stroke-linecap="round"/>
+  <!-- Tag indicator -->
+  <circle cx="38" cy="10" r="3" fill="#EA1D2C"/>
+</svg>

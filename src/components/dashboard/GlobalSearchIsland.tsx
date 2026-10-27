@@ -220,12 +220,12 @@ export default function GlobalSearchIsland({ portalType = 'customer' }: Props) {
     ...shipments.map((s) => ({
       id: `shp-${s.id}`,
       category: 'shipment' as const,
-      title: s.trackingNumber,
-      subtitle: `${s.originCity} → ${s.destCity} · ${s.mode.toUpperCase()} (${s.status.replace(/_/g, ' ')})`,
+      title: `${s.trackingNumber} · ${s.customerName}`,
+      subtitle: `${s.customerName} · ${s.customerEmail || ''} · ${s.customerPhone || ''} · ${s.originCity} → ${s.destCity} · ${s.mode.toUpperCase()} (${s.status.replace(/_/g, ' ')})`,
       badge: s.mode.toUpperCase(),
-      tabKey: 'tracking',
+      tabKey: portalType === 'admin' ? 'orders' : 'tracking',
       trackingCode: s.trackingNumber,
-      href: `/dashboard?tab=tracking&code=${encodeURIComponent(s.trackingNumber)}`
+      href: portalType === 'admin' ? `/admin?tab=orders&search=${encodeURIComponent(s.trackingNumber)}` : `/dashboard?tab=tracking&code=${encodeURIComponent(s.trackingNumber)}`
     })),
     ...quotes.map((q) => {
       const amount = q.revisions?.[0]?.totalAmount;
@@ -233,11 +233,11 @@ export default function GlobalSearchIsland({ portalType = 'customer' }: Props) {
       return {
         id: `qte-${q.id}`,
         category: 'quote' as const,
-        title: q.quoteNumber,
-        subtitle: `${q.originCity} → ${q.destCity}${amountText} · ${q.cargoDescription?.slice(0, 40) || ''}`,
+        title: `${q.quoteNumber} · ${q.guestName}`,
+        subtitle: `${q.guestName} · ${q.guestEmail || ''} · ${q.guestPhone || ''} · ${q.originCity} → ${q.destCity}${amountText} · ${q.cargoDescription?.slice(0, 40) || ''}`,
         badge: 'QUOTE',
         tabKey: 'quotes',
-        href: `/dashboard?tab=quotes`
+        href: portalType === 'admin' ? `/admin?tab=quotes` : `/dashboard?tab=quotes`
       };
     })
   ];

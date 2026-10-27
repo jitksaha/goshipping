@@ -73,8 +73,8 @@ In Hostinger Control Panel (hPanel) -> Advanced -> Cron Jobs:
 
 - **API Health Endpoint**: `GET /api/health`
   - Returns `status: "online"`, server timestamp, and live MySQL ping status.
-- **Tracking Endpoint**: `GET /api/tracking/GOSH-2026-9812`
-  - Returns verified timeline and HTTP 304 on duplicate requests with `If-None-Match`.
+- **Tracking Endpoint**: `GET /api/tracking/:query`
+  - Supports tracking code, carrier waybill / BOL, importer email, or consignee phone number. Returns single tracking data or multi-shipment consignment history (`matchingShipments`) with HTTP 304 conditional caching.
 - **User Management & Masquerade Endpoints**:
   - `GET /api/admin/users`: Lists accounts, roles, active shipment count, and tariff quotes count.
   - `POST /api/admin/users`: Creates a user profile with role, company, phone, and BIN credentials.
@@ -85,7 +85,7 @@ In Hostinger Control Panel (hPanel) -> Advanced -> Cron Jobs:
   - `POST /api/auth/exit-impersonation`: Destroys masquerade session and returns Super Admin to `/admin?tab=users`.
 - **Resend Email & Transactional Telemetry Endpoints**:
   - `POST /api/contact`: Public contact form submission triggering ops lead notification to `ops@goshipping.com.bd`.
-  - `GET /api/admin/email/status`: Returns Resend SDK domain status for `support.goshipping.com.bd`, region, and DKIM/SPF DNS records.
+  - `GET /api/admin/email/status`: Returns Resend SDK domain status for `send.goshipping.com.bd` (verified), region, and DKIM/SPF DNS records.
   - `POST /api/admin/email/verify`: Triggers DNS verification check on Resend API.
   - `POST /api/admin/email/test`: Dispatches a live diagnostic test email to any recipient.
 
