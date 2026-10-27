@@ -20,12 +20,12 @@ export interface ReferenceSelectProps {
 
 /**
  * Universal GoShipping ReferenceSelect Dropdown:
- * - Rounded trigger box with bold typography and optical chevron alignment
- * - Floating rounded-2xl menu card with elevation and soft shadow
+ * - Compact, sleek trigger with refined margin/padding & slightly smaller typography
+ * - Floating rounded-xl menu card with elevation and soft shadow
  * - Selected item displays dark circular checkmark badge (● with white ✓)
- * - Optional badge tag per option (e.g. "Air", "Sea", "Express", "BD", "MY")
+ * - Optional micro-badge tag per option (e.g. "Air", "Sea", "Express", "BD", "MY")
  * - Dark mode compliant and accessible keyboard navigation
- * - Scrollable for long option lists (max-h-64) with optional search filter
+ * - Scrollable with compact items (py-1.5) and optional search filter
  */
 export function ReferenceSelect({
   value,
@@ -74,8 +74,13 @@ export function ReferenceSelect({
       )
     : options;
 
+  // Sleek compact dimensions: reduced padding and slightly smaller, sharper font
   const heightClasses =
-    size === 'sm' ? 'h-9 px-3 text-xs' : size === 'lg' ? 'h-11 px-4 text-sm' : 'h-10 px-3.5 text-xs sm:text-sm';
+    size === 'sm'
+      ? 'h-[30px] px-2 text-[11px]'
+      : size === 'lg'
+      ? 'h-10 px-3 text-xs'
+      : 'h-[34px] px-2.5 text-xs';
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
@@ -86,22 +91,22 @@ export function ReferenceSelect({
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className={`w-full ${heightClasses} rounded-xl border bg-white dark:bg-slate-900 flex items-center justify-between font-bold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 focus:outline-none transition-none cursor-pointer ${
+        className={`w-full ${heightClasses} rounded-lg border bg-white dark:bg-slate-900 flex items-center justify-between font-semibold text-slate-800 dark:text-slate-100 shadow-2xs hover:border-slate-400 dark:hover:border-slate-600 focus:outline-none transition-none cursor-pointer ${
           isOpen
             ? 'border-slate-900 dark:border-slate-100 ring-1 ring-slate-900 dark:ring-slate-100'
             : 'border-slate-300 dark:border-slate-700'
         } ${disabled ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800' : ''}`}
       >
-        <span className="truncate flex items-center gap-2">
+        <span className="truncate flex items-center gap-1.5 min-w-0 pr-1">
           <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
           {selectedOption?.badge && (
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-semibold shrink-0">
+            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-medium shrink-0">
               {selectedOption.badge}
             </span>
           )}
         </span>
         <svg
-          className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform duration-150 shrink-0 ml-2 ${
+          className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-150 shrink-0 ml-1.5 ${
             isOpen ? 'rotate-180 text-slate-900 dark:text-white' : ''
           }`}
           viewBox="0 0 24 24"
@@ -115,24 +120,24 @@ export function ReferenceSelect({
 
       {/* Floating Dropdown Menu Card */}
       {isOpen && (
-        <div className="absolute left-0 top-[calc(100%+6px)] w-full min-w-[200px] max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl z-50 py-1.5 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
+        <div className="absolute left-0 top-[calc(100%+3px)] w-full min-w-[200px] max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl z-50 py-1 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
           {/* Optional Search Filter for long lists */}
           {(searchable || options.length > 8) && (
-            <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="p-1.5 border-b border-slate-100 dark:border-slate-800">
               <input
                 ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-slate-500"
+                className="w-full h-7 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[11px] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-slate-500"
               />
             </div>
           )}
 
-          <div className="max-h-64 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/40">
+          <div className="max-h-56 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/40">
             {filteredOptions.length === 0 ? (
-              <div className="px-4 py-3 text-xs text-slate-400 dark:text-slate-500 text-center">
+              <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 text-center">
                 No matching options found
               </div>
             ) : (
@@ -150,24 +155,24 @@ export function ReferenceSelect({
                       setIsOpen(false);
                       setSearchQuery('');
                     }}
-                    className={`w-full px-3.5 py-2.5 flex items-center justify-between text-left text-xs sm:text-sm cursor-pointer select-none transition-none ${
+                    className={`w-full px-2.5 py-1.5 flex items-center justify-between text-left text-xs cursor-pointer select-none transition-none ${
                       isSelected
-                        ? 'text-slate-900 dark:text-white font-bold bg-slate-50/80 dark:bg-slate-800/80'
-                        : 'text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800'
+                        ? 'text-slate-900 dark:text-white font-semibold bg-slate-100/80 dark:bg-slate-800/80'
+                        : 'text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <div className="flex items-center gap-2 truncate min-w-0 pr-2">
+                    <div className="flex items-center gap-1.5 truncate min-w-0 pr-1.5">
                       <span className="truncate">{opt.label}</span>
                       {opt.badge && (
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0 font-medium">
+                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0 font-medium">
                           {opt.badge}
                         </span>
                       )}
                     </div>
                     {isSelected && (
-                      <span className="w-5 h-5 rounded-full bg-[#334155] dark:bg-slate-600 flex items-center justify-center shrink-0 ml-2 shadow-2xs">
+                      <span className="w-4 h-4 rounded-full bg-[#334155] dark:bg-slate-600 flex items-center justify-center shrink-0 ml-1.5 shadow-2xs">
                         <svg
-                          className="w-3 h-3 text-white stroke-[2.8]"
+                          className="w-2.5 h-2.5 text-white stroke-[2.8]"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"

@@ -3161,7 +3161,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                   {/* Initial Status Selector */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Initial Physical Stage
                     </label>
                     <ReferenceSelect

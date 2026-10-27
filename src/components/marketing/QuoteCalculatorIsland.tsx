@@ -480,10 +480,10 @@ export default function QuoteCalculatorIsland({
                 </div>
 
                 {/* 4 Clean Selectors in 1 Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5">
                   {/* Selector 1: Origin Warehouse */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                       Origin Warehouse
                     </label>
                     <ReferenceSelect
@@ -500,7 +500,7 @@ export default function QuoteCalculatorIsland({
 
                   {/* Selector 2: Destination Country */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                       Destination Country
                     </label>
                     <ReferenceSelect
@@ -516,7 +516,7 @@ export default function QuoteCalculatorIsland({
 
                   {/* Selector 3: Fulfillment Option */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                       Fulfillment Option
                     </label>
                     <ReferenceSelect
@@ -533,7 +533,7 @@ export default function QuoteCalculatorIsland({
 
                   {/* Selector 4: Destination City / Area / Hub */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                       {fulfillmentType === 'pickup' ? 'Pickup Hub / Depot' : 'Destination Area / City'}
                     </label>
                     <ReferenceSelect
@@ -551,8 +551,8 @@ export default function QuoteCalculatorIsland({
 
                 {/* Optional Street Address when Doorstep or Courier is chosen */}
                 {fulfillmentType !== 'pickup' && (
-                  <div className="pt-1">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  <div className="pt-0.5">
+                    <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                       Delivery Street / Contact Address <span className="text-slate-400 font-normal">(Optional)</span>
                     </label>
                     <input
@@ -560,7 +560,7 @@ export default function QuoteCalculatorIsland({
                       value={destAddress}
                       onChange={(e) => setDestAddress(e.target.value)}
                       placeholder={`House, Road, Thana, or landmark address in ${destCity}...`}
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
+                      className="w-full h-[34px] px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]"
                     />
                   </div>
                 )}
@@ -604,7 +604,7 @@ export default function QuoteCalculatorIsland({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                         Product Category <span className="text-[#EA1D2C]">*</span>
                       </label>
                       <ReferenceSelect
@@ -784,7 +784,7 @@ export default function QuoteCalculatorIsland({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
                         Packaging
                       </label>
                       <ReferenceSelect
