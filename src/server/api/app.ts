@@ -20,6 +20,7 @@ import { ShipmentService } from '../services/shipment.service';
 import { QuoteService } from '../services/quote.service';
 import { TrackingService } from '../services/tracking.service';
 import { WarehouseService } from '../services/warehouse.service';
+import { ShippingConfigService } from '../services/shippingConfig.service';
 import { AuditService } from '../services/audit.service';
 import { RealtimeService } from '../services/realtime.service';
 import { EmailService } from '../services/email.service';
@@ -925,6 +926,34 @@ const WarehouseInputSchema = z.object({
 });
 
 const WarehouseUpdateSchema = WarehouseInputSchema.partial();
+
+app.get('/shipping-config', async (c) => {
+  const config = await ShippingConfigService.getConfig();
+  return c.json({ success: true, config });
+});
+
+app.get('/admin/shipping-config', async (c) => {
+  const config = await ShippingConfigService.getConfig();
+  return c.json({ success: true, config });
+});
+
+app.put('/admin/shipping-config', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized. Staff role required to update shipping configuration.' }, 403);
+  }
+
+  try {
+    const body = await c.req.json();
+    const updated = await ShippingConfigService.updateConfig(body);
+    return c.json({ success: true, config: updated });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to update shipping configuration' }, 400);
+  }
+});
 
 app.get('/warehouses', async (c) => {
   const warehouses = await WarehouseService.listWarehouses();

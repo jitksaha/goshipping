@@ -1,3 +1,143 @@
+export interface ShippingModeOption {
+  id: 'air' | 'sea' | 'hand_carry';
+  label: string;
+  badge: string;
+  minDays: number;
+  maxDays: number;
+}
+
+export const DEFAULT_SHIPPING_MODES: ShippingModeOption[] = [
+  { id: 'air', label: 'By Air', badge: '7–14 Days', minDays: 7, maxDays: 14 },
+  { id: 'sea', label: 'By Ship', badge: '30–45 Days', minDays: 30, maxDays: 45 },
+  { id: 'hand_carry', label: 'Hand Carry', badge: '24–48 Hours', minDays: 1, maxDays: 2 }
+];
+
+export interface DynamicFulfillmentOption {
+  id: 'doorstep' | 'courier' | 'pickup';
+  label: string;
+  badge: string;
+  cities: string[];
+}
+
+export interface DynamicCountryFulfillment {
+  country: string;
+  flag: string;
+  code: string;
+  options: DynamicFulfillmentOption[];
+}
+
+export const DYNAMIC_FULFILLMENT_BY_COUNTRY: Record<string, DynamicCountryFulfillment> = {
+  Bangladesh: {
+    country: 'Bangladesh',
+    flag: '🇧🇩',
+    code: 'BD',
+    options: [
+      {
+        id: 'doorstep',
+        label: 'Doorstep Delivery',
+        badge: 'Dhaka & Chittagong',
+        cities: ['Dhaka', 'Chittagong']
+      },
+      {
+        id: 'courier',
+        label: 'Courier Delivery',
+        badge: 'All over Bangladesh',
+        cities: [
+          'Dhaka',
+          'Chittagong',
+          'Gazipur',
+          'Narayanganj',
+          'Savar',
+          'Keraniganj',
+          'Sylhet',
+          'Rajshahi',
+          'Khulna',
+          'Barisal',
+          'Rangpur',
+          'Mymensingh',
+          'Bogra',
+          'Comilla',
+          'Cox\'s Bazar',
+          'Feni',
+          'Brahmanbaria',
+          'Tangail',
+          'Narsingdi',
+          'Manikganj',
+          'Munshiganj',
+          'Faridpur',
+          'Jessore',
+          'Kushtia',
+          'Dinajpur',
+          'Saidpur',
+          'Pabna',
+          'Sirajganj',
+          'Naogaon',
+          'Natore',
+          'Joypurhat',
+          'Satkhira',
+          'Jhenaidah',
+          'Bagerhat (Mongla)',
+          'Patuakhali',
+          'Bhola',
+          'Kurigram',
+          'Gaibandha',
+          'Jamalpur',
+          'Netrokona',
+          'Sherpur',
+          'Moulvibazar',
+          'Habiganj',
+          'Sunamganj'
+        ]
+      },
+      {
+        id: 'pickup',
+        label: 'Pickup Options',
+        badge: 'Warehouse / Depot Self-Pickup',
+        cities: [
+          'Dhaka Central Hub (43/31, Sabujkanon, Dhaka-1214)',
+          'Chittagong Seaport CFS Depot (Agrabad Seaport Zone)'
+        ]
+      }
+    ]
+  },
+  Malaysia: {
+    country: 'Malaysia',
+    flag: '🇲🇾',
+    code: 'MY',
+    options: [
+      {
+        id: 'courier',
+        label: 'Courier Delivery',
+        badge: 'All over Malaysia',
+        cities: [
+          'Selangor',
+          'Kuala Lumpur',
+          'Johor',
+          'Penang (Pulau Pinang)',
+          'Perak',
+          'Kedah',
+          'Melaka',
+          'Negeri Sembilan',
+          'Pahang',
+          'Sabah',
+          'Sarawak',
+          'Terengganu',
+          'Kelantan',
+          'Putrajaya'
+        ]
+      },
+      {
+        id: 'pickup',
+        label: 'Pickup Options',
+        badge: 'Warehouse Self-Pickup',
+        cities: [
+          'Selangor Receiving Hub (Lot 2720-B, Sg Buloh, Selangor)'
+        ]
+      }
+    ]
+  }
+};
+
 export interface LocationHub {
   city: string;
   code?: string;

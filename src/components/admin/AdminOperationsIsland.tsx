@@ -378,6 +378,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newCustomerPassword, setNewCustomerPassword] = useState('');
   const [newRecipientPhone, setNewRecipientPhone] = useState('');
 
+  // Dynamic Shipping Routes & Fulfillment Configuration State
+  const [adminShippingConfig, setAdminShippingConfig] = useState<any>(null);
+  const [savingShippingConfig, setSavingShippingConfig] = useState(false);
+  const [shippingConfigSuccessMsg, setShippingConfigSuccessMsg] = useState<string | null>(null);
+
   // Customer Filtering & Live Selection Mappings
   const filteredCustomersForOrder = useMemo(() => {
     const q = customerSearchQuery.trim().toLowerCase();
@@ -677,6 +682,28 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
+  const handleSaveShippingConfig = async () => {
+    if (!adminShippingConfig) return;
+    setSavingShippingConfig(true);
+    setShippingConfigSuccessMsg(null);
+    try {
+      const res = await fetch('/api/admin/shipping-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adminShippingConfig)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save configuration');
+      setShippingConfigSuccessMsg('Shipping configuration updated successfully.');
+      showToast('Shipping configuration and fulfillment rules updated', 'success');
+      setTimeout(() => setShippingConfigSuccessMsg(null), 3000);
+    } catch (err: any) {
+      alert(`Error saving shipping configuration: ${err.message}`);
+    } finally {
+      setSavingShippingConfig(false);
+    }
+  };
+
   // Sync tab with URL
   useEffect(() => {
     const handleUrlChange = () => {
@@ -724,13 +751,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         }
       };
 
-      const [resShip, resQte, resWh, resCust, resAudit, resUsers] = await Promise.all([
+      const [resShip, resQte, resWh, resCust, resAudit, resUsers, resConfig] = await Promise.all([
         fetch(`/api/shipments?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false, shipments: [] })),
         fetch(`/api/quotes?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false, quotes: [] })),
         fetch(`/api/warehouses?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false, warehouses: [] })),
         fetch(`/api/admin/customers?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false, customers: [] })),
         fetch(`/api/admin/audit-logs?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false, logs: [] })),
-        fetch(`/api/admin/users?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false, users: [] }))
+        fetch(`/api/admin/users?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false, users: [] })),
+        fetch(`/api/admin/shipping-config?_t=${t}`, fetchOpts).then((r) => r.json()).catch(() => ({ success: false }))
       ]);
 
       if (resShip.success && resShip.shipments) {
@@ -742,6 +770,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       if (resCust.success && resCust.customers) setCustomers(resCust.customers);
       if (resAudit.success && resAudit.logs) setAuditLogs(resAudit.logs);
       if (resUsers.success && resUsers.users) setUsers(resUsers.users);
+      if (resConfig.success && resConfig.config) setAdminShippingConfig(resConfig.config);
 
       if (manualSync) {
         setSyncState('synced');
@@ -5116,127 +5145,281 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* TAB: ADMIN PROFILE & ACCOUNT SETTINGS                     */}
         {/* ========================================================= */}
         {(activeTab === 'settings' || activeTab === 'profile') && (
-          <div className="bg-white rounded-lg p-6 sm:p-7 border border-slate-200 shadow-xs space-y-6 max-w-2xl font-['Inter',sans-serif]">
-            <div className="border-b border-slate-100 pb-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                  Admin Profile &amp; Operational Credentials
-                </h2>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-[#EA1D2C] border border-red-200 font-mono">
-                  Administrator
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {/* Admin Profile Form */}
+            <div className="bg-white rounded-lg p-6 sm:p-7 border border-slate-200 shadow-xs space-y-6 font-['Inter',sans-serif]">
+              <div className="border-b border-slate-100 pb-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    Admin Profile &amp; Operational Credentials
+                  </h2>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-[#EA1D2C] border border-red-200 font-mono">
+                    Administrator
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Update your administrative profile, official contact email, phone number, and security credentials.
+                </p>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
-                Update your administrative profile, official contact email, phone number, and security credentials.
-              </p>
+
+              {adminProfileSuccessMsg && (
+                <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-300 text-xs text-emerald-800 font-bold flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>{adminProfileSuccessMsg}</span>
+                </div>
+              )}
+
+              {adminProfileError && (
+                <div className="p-3.5 rounded-lg bg-red-50 border border-red-300 text-xs text-red-800 font-bold flex items-center gap-2">
+                  <svg className="w-4 h-4 text-red-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span>{adminProfileError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveAdminProfile} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={adminProfileName}
+                      onChange={(e) => setAdminProfileName(e.target.value)}
+                      required
+                      placeholder="Operations Director"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Official Email Address</label>
+                    <input
+                      type="email"
+                      value={adminProfileEmail}
+                      onChange={(e) => setAdminProfileEmail(e.target.value)}
+                      required
+                      placeholder="admin@goshipping.com"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Direct Contact Phone / WhatsApp</label>
+                    <input
+                      type="tel"
+                      value={adminProfilePhone}
+                      onChange={(e) => setAdminProfilePhone(e.target.value)}
+                      placeholder="+880 1711 000000"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1">Department / Organization</label>
+                    <input
+                      type="text"
+                      value={adminProfileCompany}
+                      onChange={(e) => setAdminProfileCompany(e.target.value)}
+                      placeholder="GoShipping Headquarters"
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Change Password <span className="font-normal text-slate-400">(leave blank to keep current)</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={adminProfilePassword}
+                    onChange={(e) => setAdminProfilePassword(e.target.value)}
+                    placeholder="Enter new admin password"
+                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                  />
+                </div>
+
+                <div className="pt-3 flex items-center justify-between border-t border-slate-100">
+                  <span className="text-[11px] text-slate-400">
+                    Role permissions remain controlled by enterprise RBAC.
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={savingAdminProfile}
+                    className="px-5 py-2.5 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-xs cursor-pointer flex items-center gap-2"
+                  >
+                    {savingAdminProfile ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Profile Changes</span>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
 
-            {adminProfileSuccessMsg && (
-              <div className="p-3.5 rounded-lg bg-emerald-50 border border-emerald-300 text-xs text-emerald-800 font-bold flex items-center gap-2">
-                <svg className="w-4 h-4 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                <span>{adminProfileSuccessMsg}</span>
-              </div>
-            )}
-
-            {adminProfileError && (
-              <div className="p-3.5 rounded-lg bg-red-50 border border-red-300 text-xs text-red-800 font-bold flex items-center gap-2">
-                <svg className="w-4 h-4 text-red-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                <span>{adminProfileError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSaveAdminProfile} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Dynamic Shipping Routes, Modes & Fulfillment Rules Panel */}
+            <div className="bg-white rounded-lg p-6 sm:p-7 border border-slate-200 shadow-xs space-y-5 font-['Inter',sans-serif]">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    value={adminProfileName}
-                    onChange={(e) => setAdminProfileName(e.target.value)}
-                    required
-                    placeholder="Operations Director"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  />
+                  <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    Shipping Routes &amp; Fulfillment Rules
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Live dynamic configuration for public &amp; customer booking portal.
+                  </p>
                 </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Official Email Address</label>
-                  <input
-                    type="email"
-                    value={adminProfileEmail}
-                    onChange={(e) => setAdminProfileEmail(e.target.value)}
-                    required
-                    placeholder="admin@goshipping.com"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Direct Contact Phone / WhatsApp</label>
-                  <input
-                    type="tel"
-                    value={adminProfilePhone}
-                    onChange={(e) => setAdminProfilePhone(e.target.value)}
-                    placeholder="+880 1711 000000"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Department / Organization</label>
-                  <input
-                    type="text"
-                    value={adminProfileCompany}
-                    onChange={(e) => setAdminProfileCompany(e.target.value)}
-                    placeholder="GoShipping Headquarters"
-                    className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-medium text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  Change Password <span className="font-normal text-slate-400">(leave blank to keep current)</span>
-                </label>
-                <input
-                  type="password"
-                  value={adminProfilePassword}
-                  onChange={(e) => setAdminProfilePassword(e.target.value)}
-                  placeholder="Enter new admin password"
-                  className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                />
-              </div>
-
-              <div className="pt-3 flex items-center justify-between border-t border-slate-100">
-                <span className="text-[11px] text-slate-400">
-                  Role permissions remain controlled by enterprise RBAC.
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono">
+                  Live Sync
                 </span>
+              </div>
+
+              {shippingConfigSuccessMsg && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                  <svg className="w-4 h-4 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <span>{shippingConfigSuccessMsg}</span>
+                </div>
+              )}
+
+              {/* Transport Modes SLA Config */}
+              <div className="space-y-2.5">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                  1. Transport Modes &amp; SLAs
+                </span>
+                <div className="space-y-2">
+                  {(adminShippingConfig?.modes || [
+                    { id: 'air', label: 'By Air', badge: '7–14 Days', minDays: 7, maxDays: 14, active: true },
+                    { id: 'sea', label: 'By Ship', badge: '30–45 Days', minDays: 30, maxDays: 45, active: true },
+                    { id: 'hand_carry', label: 'Hand Carry', badge: '24–48 Hours', minDays: 1, maxDays: 2, active: true }
+                  ]).map((m: any, idx: number) => (
+                    <div key={m.id} className="p-3 rounded-lg bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={m.active !== false}
+                          onChange={(e) => {
+                            const updated = { ...(adminShippingConfig || {}) };
+                            if (!updated.modes) {
+                              updated.modes = [
+                                { id: 'air', label: 'By Air', badge: '7–14 Days', minDays: 7, maxDays: 14, active: true },
+                                { id: 'sea', label: 'By Ship', badge: '30–45 Days', minDays: 30, maxDays: 45, active: true },
+                                { id: 'hand_carry', label: 'Hand Carry', badge: '24–48 Hours', minDays: 1, maxDays: 2, active: true }
+                              ];
+                            }
+                            updated.modes[idx].active = e.target.checked;
+                            setAdminShippingConfig(updated);
+                          }}
+                          className="w-4 h-4 text-[#EA1D2C] accent-[#EA1D2C] rounded cursor-pointer"
+                        />
+                        <span className="font-bold text-slate-900">{m.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-slate-500">SLA:</span>
+                        <input
+                          type="text"
+                          value={m.badge}
+                          onChange={(e) => {
+                            const updated = { ...(adminShippingConfig || {}) };
+                            if (!updated.modes) {
+                              updated.modes = [
+                                { id: 'air', label: 'By Air', badge: '7–14 Days', minDays: 7, maxDays: 14, active: true },
+                                { id: 'sea', label: 'By Ship', badge: '30–45 Days', minDays: 30, maxDays: 45, active: true },
+                                { id: 'hand_carry', label: 'Hand Carry', badge: '24–48 Hours', minDays: 1, maxDays: 2, active: true }
+                              ];
+                            }
+                            updated.modes[idx].badge = e.target.value;
+                            setAdminShippingConfig(updated);
+                          }}
+                          className="h-7 w-28 px-2 text-xs font-mono font-bold rounded border border-slate-300 bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Destination Fulfillment Rules */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-100">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider block">
+                  2. Destination Fulfillment Corridors
+                </span>
+                <div className="space-y-3">
+                  {/* Bangladesh */}
+                  <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>🇧🇩</span> Bangladesh
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded">
+                        Active Corridor
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+                      <div className="p-2 rounded bg-white border border-slate-200">
+                        <span className="font-bold block text-slate-800">1. Doorstep Delivery</span>
+                        <span className="text-slate-500 text-[10px]">Dhaka &amp; Chittagong</span>
+                      </div>
+                      <div className="p-2 rounded bg-white border border-slate-200">
+                        <span className="font-bold block text-slate-800">2. Courier Delivery</span>
+                        <span className="text-slate-500 text-[10px]">All over Bangladesh (64 Districts)</span>
+                      </div>
+                      <div className="p-2 rounded bg-white border border-slate-200">
+                        <span className="font-bold block text-slate-800">3. Pickup Options</span>
+                        <span className="text-slate-500 text-[10px]">Dhaka Hub &amp; CTG Seaport CFS</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Malaysia */}
+                  <div className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>🇲🇾</span> Malaysia
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded">
+                        Active Corridor
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                      <div className="p-2 rounded bg-white border border-slate-200">
+                        <span className="font-bold block text-slate-800">1. Courier Delivery</span>
+                        <span className="text-slate-500 text-[10px]">All over Malaysia (Peninsular &amp; East MY)</span>
+                      </div>
+                      <div className="p-2 rounded bg-white border border-slate-200">
+                        <span className="font-bold block text-slate-800">2. Pickup Options</span>
+                        <span className="text-slate-500 text-[10px]">Selangor Receiving Hub (Sungai Buloh)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-2 flex justify-end">
                 <button
-                  type="submit"
-                  disabled={savingAdminProfile}
-                  className="px-5 py-2.5 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-xs cursor-pointer flex items-center gap-2"
+                  type="button"
+                  onClick={handleSaveShippingConfig}
+                  disabled={savingShippingConfig}
+                  className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-xs cursor-pointer flex items-center gap-2"
                 >
-                  {savingAdminProfile ? (
-                    <>
-                      <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                      </svg>
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <span>Save Profile Changes</span>
-                  )}
+                  {savingShippingConfig ? 'Saving...' : 'Save Shipping Configuration'}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         )}
       </main>
