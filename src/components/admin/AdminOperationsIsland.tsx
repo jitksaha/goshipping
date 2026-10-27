@@ -607,6 +607,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
   const [verifyingDomain, setVerifyingDomain] = useState(false);
   const [verifyMessage, setVerifyMessage] = useState<string | null>(null);
+  const [copiedDnsField, setCopiedDnsField] = useState<string | null>(null);
+
+  const copyDnsValue = (text: string, fieldId: string) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setCopiedDnsField(fieldId);
+      setTimeout(() => setCopiedDnsField(null), 2500);
+    }
+  };
 
   // Sync tab with URL
   useEffect(() => {
@@ -4746,12 +4755,33 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             {/* Hostinger DNS Records Configuration Table */}
             <div className="bg-white rounded-lg p-6 border border-slate-200 shadow-xs space-y-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
-                  Hostinger DNS Records Authentication (DKIM &amp; SPF)
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  The following 3 DNS records must be added into your Hostinger DNS Zone for <code className="text-[0.9em] font-mono bg-slate-100 px-1 py-0.5 rounded">goshipping.com.bd</code> to authenticate sending from <code className="text-[0.9em] font-mono bg-slate-100 px-1 py-0.5 rounded">support.goshipping.com.bd</code>.
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                    Hostinger DNS Records Authentication (DKIM &amp; SPF)
+                  </h3>
+                  <span className="text-[11px] font-mono bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-semibold self-start sm:self-auto">
+                    Sending Domain: support.goshipping.com.bd
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Add the following 3 records into your Hostinger DNS Zone for <code className="text-[0.9em] font-mono bg-slate-100 px-1 py-0.5 rounded">goshipping.com.bd</code> to verify sending.
                 </p>
+              </div>
+
+              {/* Hostinger Step-by-Step Guidance Box */}
+              <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-2">
+                <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                  <span className="text-sm">💡</span>
+                  <span>Hostinger DNS Zone-এ রেকর্ড বসানোর গুরুত্বপূর্ণ নিয়ম:</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-slate-700 pl-1">
+                  <li>
+                    Hostinger-এর <strong>Name</strong> বক্সে কখনোই পুরো ডোমেন <code className="text-[0.9em] font-mono bg-red-50 text-[#EA1D2C] px-1 py-0.2 rounded font-bold">.goshipping.com.bd</code> লিখবেন না (কারণ Hostinger এটি শেষে নিজে যোগ করে নেয়)।
+                  </li>
+                  <li>
+                    নিচে থাকা প্রতিটি রেকর্ডের <strong>"Copy" বাটন</strong> ক্লিক করে Hostinger-এ পেস্ট করুন এবং অবশ্যই <strong>"Add Record"</strong> বাটনে ক্লিক করে সেভ করুন।
+                  </li>
+                </ul>
               </div>
 
               <div className="overflow-x-auto border border-slate-200 rounded-lg">
@@ -4759,45 +4789,122 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <thead className="bg-slate-50 text-slate-600 uppercase font-bold border-b border-slate-200 text-[10px] tracking-wider font-sans">
                     <tr>
                       <th className="py-2.5 px-4">Type</th>
-                      <th className="py-2.5 px-4">Record Name (Host)</th>
+                      <th className="py-2.5 px-4">Name (Host in Hostinger)</th>
                       <th className="py-2.5 px-4">Value / Points to</th>
                       <th className="py-2.5 px-4">TTL</th>
                       <th className="py-2.5 px-4">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 text-[11px]">
+                    {/* Record 1: DKIM TXT */}
                     <tr className="hover:bg-slate-50/50">
                       <td className="py-3 px-4 font-bold text-[#EA1D2C]">TXT</td>
-                      <td className="py-3 px-4 font-semibold text-slate-900 select-all">resend._domainkey.support</td>
-                      <td className="py-3 px-4 text-slate-600 max-w-xs truncate select-all" title="p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB">
-                        p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">resend._domainkey.support</span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('resend._domainkey.support', 'name-dkim')}
+                            className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans cursor-pointer transition-none"
+                            title="Copy host name"
+                          >
+                            {copiedDnsField === 'name-dkim' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-slate-600 font-mono text-[10px] max-w-[200px]" title="p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB">
+                            p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD5wvx/BY7u4uCE/bbDLPqW8eM7kGSov5le/4heeKH94dIR8Z7jxRSCmR5tVFBg0/di5i5VgFstLg1U/W5gXOhZTkhhj+QmjKdfUu4U6agN00Fv8OP3c9zA9A1WdwJXMsac6JmYz6iLJzbgvl7/lpnfL+P5WtcrbecQQsOr97n/oQIDAQAB', 'val-dkim')}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#11181E] hover:bg-slate-800 text-white font-sans shrink-0 cursor-pointer transition-none"
+                            title="Copy complete 226-character DKIM public key"
+                          >
+                            {copiedDnsField === 'val-dkim' ? '✓ Copied Key' : 'Copy Full Key'}
+                          </button>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-slate-500">Auto / 3600</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          Pending DNS
+                          {emailStatus?.domain?.records?.[0]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
                         </span>
                       </td>
                     </tr>
+
+                    {/* Record 2: SPF CNAME 1 */}
                     <tr className="hover:bg-slate-50/50">
                       <td className="py-3 px-4 font-bold text-indigo-600">CNAME</td>
-                      <td className="py-3 px-4 font-semibold text-slate-900 select-all">rsend.support</td>
-                      <td className="py-3 px-4 text-slate-600 select-all">rsend-apne1.forge.rmta.net</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">rsend.support</span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('rsend.support', 'name-spf1')}
+                            className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans cursor-pointer transition-none"
+                            title="Copy host name"
+                          >
+                            {copiedDnsField === 'name-spf1' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600 font-mono text-[10px]">rsend-apne1.forge.rmta.net</span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('rsend-apne1.forge.rmta.net', 'val-spf1')}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#11181E] hover:bg-slate-800 text-white font-sans shrink-0 cursor-pointer transition-none"
+                            title="Copy CNAME value"
+                          >
+                            {copiedDnsField === 'val-spf1' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-slate-500">3600</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          Pending DNS
+                          {emailStatus?.domain?.records?.[1]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
                         </span>
                       </td>
                     </tr>
+
+                    {/* Record 3: SPF CNAME 2 */}
                     <tr className="hover:bg-slate-50/50">
                       <td className="py-3 px-4 font-bold text-indigo-600">CNAME</td>
-                      <td className="py-3 px-4 font-semibold text-slate-900 select-all">send.support</td>
-                      <td className="py-3 px-4 text-slate-600 select-all">send.forge.rmta.net</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-900">send.support</span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('send.support', 'name-spf2')}
+                            className="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-sans cursor-pointer transition-none"
+                            title="Copy host name"
+                          >
+                            {copiedDnsField === 'name-spf2' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600 font-mono text-[10px]">send.forge.rmta.net</span>
+                          <button
+                            type="button"
+                            onClick={() => copyDnsValue('send.forge.rmta.net', 'val-spf2')}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#11181E] hover:bg-slate-800 text-white font-sans shrink-0 cursor-pointer transition-none"
+                            title="Copy CNAME value"
+                          >
+                            {copiedDnsField === 'val-spf2' ? '✓ Copied' : 'Copy'}
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-3 px-4 text-slate-500">3600</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          Pending DNS
+                          {emailStatus?.domain?.records?.[2]?.status === 'verified' ? 'Verified' : 'Pending DNS'}
                         </span>
                       </td>
                     </tr>
