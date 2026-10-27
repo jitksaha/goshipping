@@ -34,14 +34,12 @@ export const DYNAMIC_FULFILLMENT_BY_COUNTRY: Record<string, DynamicCountryFulfil
     options: [
       {
         id: 'doorstep',
-        label: 'Doorstep Delivery',
-        badge: 'Dhaka & Chittagong',
+        label: 'Doorstep Delivery (Dhaka & Chittagong)',
         cities: ['Dhaka', 'Chittagong']
       },
       {
         id: 'courier',
-        label: 'Courier Delivery',
-        badge: 'All over Bangladesh',
+        label: 'Courier Delivery (All Bangladesh)',
         cities: [
           'Dhaka',
           'Chittagong',
@@ -91,8 +89,7 @@ export const DYNAMIC_FULFILLMENT_BY_COUNTRY: Record<string, DynamicCountryFulfil
       },
       {
         id: 'pickup',
-        label: 'Pickup Options',
-        badge: 'Warehouse / Depot Self-Pickup',
+        label: 'Pickup Options (Warehouse / Depot)',
         cities: [
           'Dhaka Central Hub (43/31, Sabujkanon, Dhaka-1214)',
           'Chittagong Seaport CFS Depot (Agrabad Seaport Zone)'
@@ -107,8 +104,7 @@ export const DYNAMIC_FULFILLMENT_BY_COUNTRY: Record<string, DynamicCountryFulfil
     options: [
       {
         id: 'courier',
-        label: 'Courier Delivery',
-        badge: 'All over Malaysia',
+        label: 'Courier Delivery (All Malaysia)',
         cities: [
           'Selangor',
           'Kuala Lumpur',
@@ -128,8 +124,7 @@ export const DYNAMIC_FULFILLMENT_BY_COUNTRY: Record<string, DynamicCountryFulfil
       },
       {
         id: 'pickup',
-        label: 'Pickup Options',
-        badge: 'Warehouse Self-Pickup',
+        label: 'Pickup Options (Warehouse / Depot)',
         cities: [
           'Selangor Receiving Hub (Lot 2720-B, Sg Buloh, Selangor)'
         ]

@@ -135,8 +135,7 @@ const faqSchema = {
     {faqCategories.map((cat) => (
       <div class="space-y-6">
         <div class="border-b border-slate-200 pb-3">
-          <span class="text-xs font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">/CATEGORY</span>
-          <h2 class="text-2xl font-bold text-slate-900 font-['Manrope'] mt-1">{cat.category}</h2>
+          <h2 class="text-2xl font-bold text-slate-900 font-['Manrope']">{cat.category}</h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           {cat.items.map((item) => (

@@ -73,9 +73,6 @@ export default function QuoteFaqSection() {
             Complete procedural guide, transit SLAs, China warehouse protocols, and customs policies.
           </p>
         </div>
-        <span className="text-[11px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 w-fit">
-          {FAQ_ITEMS.length} Questions Answered
-        </span>
       </div>
 
       <div className="space-y-3">
@@ -97,10 +94,7 @@ export default function QuoteFaqSection() {
                 aria-expanded={isOpen}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
-                    {item.category}
-                  </span>
-                  <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white font-['Manrope',sans-serif] truncate">
+                  <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
                     {item.question}
                   </span>
                 </div>

@@ -432,31 +432,22 @@ export default function QuoteCalculatorIsland({
                   {shippingModes.map((m) => (
                     <label
                       key={m.id}
-                      className={`flex items-center justify-between px-3 py-2 rounded-lg border cursor-pointer transition-none ${
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-none ${
                         mode === m.id
                           ? 'border-[#EA1D2C] bg-red-50/70 dark:bg-red-950/30 text-slate-900 dark:text-white ring-1 ring-[#EA1D2C]'
                           : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 text-slate-700 dark:text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <input
-                          type="radio"
-                          name="shippingMode"
-                          value={m.id}
-                          checked={mode === m.id}
-                          onChange={() => setMode(m.id as any)}
-                          className="w-3.5 h-3.5 text-[#EA1D2C] accent-[#EA1D2C] cursor-pointer"
-                        />
-                        <span className="text-xs font-bold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
-                          {m.label}
-                        </span>
-                      </div>
-                      <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                        mode === m.id
-                          ? 'bg-red-100 text-[#EA1D2C] dark:bg-red-900/60 dark:text-red-300'
-                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                      }`}>
-                        {m.badge}
+                      <input
+                        type="radio"
+                        name="shippingMode"
+                        value={m.id}
+                        checked={mode === m.id}
+                        onChange={() => setMode(m.id as any)}
+                        className="w-3.5 h-3.5 text-[#EA1D2C] accent-[#EA1D2C] cursor-pointer"
+                      />
+                      <span className="text-xs font-semibold text-slate-900 dark:text-white font-['Manrope',sans-serif]">
+                        {m.label}
                       </span>
                     </label>
                   ))}
@@ -491,8 +482,7 @@ export default function QuoteCalculatorIsland({
                       onChange={(val) => setOriginCity(val)}
                       options={chinaWarehouses.map((wh) => ({
                         value: wh.city,
-                        label: `${wh.city} Warehouse`,
-                        badge: wh.code || 'CN'
+                        label: `${wh.city} Warehouse`
                       }))}
                       placeholder="Select Origin Warehouse"
                     />
@@ -507,8 +497,8 @@ export default function QuoteCalculatorIsland({
                       value={destCountry}
                       onChange={(val) => handleDestCountryChange(val)}
                       options={[
-                        { value: 'Bangladesh', label: 'Bangladesh', badge: 'BD' },
-                        { value: 'Malaysia', label: 'Malaysia', badge: 'MY' }
+                        { value: 'Bangladesh', label: 'Bangladesh' },
+                        { value: 'Malaysia', label: 'Malaysia' }
                       ]}
                       placeholder="Select Destination Country"
                     />
@@ -524,8 +514,7 @@ export default function QuoteCalculatorIsland({
                       onChange={(val) => handleFulfillmentChange(val as any)}
                       options={availableFulfillments.map((opt) => ({
                         value: opt.id,
-                        label: opt.label,
-                        badge: opt.badge
+                        label: opt.label
                       }))}
                       placeholder="Select Fulfillment Option"
                     />

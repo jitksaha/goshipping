@@ -97,13 +97,8 @@ export function ReferenceSelect({
             : 'border-slate-300 dark:border-slate-700'
         } ${disabled ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800' : ''}`}
       >
-        <span className="truncate flex items-center gap-1.5 min-w-0 pr-1">
-          <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
-          {selectedOption?.badge && (
-            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-medium shrink-0">
-              {selectedOption.badge}
-            </span>
-          )}
+        <span className="truncate pr-1 text-left">
+          {selectedOption ? selectedOption.label : placeholder}
         </span>
         <svg
           className={`w-3.5 h-3.5 text-slate-500 dark:text-slate-400 transition-transform duration-150 shrink-0 ml-1.5 ${
@@ -155,20 +150,13 @@ export function ReferenceSelect({
                       setIsOpen(false);
                       setSearchQuery('');
                     }}
-                    className={`w-full px-2.5 py-1.5 flex items-center justify-between text-left text-xs cursor-pointer select-none transition-none ${
+                    className={`w-full px-3 py-2 flex items-center justify-between text-left text-xs cursor-pointer select-none transition-none ${
                       isSelected
                         ? 'text-slate-900 dark:text-white font-semibold bg-slate-100/80 dark:bg-slate-800/80'
                         : 'text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <div className="flex items-center gap-1.5 truncate min-w-0 pr-1.5">
-                      <span className="truncate">{opt.label}</span>
-                      {opt.badge && (
-                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0 font-medium">
-                          {opt.badge}
-                        </span>
-                      )}
-                    </div>
+                    <span className="truncate pr-2">{opt.label}</span>
                     {isSelected && (
                       <span className="w-4 h-4 rounded-full bg-[#334155] dark:bg-slate-600 flex items-center justify-center shrink-0 ml-1.5 shadow-2xs">
                         <svg
