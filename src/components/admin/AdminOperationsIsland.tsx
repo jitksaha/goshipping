@@ -1890,44 +1890,44 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                   <div className="space-y-2">
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">Select Shipment</label>
-                      <select
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">Select Shipment</label>
+                      <ReferenceSelect
                         value={quickShipmentId || (shipments[0]?.id || '')}
-                        onChange={(e) => {
-                          const newId = e.target.value;
+                        onChange={(newId) => {
                           setQuickShipmentId(newId);
                           const found = shipments.find((s) => s.id === newId || s.trackingNumber === newId);
                           if (found) {
                             setQuickTargetStage(normalizeStatusCode(found.status));
                           }
                         }}
-                        className="w-full h-8 px-2 text-[11px] font-mono font-bold rounded-md border border-slate-300 bg-slate-50 text-slate-900"
-                      >
-                        {shipments.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.trackingNumber} — {s.customerName} ({s.status.toUpperCase()})
-                          </option>
-                        ))}
-                      </select>
+                        options={shipments.map((s) => ({
+                          value: s.id,
+                          label: `${s.trackingNumber} — ${s.customerName}`,
+                          badge: s.status.toUpperCase()
+                        }))}
+                        placeholder="Select Shipment"
+                        searchable={true}
+                      />
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-0.5">New Status</label>
-                      <select
+                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">New Status</label>
+                      <ReferenceSelect
                         value={quickTargetStage}
-                        onChange={(e) => setQuickTargetStage(e.target.value)}
-                        className="w-full h-8 px-2 text-[11px] font-semibold rounded-md border border-indigo-300 bg-indigo-50/60 text-indigo-900"
-                      >
-                        <option value="purchased">PURCHASED</option>
-                        <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
-                        <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
-                        <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
-                        <option value="awaiting_customs">AWAITING CUSTOMS</option>
-                        <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
-                        <option value="payment_received">PAYMENT RECEIVED</option>
-                        <option value="out_for_delivery">OUT FOR DELIVERY</option>
-                        <option value="delivered">DELIVERED</option>
-                      </select>
+                        onChange={(val) => setQuickTargetStage(val)}
+                        options={[
+                          { value: 'purchased', label: 'PURCHASED', badge: 'Step 1' },
+                          { value: 'cn_warehouse_received', label: 'CN WAREHOUSE RECEIVED', badge: 'Step 2' },
+                          { value: 'dispatched_from_china', label: 'DISPATCHED FROM CHINA', badge: 'Step 3' },
+                          { value: 'arrived_dhaka_airport', label: 'ARRIVED DHAKA AIRPORT', badge: 'Step 4' },
+                          { value: 'awaiting_customs', label: 'AWAITING CUSTOMS', badge: 'Step 5' },
+                          { value: 'bd_warehouse_received', label: 'BD WAREHOUSE RECEIVED', badge: 'Step 6' },
+                          { value: 'payment_received', label: 'PAYMENT RECEIVED', badge: 'Step 7' },
+                          { value: 'out_for_delivery', label: 'OUT FOR DELIVERY', badge: 'Step 8' },
+                          { value: 'delivered', label: 'DELIVERED', badge: 'Done' }
+                        ]}
+                        placeholder="Select Status"
+                      />
                     </div>
 
                     <button
@@ -3020,14 +3020,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                         Country Selector <span className="text-[#EA1D2C]">*</span>
                       </label>
-                      <select
+                      <ReferenceSelect
                         value={newDestCountry}
-                        onChange={(e) => handleCountryChange(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
-                      >
-                        <option value="Bangladesh">🇧🇩 Bangladesh</option>
-                        <option value="Malaysia">🇲🇾 Malaysia</option>
-                      </select>
+                        onChange={(val) => handleCountryChange(val)}
+                        options={[
+                          { value: 'Bangladesh', label: 'Bangladesh', badge: 'BD' },
+                          { value: 'Malaysia', label: 'Malaysia', badge: 'MY' }
+                        ]}
+                        placeholder="Select Country"
+                      />
                     </div>
 
                     {/* State / Division Selector */}
@@ -3035,17 +3036,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                         {currentAddressConfig.stateLabel} Selector <span className="text-[#EA1D2C]">*</span>
                       </label>
-                      <select
+                      <ReferenceSelect
                         value={recipientState}
-                        onChange={(e) => handleStateChange(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
-                      >
-                        {currentStates.map((st) => (
-                          <option key={st.name} value={st.name}>
-                            {st.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleStateChange(val)}
+                        options={currentStates.map((st) => ({
+                          value: st.name,
+                          label: st.name
+                        }))}
+                        placeholder={`Select ${currentAddressConfig.stateLabel}`}
+                        searchable={currentStates.length > 6}
+                      />
                     </div>
 
                     {/* City Selector */}
@@ -3053,20 +3053,19 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                         City Selector <span className="text-[#EA1D2C]">*</span>
                       </label>
-                      <select
+                      <ReferenceSelect
                         value={recipientCity}
-                        onChange={(e) => {
-                          setRecipientCity(e.target.value);
-                          setNewDestCity(e.target.value);
+                        onChange={(val) => {
+                          setRecipientCity(val);
+                          setNewDestCity(val);
                         }}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-medium focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
-                      >
-                        {currentAvailableCities.map((ct) => (
-                          <option key={ct} value={ct}>
-                            {ct}
-                          </option>
-                        ))}
-                      </select>
+                        options={currentAvailableCities.map((ct) => ({
+                          value: ct,
+                          label: ct
+                        }))}
+                        placeholder="Select City"
+                        searchable={currentAvailableCities.length > 6}
+                      />
                     </div>
 
                     {/* Postcode */}
@@ -3165,20 +3164,21 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                       Initial Physical Stage
                     </label>
-                    <select
+                    <ReferenceSelect
                       value={newInitialStatus}
-                      onChange={(e) => setNewInitialStatus(e.target.value)}
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                    >
-                      <option value="purchased">1. PURCHASED (Default Initial)</option>
-                      <option value="cn_warehouse_received">2. CN WAREHOUSE RECEIVED</option>
-                      <option value="dispatched_from_china">3. DISPATCHED FROM CHINA</option>
-                      <option value="arrived_dhaka_airport">4. ARRIVED DHAKA AIRPORT</option>
-                      <option value="awaiting_customs">5. AWAITING CUSTOMS CLEARANCE</option>
-                      <option value="bd_warehouse_received">6. BD WAREHOUSE RECEIVED</option>
-                      <option value="out_for_delivery">7. OUT FOR DELIVERY</option>
-                      <option value="delivered">8. DELIVERED</option>
-                    </select>
+                      onChange={(val) => setNewInitialStatus(val)}
+                      options={[
+                        { value: 'purchased', label: '1. PURCHASED (Default Initial)', badge: 'Step 1' },
+                        { value: 'cn_warehouse_received', label: '2. CN WAREHOUSE RECEIVED', badge: 'Step 2' },
+                        { value: 'dispatched_from_china', label: '3. DISPATCHED FROM CHINA', badge: 'Step 3' },
+                        { value: 'arrived_dhaka_airport', label: '4. ARRIVED DHAKA AIRPORT', badge: 'Step 4' },
+                        { value: 'awaiting_customs', label: '5. AWAITING CUSTOMS CLEARANCE', badge: 'Step 5' },
+                        { value: 'bd_warehouse_received', label: '6. BD WAREHOUSE RECEIVED', badge: 'Step 6' },
+                        { value: 'out_for_delivery', label: '7. OUT FOR DELIVERY', badge: 'Step 7' },
+                        { value: 'delivered', label: '8. DELIVERED', badge: 'Final' }
+                      ]}
+                      placeholder="Select Initial Physical Stage"
+                    />
                   </div>
 
                   {/* Summary Breakdown */}
@@ -3449,33 +3449,38 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
 
               <div className="flex items-center gap-2">
-                <select
+                <ReferenceSelect
                   value={shipmentModeFilter}
-                  onChange={(e) => setShipmentModeFilter(e.target.value)}
-                  className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer focus:border-slate-400 focus:outline-none"
-                >
-                  <option value="all">All Shipping Modes</option>
-                  <option value="air">By Air</option>
-                  <option value="sea">By Ship</option>
-                  <option value="hand_carry">Hand Carry</option>
-                </select>
+                  onChange={(val) => setShipmentModeFilter(val)}
+                  size="sm"
+                  className="w-44 shrink-0"
+                  options={[
+                    { value: 'all', label: 'All Shipping Modes' },
+                    { value: 'air', label: 'By Air', badge: 'Air' },
+                    { value: 'sea', label: 'By Ship', badge: 'Sea' },
+                    { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' }
+                  ]}
+                />
 
-                <select
+                <ReferenceSelect
                   value={shipmentStatusFilter}
-                  onChange={(e) => setShipmentStatusFilter(e.target.value)}
-                  className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer focus:border-slate-400 focus:outline-none"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="purchased">PURCHASED</option>
-                  <option value="cn_warehouse_received">CN WAREHOUSE RECEIVED</option>
-                  <option value="dispatched_from_china">DISPATCHED FROM CHINA</option>
-                  <option value="arrived_dhaka_airport">ARRIVED DHAKA AIRPORT</option>
-                  <option value="awaiting_customs">AWAITING CUSTOMS</option>
-                  <option value="bd_warehouse_received">BD WAREHOUSE RECEIVED</option>
-                  <option value="payment_received">PAYMENT RECEIVED</option>
-                  <option value="out_for_delivery">OUT FOR DELIVERY</option>
-                  <option value="delivered">DELIVERED</option>
-                </select>
+                  onChange={(val) => setShipmentStatusFilter(val)}
+                  size="sm"
+                  className="w-48 shrink-0"
+                  options={[
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'purchased', label: 'PURCHASED' },
+                    { value: 'cn_warehouse_received', label: 'CN WAREHOUSE RECEIVED' },
+                    { value: 'dispatched_from_china', label: 'DISPATCHED FROM CHINA' },
+                    { value: 'arrived_dhaka_airport', label: 'ARRIVED DHAKA AIRPORT' },
+                    { value: 'awaiting_customs', label: 'AWAITING CUSTOMS' },
+                    { value: 'bd_warehouse_received', label: 'BD WAREHOUSE RECEIVED' },
+                    { value: 'payment_received', label: 'PAYMENT RECEIVED' },
+                    { value: 'out_for_delivery', label: 'OUT FOR DELIVERY' },
+                    { value: 'delivered', label: 'DELIVERED' }
+                  ]}
+                  searchable={true}
+                />
 
                 <span className="text-[11px] font-mono font-medium text-slate-500 whitespace-nowrap px-1">
                   {filteredShipments.length} {filteredShipments.length === 1 ? 'order' : 'orders'}
@@ -3692,18 +3697,21 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   className="h-8 pl-3 pr-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-300 w-52 sm:w-64"
                 />
 
-                <select
-                  value={quoteStatusFilter}
-                  onChange={(e) => setQuoteStatusFilter(e.target.value)}
-                  className="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-700 cursor-pointer"
-                >
-                  <option value="all">All Status</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="under_review">Under Review</option>
-                  <option value="priced">Priced</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="converted">Converted to Shipment</option>
-                </select>
+                <div className="w-48">
+                  <ReferenceSelect
+                    value={quoteStatusFilter}
+                    onChange={(val) => setQuoteStatusFilter(val)}
+                    options={[
+                      { value: 'all', label: 'All Status' },
+                      { value: 'submitted', label: 'Submitted', badge: 'New' },
+                      { value: 'under_review', label: 'Under Review', badge: 'Review' },
+                      { value: 'priced', label: 'Priced', badge: 'Priced' },
+                      { value: 'accepted', label: 'Accepted', badge: 'OK' },
+                      { value: 'converted', label: 'Converted to Shipment', badge: 'Booked' }
+                    ]}
+                    placeholder="Status"
+                  />
+                </div>
               </div>
             </div>
 
@@ -4040,15 +4048,18 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                 <div className="flex items-center gap-2 text-xs">
                   <label className="text-slate-500 font-medium">Status:</label>
-                  <select
-                    value={invoiceStatusFilter}
-                    onChange={(e) => setInvoiceStatusFilter(e.target.value)}
-                    className="h-9 px-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-slate-300 font-medium"
-                  >
-                    <option value="all">All Invoices ({derivedInvoices.length})</option>
-                    <option value="paid">Paid ({derivedInvoices.filter(i => i.status === 'paid').length})</option>
-                    <option value="pending">Pending ({derivedInvoices.filter(i => i.status === 'pending').length})</option>
-                  </select>
+                  <div className="w-48">
+                    <ReferenceSelect
+                      value={invoiceStatusFilter}
+                      onChange={(val) => setInvoiceStatusFilter(val)}
+                      options={[
+                        { value: 'all', label: `All Invoices (${derivedInvoices.length})` },
+                        { value: 'paid', label: `Paid (${derivedInvoices.filter(i => i.status === 'paid').length})`, badge: 'Paid' },
+                        { value: 'pending', label: `Pending (${derivedInvoices.filter(i => i.status === 'pending').length})`, badge: 'Pending' }
+                      ]}
+                      placeholder="Status"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -4477,29 +4488,35 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </svg>
               </div>
 
-              <select
-                value={userRoleFilter}
-                onChange={(e) => setUserRoleFilter(e.target.value)}
-                className="h-9 px-3 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 cursor-pointer"
-              >
-                <option value="all">All Roles</option>
-                <option value="customer">Customers &amp; Importers</option>
-                <option value="super_admin">Super Admins</option>
-                <option value="ops_manager">Operations Managers</option>
-                <option value="warehouse_staff">Warehouse Staff</option>
-                <option value="sales_team">Sales Team</option>
-                <option value="support_agent">Support Agents</option>
-              </select>
+              <div className="w-48">
+                <ReferenceSelect
+                  value={userRoleFilter}
+                  onChange={(val) => setUserRoleFilter(val)}
+                  options={[
+                    { value: 'all', label: 'All Roles' },
+                    { value: 'customer', label: 'Customers & Importers', badge: 'Client' },
+                    { value: 'super_admin', label: 'Super Admins', badge: 'Admin' },
+                    { value: 'ops_manager', label: 'Operations Managers', badge: 'Ops' },
+                    { value: 'warehouse_staff', label: 'Warehouse Staff', badge: 'Hub' },
+                    { value: 'sales_team', label: 'Sales Team', badge: 'Sales' },
+                    { value: 'support_agent', label: 'Support Agents', badge: 'Help' }
+                  ]}
+                  placeholder="Role"
+                />
+              </div>
 
-              <select
-                value={userStatusFilter}
-                onChange={(e) => setUserStatusFilter(e.target.value)}
-                className="h-9 px-3 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 cursor-pointer"
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active Only</option>
-                <option value="suspended">Suspended Only</option>
-              </select>
+              <div className="w-40">
+                <ReferenceSelect
+                  value={userStatusFilter}
+                  onChange={(val) => setUserStatusFilter(val)}
+                  options={[
+                    { value: 'all', label: 'All Statuses' },
+                    { value: 'active', label: 'Active Only', badge: 'Active' },
+                    { value: 'suspended', label: 'Suspended Only', badge: 'Hold' }
+                  ]}
+                  placeholder="Status"
+                />
+              </div>
 
               <button
                 type="button"
@@ -5668,18 +5685,19 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Account Role</label>
-                  <select
+                  <ReferenceSelect
                     value={userRole}
-                    onChange={(e) => setUserRole(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium"
-                  >
-                    <option value="customer">Customer / Commercial Importer</option>
-                    <option value="ops_manager">Operations Manager</option>
-                    <option value="warehouse_staff">Warehouse Officer</option>
-                    <option value="sales_team">Sales Team</option>
-                    <option value="support_agent">Support Agent</option>
-                    <option value="super_admin">Super Administrator</option>
-                  </select>
+                    onChange={(val) => setUserRole(val)}
+                    options={[
+                      { value: 'customer', label: 'Customer / Importer', badge: 'Client' },
+                      { value: 'ops_manager', label: 'Operations Manager', badge: 'Ops' },
+                      { value: 'warehouse_staff', label: 'Warehouse Officer', badge: 'Hub' },
+                      { value: 'sales_team', label: 'Sales Team', badge: 'Sales' },
+                      { value: 'support_agent', label: 'Support Agent', badge: 'Help' },
+                      { value: 'super_admin', label: 'Super Administrator', badge: 'Admin' }
+                    ]}
+                    placeholder="Account Role"
+                  />
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Default Password</label>
@@ -5741,14 +5759,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Initial Status</label>
-                  <select
+                  <ReferenceSelect
                     value={userStatus}
-                    onChange={(e) => setUserStatus(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium"
-                  >
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
+                    onChange={(val) => setUserStatus(val)}
+                    options={[
+                      { value: 'active', label: 'Active', badge: 'Active' },
+                      { value: 'suspended', label: 'Suspended', badge: 'Hold' }
+                    ]}
+                    placeholder="Status"
+                  />
                 </div>
               </div>
 
@@ -5828,29 +5847,31 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Account Role</label>
-                  <select
+                  <ReferenceSelect
                     value={userRole}
-                    onChange={(e) => setUserRole(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium"
-                  >
-                    <option value="customer">Customer / Commercial Importer</option>
-                    <option value="ops_manager">Operations Manager</option>
-                    <option value="warehouse_staff">Warehouse Officer</option>
-                    <option value="sales_team">Sales Team</option>
-                    <option value="support_agent">Support Agent</option>
-                    <option value="super_admin">Super Administrator</option>
-                  </select>
+                    onChange={(val) => setUserRole(val)}
+                    options={[
+                      { value: 'customer', label: 'Customer / Importer', badge: 'Client' },
+                      { value: 'ops_manager', label: 'Operations Manager', badge: 'Ops' },
+                      { value: 'warehouse_staff', label: 'Warehouse Officer', badge: 'Hub' },
+                      { value: 'sales_team', label: 'Sales Team', badge: 'Sales' },
+                      { value: 'support_agent', label: 'Support Agent', badge: 'Help' },
+                      { value: 'super_admin', label: 'Super Administrator', badge: 'Admin' }
+                    ]}
+                    placeholder="Account Role"
+                  />
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Status</label>
-                  <select
+                  <ReferenceSelect
                     value={userStatus}
-                    onChange={(e) => setUserStatus(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium"
-                  >
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
+                    onChange={(val) => setUserStatus(val)}
+                    options={[
+                      { value: 'active', label: 'Active', badge: 'Active' },
+                      { value: 'suspended', label: 'Suspended', badge: 'Hold' }
+                    ]}
+                    placeholder="Status"
+                  />
                 </div>
               </div>
 
@@ -6042,30 +6063,27 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select
-                    value={selectedSettlementBankId}
-                    onChange={(e) => {
-                      setSelectedSettlementBankId(e.target.value);
-                      if (e.target.value === 'custom') {
-                        setIsEditingBank(true);
-                      }
-                    }}
-                    className="h-8 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-800 shadow-2xs focus:ring-1 focus:ring-[#EA1D2C] focus:outline-none cursor-pointer"
-                  >
-                    <optgroup label="🇧🇩 Bangladesh Settlement Banks (BDT / Foreign Ex)">
-                      <option value="scb-bd">Standard Chartered Bank BD (Gulshan)</option>
-                      <option value="city-bd">The City Bank PLC (Corporate Branch)</option>
-                      <option value="brac-bd">BRAC Bank PLC (Corporate Branch)</option>
-                      <option value="dbbl-bd">Dutch-Bangla Bank PLC (Motijheel)</option>
-                    </optgroup>
-                    <optgroup label="🇲🇾 Malaysia Operations (MYR / USD)">
-                      <option value="maybank-my">Maybank Malaysia (Menara Maybank)</option>
-                      <option value="cimb-my">CIMB Bank Berhad (KL Sentral)</option>
-                    </optgroup>
-                    <optgroup label="⚙️ Custom Entry">
-                      <option value="custom">✎ Custom Bank Account...</option>
-                    </optgroup>
-                  </select>
+                  <div className="w-64">
+                    <ReferenceSelect
+                      value={selectedSettlementBankId}
+                      onChange={(val) => {
+                        setSelectedSettlementBankId(val);
+                        if (val === 'custom') {
+                          setIsEditingBank(true);
+                        }
+                      }}
+                      options={[
+                        { value: 'scb-bd', label: 'Standard Chartered Bank BD (Gulshan)', badge: 'BD' },
+                        { value: 'city-bd', label: 'The City Bank PLC (Corporate Branch)', badge: 'BD' },
+                        { value: 'brac-bd', label: 'BRAC Bank PLC (Corporate Branch)', badge: 'BD' },
+                        { value: 'dbbl-bd', label: 'Dutch-Bangla Bank PLC (Motijheel)', badge: 'BD' },
+                        { value: 'maybank-my', label: 'Maybank Malaysia (Menara Maybank)', badge: 'MY' },
+                        { value: 'cimb-my', label: 'CIMB Bank Berhad (KL Sentral)', badge: 'MY' },
+                        { value: 'custom', label: 'Custom Bank Account...', badge: 'Custom' }
+                      ]}
+                      placeholder="Select Bank"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsEditingBank(!isEditingBank)}
@@ -6273,20 +6291,21 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <label className="block font-semibold text-slate-700 mb-1">
                     Country <span className="text-[#EA1D2C]">*</span>
                   </label>
-                  <select
+                  <ReferenceSelect
                     value={whCountry}
-                    onChange={(e) => {
-                      setWhCountry(e.target.value);
-                      if (e.target.value === 'China') setWhPhone('+86 20 8888 0000');
-                      else if (e.target.value === 'Malaysia') setWhPhone('+60 11-1234 5678');
+                    onChange={(val) => {
+                      setWhCountry(val);
+                      if (val === 'China') setWhPhone('+86 20 8888 0000');
+                      else if (val === 'Malaysia') setWhPhone('+60 11-1234 5678');
                       else setWhPhone('+880 1711 000000');
                     }}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  >
-                    <option value="China">🇨🇳 China</option>
-                    <option value="Bangladesh">🇧🇩 Bangladesh</option>
-                    <option value="Malaysia">🇲🇾 Malaysia</option>
-                  </select>
+                    options={[
+                      { value: 'China', label: 'China', badge: 'CN' },
+                      { value: 'Bangladesh', label: 'Bangladesh', badge: 'BD' },
+                      { value: 'Malaysia', label: 'Malaysia', badge: 'MY' }
+                    ]}
+                    placeholder="Country"
+                  />
                 </div>
               </div>
 
@@ -6391,14 +6410,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Station Status</label>
-                  <select
+                  <ReferenceSelect
                     value={whIsActive ? 'active' : 'inactive'}
-                    onChange={(e) => setWhIsActive(e.target.value === 'active')}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  >
-                    <option value="active">Active Station</option>
-                    <option value="inactive">Inactive / Offline</option>
-                  </select>
+                    onChange={(val) => setWhIsActive(val === 'active')}
+                    options={[
+                      { value: 'active', label: 'Active Station', badge: 'Active' },
+                      { value: 'inactive', label: 'Inactive / Offline', badge: 'Offline' }
+                    ]}
+                    placeholder="Status"
+                  />
                 </div>
               </div>
 
@@ -6472,15 +6492,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <label className="block font-semibold text-slate-700 mb-1">
                     Country <span className="text-[#EA1D2C]">*</span>
                   </label>
-                  <select
+                  <ReferenceSelect
                     value={whCountry}
-                    onChange={(e) => setWhCountry(e.target.value)}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  >
-                    <option value="China">🇨🇳 China</option>
-                    <option value="Bangladesh">🇧🇩 Bangladesh</option>
-                    <option value="Malaysia">🇲🇾 Malaysia</option>
-                  </select>
+                    onChange={(val) => setWhCountry(val)}
+                    options={[
+                      { value: 'China', label: 'China', badge: 'CN' },
+                      { value: 'Bangladesh', label: 'Bangladesh', badge: 'BD' },
+                      { value: 'Malaysia', label: 'Malaysia', badge: 'MY' }
+                    ]}
+                    placeholder="Country"
+                  />
                 </div>
               </div>
 
@@ -6579,14 +6600,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Station Status</label>
-                  <select
+                  <ReferenceSelect
                     value={whIsActive ? 'active' : 'inactive'}
-                    onChange={(e) => setWhIsActive(e.target.value === 'active')}
-                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 bg-white font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-900"
-                  >
-                    <option value="active">Active Station</option>
-                    <option value="inactive">Inactive / Offline</option>
-                  </select>
+                    onChange={(val) => setWhIsActive(val === 'active')}
+                    options={[
+                      { value: 'active', label: 'Active Station', badge: 'Active' },
+                      { value: 'inactive', label: 'Inactive / Offline', badge: 'Offline' }
+                    ]}
+                    placeholder="Status"
+                  />
                 </div>
               </div>
 

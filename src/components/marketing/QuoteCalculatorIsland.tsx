@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import QuoteFaqSection from './QuoteFaqSection';
+import ReferenceSelect from '../common/ReferenceSelect';
 import {
   ORIGIN_COUNTRIES,
   CHINA_ORIGIN_HUB,
@@ -485,17 +486,16 @@ export default function QuoteCalculatorIsland({
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Origin Warehouse
                     </label>
-                    <select
+                    <ReferenceSelect
                       value={originCity}
-                      onChange={(e) => setOriginCity(e.target.value)}
-                      className="w-full h-9 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none cursor-pointer"
-                    >
-                      {chinaWarehouses.map((wh) => (
-                        <option key={wh.id || wh.city} value={wh.city}>
-                          🇨🇳 {wh.city} ({wh.code || 'HUB'})
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setOriginCity(val)}
+                      options={chinaWarehouses.map((wh) => ({
+                        value: wh.city,
+                        label: `${wh.city} Warehouse`,
+                        badge: wh.code || 'CN'
+                      }))}
+                      placeholder="Select Origin Warehouse"
+                    />
                   </div>
 
                   {/* Selector 2: Destination Country */}
@@ -503,14 +503,15 @@ export default function QuoteCalculatorIsland({
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Destination Country
                     </label>
-                    <select
+                    <ReferenceSelect
                       value={destCountry}
-                      onChange={(e) => handleDestCountryChange(e.target.value)}
-                      className="w-full h-9 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none cursor-pointer"
-                    >
-                      <option value="Bangladesh">🇧🇩 Bangladesh</option>
-                      <option value="Malaysia">🇲🇾 Malaysia</option>
-                    </select>
+                      onChange={(val) => handleDestCountryChange(val)}
+                      options={[
+                        { value: 'Bangladesh', label: 'Bangladesh', badge: 'BD' },
+                        { value: 'Malaysia', label: 'Malaysia', badge: 'MY' }
+                      ]}
+                      placeholder="Select Destination Country"
+                    />
                   </div>
 
                   {/* Selector 3: Fulfillment Option */}
@@ -518,17 +519,16 @@ export default function QuoteCalculatorIsland({
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       Fulfillment Option
                     </label>
-                    <select
+                    <ReferenceSelect
                       value={fulfillmentType}
-                      onChange={(e) => handleFulfillmentChange(e.target.value as any)}
-                      className="w-full h-9 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none cursor-pointer"
-                    >
-                      {availableFulfillments.map((opt) => (
-                        <option key={opt.id} value={opt.id}>
-                          {opt.label} ({opt.badge})
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => handleFulfillmentChange(val as any)}
+                      options={availableFulfillments.map((opt) => ({
+                        value: opt.id,
+                        label: opt.label,
+                        badge: opt.badge
+                      }))}
+                      placeholder="Select Fulfillment Option"
+                    />
                   </div>
 
                   {/* Selector 4: Destination City / Area / Hub */}
@@ -536,17 +536,16 @@ export default function QuoteCalculatorIsland({
                     <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                       {fulfillmentType === 'pickup' ? 'Pickup Hub / Depot' : 'Destination Area / City'}
                     </label>
-                    <select
+                    <ReferenceSelect
                       value={destCity}
-                      onChange={(e) => setDestCity(e.target.value)}
-                      className="w-full h-9 px-2.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none cursor-pointer"
-                    >
-                      {availableCities.map((city) => (
-                        <option key={city} value={city}>
-                          {city}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(val) => setDestCity(val)}
+                      options={availableCities.map((city) => ({
+                        value: city,
+                        label: city
+                      }))}
+                      placeholder="Select Destination City / Area"
+                      searchable={availableCities.length > 6}
+                    />
                   </div>
                 </div>
 
@@ -608,22 +607,21 @@ export default function QuoteCalculatorIsland({
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Product Category <span className="text-[#EA1D2C]">*</span>
                       </label>
-                      <select
+                      <ReferenceSelect
                         value={productCategory}
-                        onChange={(e) => {
-                          setProductCategory(e.target.value);
+                        onChange={(val) => {
+                          setProductCategory(val);
                           if (!cargoDescription || cargoDescription.includes('(1688 / Factory)')) {
-                            setCargoDescription(`${e.target.value} (1688 / Factory)`);
+                            setCargoDescription(`${val} (1688 / Factory)`);
                           }
                         }}
-                        className="w-full h-9 px-2.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] outline-none cursor-pointer"
-                      >
-                        {PRODUCT_CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
+                        options={PRODUCT_CATEGORIES.map((cat) => ({
+                          value: cat,
+                          label: cat
+                        }))}
+                        placeholder="Select Product Category"
+                        searchable={true}
+                      />
                     </div>
 
                     <div className="sm:col-span-2">
@@ -789,17 +787,18 @@ export default function QuoteCalculatorIsland({
                       <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                         Packaging
                       </label>
-                      <select
+                      <ReferenceSelect
                         value={packagingType}
-                        onChange={(e) => setPackagingType(e.target.value)}
-                        className="w-full h-9 px-2.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800 text-slate-900 dark:text-white focus:bg-white focus:border-[var(--color-brand-primary)] focus:ring-1 focus:ring-[var(--color-brand-primary)]/20 transition-none outline-none cursor-pointer"
-                      >
-                        <option value="carton">Cartons</option>
-                        <option value="pallet">Pallets</option>
-                        <option value="crate">Wooden Crates</option>
-                        <option value="drum">Steel Drums</option>
-                        <option value="bag">Woven Bags / Sacks</option>
-                      </select>
+                        onChange={(val) => setPackagingType(val)}
+                        options={[
+                          { value: 'carton', label: 'Cartons' },
+                          { value: 'pallet', label: 'Pallets' },
+                          { value: 'crate', label: 'Wooden Crates' },
+                          { value: 'drum', label: 'Steel Drums' },
+                          { value: 'bag', label: 'Woven Bags / Sacks' }
+                        ]}
+                        placeholder="Select Packaging"
+                      />
                     </div>
                   </div>
 

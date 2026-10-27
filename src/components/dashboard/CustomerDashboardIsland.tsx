@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LiveTrackingIsland from '../marketing/LiveTrackingIsland';
 import QuoteCalculatorIsland from '../marketing/QuoteCalculatorIsland';
+import ReferenceSelect from '../common/ReferenceSelect';
 import type { ShipmentRecord } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
 
@@ -510,28 +511,34 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
             </div>
 
             <div className="flex items-center gap-2">
-              <select
-                value={shipmentModeFilter}
-                onChange={(e) => setShipmentModeFilter(e.target.value)}
-                className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer"
-              >
-                <option value="all">All Modes</option>
-                <option value="air">By Air</option>
-                <option value="sea">By Ship</option>
-                <option value="hand_carry">Hand Carry</option>
-              </select>
+              <div className="w-36">
+                <ReferenceSelect
+                  value={shipmentModeFilter}
+                  onChange={(val) => setShipmentModeFilter(val)}
+                  options={[
+                    { value: 'all', label: 'All Modes' },
+                    { value: 'air', label: 'By Air', badge: 'Air' },
+                    { value: 'sea', label: 'By Ship', badge: 'Sea' },
+                    { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' }
+                  ]}
+                  placeholder="Mode"
+                />
+              </div>
 
-              <select
-                value={shipmentStatusFilter}
-                onChange={(e) => setShipmentStatusFilter(e.target.value)}
-                className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer"
-              >
-                <option value="all">All Status</option>
-                <option value="in_transit">In Transit</option>
-                <option value="customs_clearance">Customs Clearance</option>
-                <option value="out_for_delivery">Out for Delivery</option>
-                <option value="delivered">Delivered</option>
-              </select>
+              <div className="w-44">
+                <ReferenceSelect
+                  value={shipmentStatusFilter}
+                  onChange={(val) => setShipmentStatusFilter(val)}
+                  options={[
+                    { value: 'all', label: 'All Status' },
+                    { value: 'in_transit', label: 'In Transit', badge: 'Transit' },
+                    { value: 'customs_clearance', label: 'Customs Clearance', badge: 'Customs' },
+                    { value: 'out_for_delivery', label: 'Out for Delivery', badge: 'Final' },
+                    { value: 'delivered', label: 'Delivered', badge: 'Done' }
+                  ]}
+                  placeholder="Status"
+                />
+              </div>
             </div>
           </div>
 
@@ -620,21 +627,20 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
         <div className="space-y-4">
           {/* Quick Consignment Picker */}
           {shipments.length > 1 && (
-            <div className="bg-white p-3.5 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-700">Select Shipment:</span>
-              <div className="flex items-center gap-2">
-                <select
+            <div className="bg-white p-3.5 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <span className="font-semibold text-slate-700">Select Shipment to Track:</span>
+              <div className="w-full sm:w-96">
+                <ReferenceSelect
                   value={selectedTrackingCode}
-                  onChange={(e) => setSelectedTrackingCode(e.target.value)}
-                  className="h-8 px-3 rounded-md border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 cursor-pointer"
-                >
-                  <option value="">-- Select Consignment to Track --</option>
-                  {shipments.map((s) => (
-                    <option key={s.id} value={s.trackingNumber}>
-                      {s.trackingNumber} ({s.originCity} → {s.destCity}) [{s.status.replace(/_/g, ' ')}]
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => setSelectedTrackingCode(val)}
+                  options={shipments.map((s) => ({
+                    value: s.trackingNumber,
+                    label: `${s.trackingNumber} (${s.originCity} → ${s.destCity})`,
+                    badge: s.status.replace(/_/g, ' ').toUpperCase()
+                  }))}
+                  placeholder="Select Consignment to Track"
+                  searchable={true}
+                />
               </div>
             </div>
           )}
@@ -679,17 +685,20 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               </svg>
             </div>
 
-            <select
-              value={quoteStatusFilter}
-              onChange={(e) => setQuoteStatusFilter(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 cursor-pointer"
-            >
-              <option value="all">All Quotation Status</option>
-              <option value="submitted">Submitted</option>
-              <option value="under_review">Under Review</option>
-              <option value="priced">Priced (Ready to Book)</option>
-              <option value="converted">Confirmed Bookings</option>
-            </select>
+            <div className="w-56">
+              <ReferenceSelect
+                value={quoteStatusFilter}
+                onChange={(val) => setQuoteStatusFilter(val)}
+                options={[
+                  { value: 'all', label: 'All Quotation Status' },
+                  { value: 'submitted', label: 'Submitted', badge: 'New' },
+                  { value: 'under_review', label: 'Under Review', badge: 'Review' },
+                  { value: 'priced', label: 'Priced (Ready to Book)', badge: 'Ready' },
+                  { value: 'converted', label: 'Confirmed Bookings', badge: 'Booked' }
+                ]}
+                placeholder="Status"
+              />
+            </div>
           </div>
 
           <div className="overflow-x-auto border border-slate-200 rounded-lg">
