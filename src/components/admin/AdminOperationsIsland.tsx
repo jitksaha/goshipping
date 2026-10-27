@@ -2371,170 +2371,93 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* 1. Origin Hub (China) */}
-                    <div className="flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="block text-xs font-semibold text-slate-800">
-                            Origin Hub (China)
-                          </label>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {originWarehouseList.length} Active
-                          </span>
-                        </div>
-
-                        {/* Selector for Origin matching reference style */}
-                        <ReferenceSelect
-                          value={newOriginCity}
-                          onChange={(cityVal) => {
-                            setNewOriginCity(cityVal);
-                            setNewOriginCountry('China');
-                          }}
-                          options={originWarehouseList.map((wh) => ({
-                            value: wh.city,
-                            label: wh.city,
-                            badge: wh.code,
-                          }))}
-                          placeholder="Select Origin Hub"
-                        />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-semibold text-slate-800">
+                          Origin Hub (China)
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {originWarehouseList.length} Active
+                        </span>
                       </div>
 
-                      {/* Selected Origin Warehouse Address Box */}
-                      {selectedOriginWarehouse && (
-                        <div className="mt-2.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
-                          <div className="flex items-center justify-between text-slate-500 mb-0.5">
-                            <span className="font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-700">
-                              <span>📍</span> Warehouse Address
-                            </span>
-                            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
-                              {selectedOriginWarehouse.code}
-                            </span>
-                          </div>
-                          <p className="text-slate-800 font-medium leading-relaxed">
-                            {selectedOriginWarehouse.address}
-                          </p>
-                          {selectedOriginWarehouse.phone && (
-                            <div className="pt-1 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
-                              <span>Intake Contact</span>
-                              <span className="font-mono text-slate-700">{selectedOriginWarehouse.phone}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Selector for Origin matching reference style */}
+                      <ReferenceSelect
+                        value={newOriginCity}
+                        onChange={(cityVal) => {
+                          setNewOriginCity(cityVal);
+                          setNewOriginCountry('China');
+                        }}
+                        options={originWarehouseList.map((wh) => ({
+                          value: wh.city,
+                          label: wh.city,
+                          badge: wh.code,
+                        }))}
+                        placeholder="Select Origin Hub"
+                      />
                     </div>
 
                     {/* 2. Destination Hub (BD / MY) */}
-                    <div className="flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="block text-xs font-semibold text-slate-800">
-                            Destination Hub
-                          </label>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            BD / MY
-                          </span>
-                        </div>
-
-                        {/* Selector for Destination Hub matching reference style */}
-                        <ReferenceSelect
-                          value={
-                            destinationHubList.find(
-                              (opt) =>
-                                newDestCountry.toLowerCase() === opt.country.toLowerCase() &&
-                                (newDestCity.toLowerCase() === opt.city.toLowerCase() || opt.country.toLowerCase() === 'malaysia')
-                            )?.key || (newDestCountry.toLowerCase() === 'malaysia' ? 'my-selangor' : 'bd-dhaka')
-                          }
-                          onChange={(keyVal) => {
-                            const chosen = destinationHubList.find((opt) => opt.key === keyVal);
-                            if (chosen) {
-                              if (chosen.country !== newDestCountry) {
-                                handleCountryChange(chosen.country);
-                              }
-                              setNewDestCity(chosen.city);
-                              setRecipientCity(chosen.city);
-                            }
-                          }}
-                          options={destinationHubList.map((opt) => ({
-                            value: opt.key,
-                            label: opt.label,
-                            badge: opt.country === 'Malaysia' ? 'MY' : 'BD',
-                          }))}
-                          placeholder="Select Destination Hub"
-                        />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-semibold text-slate-800">
+                          Destination Hub
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          BD / MY
+                        </span>
                       </div>
 
-                      {/* Selected Destination Warehouse Address Box */}
-                      {selectedDestWarehouse && (
-                        <div className="mt-2.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
-                          <div className="flex items-center justify-between text-slate-500 mb-0.5">
-                            <span className="font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-700">
-                              <span>📍</span> Warehouse Address
-                            </span>
-                            <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
-                              {selectedDestWarehouse.code}
-                            </span>
-                          </div>
-                          <p className="text-slate-800 font-medium leading-relaxed">
-                            {selectedDestWarehouse.address}
-                          </p>
-                          {selectedDestWarehouse.phone && (
-                            <div className="pt-1 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
-                              <span>Dispatch Hub</span>
-                              <span className="font-mono text-slate-700">{selectedDestWarehouse.phone}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Selector for Destination Hub matching reference style */}
+                      <ReferenceSelect
+                        value={
+                          destinationHubList.find(
+                            (opt) =>
+                              newDestCountry.toLowerCase() === opt.country.toLowerCase() &&
+                              (newDestCity.toLowerCase() === opt.city.toLowerCase() || opt.country.toLowerCase() === 'malaysia')
+                          )?.key || (newDestCountry.toLowerCase() === 'malaysia' ? 'my-selangor' : 'bd-dhaka')
+                        }
+                        onChange={(keyVal) => {
+                          const chosen = destinationHubList.find((opt) => opt.key === keyVal);
+                          if (chosen) {
+                            if (chosen.country !== newDestCountry) {
+                              handleCountryChange(chosen.country);
+                            }
+                            setNewDestCity(chosen.city);
+                            setRecipientCity(chosen.city);
+                          }
+                        }}
+                        options={destinationHubList.map((opt) => ({
+                          value: opt.key,
+                          label: opt.label,
+                          badge: opt.country === 'Malaysia' ? 'MY' : 'BD',
+                        }))}
+                        placeholder="Select Destination Hub"
+                      />
                     </div>
 
                     {/* 3. Shipping Method */}
-                    <div className="flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="block text-xs font-semibold text-slate-800">
-                            Shipping Method
-                          </label>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            3 Modes
-                          </span>
-                        </div>
-
-                        {/* Selector for Shipping Method matching reference style */}
-                        <ReferenceSelect
-                          value={newMode}
-                          onChange={(modeVal) => setNewMode(modeVal as any)}
-                          options={[
-                            { value: 'air', label: 'By Air', badge: 'Air' },
-                            { value: 'sea', label: 'By Ship', badge: 'Sea' },
-                            { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' },
-                          ]}
-                          placeholder="Select Shipping Method"
-                        />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs font-semibold text-slate-800">
+                          Shipping Method
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          3 Modes
+                        </span>
                       </div>
 
-                      {/* Selected Shipping Mode SLA Box */}
-                      <div className="mt-2.5 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1">
-                        <div className="flex items-center justify-between text-slate-500 mb-0.5">
-                          <span className="font-semibold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-700">
-                            <span>⚡</span> Transit SLA
-                          </span>
-                          <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-[#EA1D2C]">
-                            {newMode === 'air' ? '7–14 Days' : newMode === 'sea' ? '30–45 Days' : '24–48 Hours'}
-                          </span>
-                        </div>
-                        <p className="text-slate-800 font-medium leading-relaxed">
-                          {newMode === 'air'
-                            ? 'Direct scheduled air cargo flight to destination airport hub.'
-                            : newMode === 'sea'
-                            ? 'Economical sea container freight with full port handling.'
-                            : 'Fast personal courier hand-carry transfer directly to destination.'}
-                        </p>
-                        <div className="pt-1 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
-                          <span>Service Type</span>
-                          <span className="font-semibold text-slate-700">
-                            {newMode === 'air' ? 'Air Freight' : newMode === 'sea' ? 'Ocean Cargo' : 'P2P Hand Carry'}
-                          </span>
-                        </div>
-                      </div>
+                      {/* Selector for Shipping Method matching reference style */}
+                      <ReferenceSelect
+                        value={newMode}
+                        onChange={(modeVal) => setNewMode(modeVal as any)}
+                        options={[
+                          { value: 'air', label: 'By Air', badge: 'Air' },
+                          { value: 'sea', label: 'By Ship', badge: 'Sea' },
+                          { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' },
+                        ]}
+                        placeholder="Select Shipping Method"
+                      />
                     </div>
                   </div>
 
@@ -3248,6 +3171,80 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   {/* NBR & Customs Compliance Note */}
                   <div className="pt-2 text-[10px] text-slate-400 text-center leading-relaxed">
                     National Board of Revenue (NBR) Mushak 6.3 compliant manifest generation. Real-time telemetry initialized.
+                  </div>
+                </div>
+
+                {/* Hub & Warehouse Coordinates Card */}
+                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-3.5">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">📍</span>
+                      <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-['Manrope',sans-serif]">
+                        Hub &amp; Warehouse Coordinates
+                      </h3>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 font-mono">
+                      {selectedOriginWarehouse?.code || 'CN'} → {selectedDestWarehouse?.code || 'DEST'}
+                    </span>
+                  </div>
+
+                  {/* Origin Warehouse Address */}
+                  {selectedOriginWarehouse && (
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between text-slate-500 mb-0.5">
+                        <span className="font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-800">
+                          <span>🇨🇳</span> Origin Hub ({selectedOriginWarehouse.city})
+                        </span>
+                        <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
+                          {selectedOriginWarehouse.code}
+                        </span>
+                      </div>
+                      <p className="text-slate-700 font-medium leading-relaxed">
+                        {selectedOriginWarehouse.address}
+                      </p>
+                      {selectedOriginWarehouse.phone && (
+                        <div className="pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
+                          <span>Intake Contact:</span>
+                          <span className="font-mono font-medium text-slate-800">{selectedOriginWarehouse.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Destination Warehouse Address */}
+                  {selectedDestWarehouse && (
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between text-slate-500 mb-0.5">
+                        <span className="font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-800">
+                          <span>{newDestCountry === 'Malaysia' ? '🇲🇾' : '🇧🇩'}</span> Destination Hub ({selectedDestWarehouse.city})
+                        </span>
+                        <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
+                          {selectedDestWarehouse.code}
+                        </span>
+                      </div>
+                      <p className="text-slate-700 font-medium leading-relaxed">
+                        {selectedDestWarehouse.address}
+                      </p>
+                      {selectedDestWarehouse.phone && (
+                        <div className="pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
+                          <span>Dispatch Hub:</span>
+                          <span className="font-mono font-medium text-slate-800">{selectedDestWarehouse.phone}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Transit SLA */}
+                  <div className="p-3 rounded-lg bg-red-50/60 border border-red-100 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span>⚡</span>
+                      <span className="font-semibold text-slate-800 text-[11px]">
+                        {newMode === 'air' ? 'Air Cargo' : newMode === 'sea' ? 'Ocean Freight' : 'Hand Carry'} SLA
+                      </span>
+                    </div>
+                    <span className="font-mono text-[11px] font-bold text-[#EA1D2C]">
+                      {newMode === 'air' ? '7–14 Days' : newMode === 'sea' ? '30–45 Days' : '24–48 Hours'}
+                    </span>
                   </div>
                 </div>
 
