@@ -6,6 +6,10 @@ import TrackingHead from '../components/analytics/TrackingHead.astro';
 import TrackingBody from '../components/analytics/TrackingBody.astro';
 
 const redirectUrl = Astro.url.searchParams.get('redirect') || '';
+
+// Self-registration is currently disabled. Redirect directly to Sign In.
+return Astro.redirect(`/login${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`);
+
 const siteOrigin = getSiteOrigin(Astro.request);
 const trackingConfig = getTrackingConfig();
 ---

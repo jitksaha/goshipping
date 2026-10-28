@@ -172,13 +172,7 @@ const trackingConfig = getTrackingConfig();
             </div>
           </div>
 
-          <!-- Bottom Switch Link -->
-          <div class="pt-6 text-center text-xs text-slate-600 border-t border-slate-100 mt-6">
-            Don't have an account?{' '}
-            <a href={`/signup${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ''}`} class="text-[#EA1D2C] font-semibold hover:underline">
-              Sign up
-            </a>
-          </div>
+          {/* Public self-registration is disabled; Sign In is the only default option */}
         </div>
 
         <!-- Right Side: Platform Visual Showcase -->
