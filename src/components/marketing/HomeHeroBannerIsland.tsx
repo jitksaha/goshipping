@@ -180,16 +180,16 @@ export default function HomeHeroBannerIsland({ initialBanners }: { initialBanner
 
             {/* Main Headline */}
             <div className="space-y-1.5 sm:space-y-2">
-              <h1 className="text-2xl sm:text-4xl lg:text-[42px] font-extrabold text-[#11181E] tracking-tight leading-[1.2] font-['Noto_Sans_Bengali','Manrope',sans-serif]">
+              <h1 className="text-2xl sm:text-4xl lg:text-[42px] font-extrabold text-[#11181E] tracking-tight leading-[1.2] font-bengali font-['Hind_Siliguri',sans-serif]">
                 {current.headlineBengali}
               </h1>
-              <p className="text-base sm:text-xl font-bold text-[#EA1D2C] tracking-tight leading-snug font-['Noto_Sans_Bengali','Manrope',sans-serif]">
+              <p className="text-base sm:text-xl font-bold text-[#EA1D2C] tracking-tight leading-snug font-bengali font-['Hind_Siliguri',sans-serif]">
                 {current.headlineAccent}
               </p>
             </div>
 
             {/* Subtitle Description */}
-            <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-normal max-w-2xl font-['Noto_Sans_Bengali','Inter',sans-serif]">
+            <p className="text-xs sm:text-base text-slate-600 leading-relaxed font-normal max-w-2xl font-bengali font-['Hind_Siliguri',sans-serif]">
               {current.subtitle}
             </p>
 
@@ -197,7 +197,7 @@ export default function HomeHeroBannerIsland({ initialBanners }: { initialBanner
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-1">
               <a
                 href={current.primaryCtaLink}
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 sm:py-3.5 rounded-lg bg-[#EA1D2C] text-white text-xs sm:text-sm font-bold hover:bg-[#D41523] active:bg-[#B91C1C] transition-colors shadow-md shadow-red-500/20 cursor-pointer min-h-[44px] font-['Noto_Sans_Bengali','Manrope',sans-serif]"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 sm:py-3.5 rounded-lg bg-[#EA1D2C] text-white text-xs sm:text-sm font-bold hover:bg-[#D41523] active:bg-[#B91C1C] transition-colors shadow-md shadow-red-500/20 cursor-pointer min-h-[44px] font-bengali font-['Hind_Siliguri',sans-serif]"
               >
                 <span>{current.primaryCtaText}</span>
               </a>
@@ -205,16 +205,16 @@ export default function HomeHeroBannerIsland({ initialBanners }: { initialBanner
               {current.secondaryCtaText && current.secondaryCtaLink && (
                 <a
                   href={current.secondaryCtaLink}
-                  className="inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors shadow-xs cursor-pointer min-h-[44px] font-['Noto_Sans_Bengali','Manrope',sans-serif]"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 sm:py-3.5 rounded-lg border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm font-bold hover:bg-slate-50 transition-colors shadow-xs cursor-pointer min-h-[44px] font-bengali font-['Hind_Siliguri',sans-serif]"
                 >
                   <span>{current.secondaryCtaText}</span>
                 </a>
               )}
             </div>
 
-            {/* 3 Checkpoint Badges like img_01.png */}
+            {/* 3 Checkpoint Badges */}
             <div className="pt-4 border-t border-slate-200/80">
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-slate-700">
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-slate-700 font-bengali">
                 {(current.features || []).map((feat) => (
                   <span key={feat} className="inline-flex items-center gap-1.5">
                     <svg className="w-4 h-4 text-[#EA1D2C] shrink-0" viewBox="0 0 20 20" fill="currentColor">
@@ -249,13 +249,13 @@ export default function HomeHeroBannerIsland({ initialBanners }: { initialBanner
                     setPreviewUrl(null);
                   }}
                   className="absolute top-4 left-4 bg-black/75 hover:bg-black/90 text-white text-[11px] font-bold px-3 py-1.5 rounded-full backdrop-blur-xs border border-white/20 shadow-md flex items-center gap-1.5 transition-all opacity-90 hover:opacity-100 cursor-pointer z-10"
-                  title="ব্যানার ছবি সরাসরি আপলোড করুন"
+                  title="Update Banner Image"
                 >
                   <svg className="w-3.5 h-3.5 text-[#FFDE00]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                     <circle cx="12" cy="13" r="4" />
                   </svg>
-                  <span>ব্যানার ছবি আপডেট</span>
+                  <span>Change Image</span>
                 </button>
 
                 {/* China Flag Badge Overlay */}
@@ -278,12 +278,12 @@ export default function HomeHeroBannerIsland({ initialBanners }: { initialBanner
               </div>
             </div>
 
-            {/* Fast Track Floating Card */}
+            {/* Fast Track Floating Card (Clean English UI) */}
             <div className="mt-4 p-4 rounded-xl bg-white border border-slate-200 shadow-md">
               <div className="flex items-center justify-between text-xs font-bold text-slate-900 mb-2">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#EA1D2C] animate-pulse" />
-                  <span>দ্রুত পার্সেল ট্র্যাকিং (Live Track)</span>
+                  <span>Fast Parcel Tracking</span>
                 </span>
                 <a href="/tracking" className="text-[#EA1D2C] text-[11px] hover:underline font-semibold">
                   Full Portal →
@@ -293,7 +293,7 @@ export default function HomeHeroBannerIsland({ initialBanners }: { initialBanner
                 <input
                   type="text"
                   name="code"
-                  placeholder="GOSH-XXXX ট্র্যাকিং কোড বা ফোন..."
+                  placeholder="Enter tracking code (GOSH-XXXX) or phone..."
                   className="flex-1 h-9 px-3 rounded-md border border-slate-300 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#EA1D2C]"
                   required
                 />

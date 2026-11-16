@@ -36,9 +36,9 @@
   --color-info-subtle: #F0F9FF;
 
   /* Typography Families */
-  --font-manrope: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-bengali: 'Noto Sans Bengali', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-manrope: 'Manrope', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-inter: 'Inter', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-bengali: 'Hind Siliguri', -apple-system, BlinkMacSystemFont, sans-serif;
 
   /* Radius & Spacing (Precision Architectural Industrial Scale) */
   --radius-xs: 0.125rem; /* 2px */

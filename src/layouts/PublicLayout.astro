@@ -73,11 +73,11 @@ const user = Astro.locals?.user;
     <meta name="geo.placename" content="Dhaka, Bangladesh" />
     <meta name="target" content="all" />
 
-    <!-- Google Fonts: Manrope (Headings/Editorial), Inter (UI/Body) & Noto Sans Bengali -->
+    <!-- Google Fonts: Manrope (Headings), Inter (UI/Body) & Hind Siliguri (Bengali Typography) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Noto+Sans+Bengali:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
 
@@ -316,10 +316,7 @@ const user = Astro.locals?.user;
           </div>
 
           <a href="/how-it-works" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/how-it-works' ? 'text-[#EA1D2C]' : ''}`}>How It Works</a>
-          <a href="/sourcing" class={`hover:text-[#EA1D2C] transition-colors duration-150 flex items-center gap-1.5 ${currentPath === '/sourcing' ? 'text-[#EA1D2C]' : ''}`}>
-            <span>সোর্সিং</span>
-            <span class="px-1.5 py-0.2 text-[9px] font-bold uppercase rounded bg-red-100 text-[#EA1D2C]">New</span>
-          </a>
+          <a href="/sourcing" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/sourcing' ? 'text-[#EA1D2C]' : ''}`}>Sourcing</a>
           <a href="/quote" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/quote' ? 'text-[#EA1D2C]' : ''}`}>Ship for Me</a>
           <a href="/about" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/about' ? 'text-[#EA1D2C]' : ''}`}>About Us</a>
           <a href="/contact" class={`hover:text-[#EA1D2C] transition-colors duration-150 ${currentPath === '/contact' ? 'text-[#EA1D2C]' : ''}`}>Contact</a>
@@ -540,9 +537,8 @@ const user = Astro.locals?.user;
 
         <!-- Primary Navigation Links -->
         <div class="space-y-1">
-          <a href="/sourcing" class={`flex items-center justify-between min-h-[44px] px-3 rounded-lg text-sm font-bold ${currentPath === '/sourcing' ? 'bg-red-50 text-[#EA1D2C]' : 'text-[#EA1D2C] hover:bg-red-50/50'}`}>
-            <span>চীন পণ্য সোর্সিং (Sourcing)</span>
-            <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-red-100 text-[#EA1D2C]">New</span>
+          <a href="/sourcing" class={`flex items-center min-h-[44px] px-3 rounded-lg text-sm font-semibold ${currentPath === '/sourcing' ? 'bg-slate-100 text-[#EA1D2C] font-bold' : 'text-slate-800 hover:bg-slate-50'}`}>
+            Sourcing
           </a>
           <a href="/how-it-works" class={`flex items-center min-h-[44px] px-3 rounded-lg text-sm font-semibold ${currentPath === '/how-it-works' ? 'bg-slate-100 text-[#EA1D2C] font-bold' : 'text-slate-800 hover:bg-slate-50'}`}>
             How It Works

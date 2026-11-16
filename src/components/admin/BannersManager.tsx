@@ -392,10 +392,10 @@ export default function BannersManager({ showToast }: { showToast: (msg: string,
                     </span>
                   </div>
 
-                  <h3 className="text-base font-bold text-slate-900 font-['Noto_Sans_Bengali','Manrope'] line-clamp-1">
+                  <h3 className="text-base font-bold text-slate-900 font-bengali font-['Hind_Siliguri','Manrope'] line-clamp-1">
                     {b.headlineBengali}
                   </h3>
-                  <p className="text-xs font-semibold text-[#EA1D2C] font-['Noto_Sans_Bengali'] line-clamp-1">
+                  <p className="text-xs font-semibold text-[#EA1D2C] font-bengali font-['Hind_Siliguri'] line-clamp-1">
                     {b.headlineAccent}
                   </p>
                   <p className="text-xs text-slate-600 line-clamp-2">
