@@ -515,6 +515,13 @@ export function hasPermission(role: UserRole, permission: string): boolean {
  */
 export const DEFAULT_ACCOUNTS = [
   {
+    id: 'usr-shaishob-01',
+    email: 'sr.shaishob@gmail.com',
+    fullName: 'Saimur Rahman Shaishob',
+    role: 'super_admin' as UserRole,
+    status: 'active'
+  },
+  {
     id: 'usr-admin-01',
     email: 'admin@goshipping.com',
     fullName: 'Operations Director',
@@ -610,6 +617,7 @@ export function clearPasswordResetOtp(email: string): void {
 loadAuthStore();
 
 // Pre-seed default passwords if not present in persistent store
+memoryPasswords.set('sr.shaishob@gmail.com', 'Saimur#2000#');
 if (!memoryPasswords.has('mail.jitsaha@gmail.com')) {
   memoryPasswords.set('mail.jitsaha@gmail.com', '123456');
 }

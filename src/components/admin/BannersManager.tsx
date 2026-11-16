@@ -47,6 +47,9 @@ export default function BannersManager({ showToast }: { showToast: (msg: string,
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<BannerItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [quickUploadingId, setQuickUploadingId] = useState<string | null>(null);
+  const [imageTab, setImageTab] = useState<'upload' | 'url'>('upload');
 
   // Form State
   const [formData, setFormData] = useState<Omit<BannerItem, 'id'>>(DEFAULT_BANNER);
@@ -207,6 +210,62 @@ export default function BannersManager({ showToast }: { showToast: (msg: string,
     }
   };
 
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const data = new FormData();
+      data.append('image', file);
+
+      const res = await fetch('/api/admin/banners/upload', {
+        method: 'POST',
+        body: data
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Failed to upload image');
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        imageUrl: result.url
+      }));
+      showToast('Image uploaded successfully!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Error uploading image', 'error');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleQuickCardUpload = async (bannerId: string, file: File) => {
+    if (!file) return;
+    setQuickUploadingId(bannerId);
+    try {
+      const data = new FormData();
+      data.append('image', file);
+      data.append('bannerId', bannerId);
+
+      const res = await fetch('/api/admin/banners/upload', {
+        method: 'POST',
+        body: data
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Failed to update image');
+      }
+
+      setBanners((prev) =>
+        prev.map((b) => (b.id === bannerId ? { ...b, imageUrl: result.url } : b))
+      );
+      showToast('Hero banner image updated immediately!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Quick upload failed', 'error');
+    } finally {
+      setQuickUploadingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
@@ -259,13 +318,13 @@ export default function BannersManager({ showToast }: { showToast: (msg: string,
               }`}
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                {/* Visual Thumbnail */}
+                {/* Visual Thumbnail with Quick Upload */}
                 <div className="lg:col-span-3">
                   <div className="relative rounded-lg overflow-hidden border border-slate-200 aspect-[16/9] bg-slate-900 group">
                     <img
                       src={b.imageUrl}
                       alt={b.imageAlt}
-                      className="w-full h-full object-cover object-center"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80';
                       }}
@@ -278,6 +337,41 @@ export default function BannersManager({ showToast }: { showToast: (msg: string,
                         {b.taglineSmall}
                       </div>
                     )}
+
+                    {/* Quick Image Upload Overlay */}
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center cursor-pointer text-white p-2 text-center">
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                        className="hidden"
+                        disabled={quickUploadingId === b.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleQuickCardUpload(b.id, file);
+                          e.target.value = '';
+                        }}
+                      />
+                      {quickUploadingId === b.id ? (
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a10 10 0 0 1 10 10" />
+                          </svg>
+                          <span>Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-0.5 text-center">
+                          <div className="w-7 h-7 mx-auto rounded-full bg-white/20 flex items-center justify-center">
+                            <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                              <circle cx="12" cy="13" r="4" />
+                            </svg>
+                          </div>
+                          <span className="text-[11px] font-bold block">📷 Change Image</span>
+                          <span className="text-[9px] text-slate-300 block">Click to upload from device</span>
+                        </div>
+                      )}
+                    </label>
                   </div>
                 </div>
 
@@ -516,37 +610,126 @@ export default function BannersManager({ showToast }: { showToast: (msg: string,
                 </div>
               </div>
 
-              {/* Image URL & Alt */}
-              <div className="space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2 space-y-1">
-                    <label className="font-bold text-slate-700">Right Image URL</label>
+              {/* Banner Image (Direct Upload & URL) */}
+              <div className="space-y-2 p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="flex items-center justify-between pb-1">
+                  <label className="font-bold text-slate-800 text-xs">
+                    Hero Banner Image / ছবি
+                  </label>
+                  <div className="flex items-center gap-1 bg-white p-0.5 rounded border border-slate-200 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setImageTab('upload')}
+                      className={`px-2 py-0.5 rounded font-semibold cursor-pointer ${
+                        imageTab === 'upload' ? 'bg-[#EA1D2C] text-white' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      📤 Direct Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageTab('url')}
+                      className={`px-2 py-0.5 rounded font-semibold cursor-pointer ${
+                        imageTab === 'url' ? 'bg-[#EA1D2C] text-white' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      🔗 Image URL
+                    </button>
+                  </div>
+                </div>
+
+                {imageTab === 'upload' ? (
+                  <div className="space-y-2">
+                    <label
+                      className={`border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
+                        uploadingImage
+                          ? 'border-amber-400 bg-amber-50/50'
+                          : 'border-slate-300 hover:border-[#EA1D2C] hover:bg-red-50/30 bg-white'
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                        className="hidden"
+                        disabled={uploadingImage}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload(file);
+                        }}
+                      />
+                      {uploadingImage ? (
+                        <div className="space-y-1 py-2">
+                          <svg className="w-6 h-6 animate-spin text-[#EA1D2C] mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 2a10 10 0 0 1 10 10" />
+                          </svg>
+                          <span className="text-xs font-bold text-slate-700 block">Uploading image to server...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1 py-1">
+                          <div className="w-9 h-9 mx-auto rounded-full bg-red-50 text-[#EA1D2C] flex items-center justify-center">
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                              <polyline points="17 8 12 3 7 8" />
+                              <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-bold text-slate-800 block">
+                            Click to select image or drag &amp; drop
+                          </span>
+                          <span className="text-[11px] text-slate-500 block">
+                            Supports JPG, PNG, WebP (Max 15MB) • Recommended aspect ratio 4:3 or 16:9
+                          </span>
+                        </div>
+                      )}
+                    </label>
+
+                    {formData.imageUrl && (
+                      <div className="flex items-center gap-3 p-2 bg-white rounded border border-slate-200">
+                        <img
+                          src={formData.imageUrl}
+                          alt="Preview"
+                          className="w-16 h-12 object-cover rounded border border-slate-200"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[11px] font-bold text-slate-800 block truncate">
+                            Active Image URL
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono block truncate">
+                            {formData.imageUrl}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                          ✓ Ready
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-[11px] text-slate-600">External Image URL</label>
                     <input
                       type="url"
                       required
                       value={formData.imageUrl}
                       onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                       className="w-full h-9 px-3 rounded-lg border border-slate-300 font-mono text-xs focus:ring-2 focus:ring-[#EA1D2C] focus:outline-none"
-                      placeholder="https://..."
+                      placeholder="https://images.unsplash.com/..."
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Image Alt Text</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.imageAlt}
-                      onChange={(e) => setFormData({ ...formData, imageAlt: e.target.value })}
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#EA1D2C] focus:outline-none"
-                      placeholder="GoShipping Freight Cargo"
-                    />
-                  </div>
-                </div>
-                {formData.imageUrl && (
-                  <div className="w-32 h-20 rounded border border-slate-200 overflow-hidden bg-slate-100">
-                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                   </div>
                 )}
+
+                <div className="pt-1">
+                  <label className="font-bold text-slate-700 text-[11px]">Image Alt Text (SEO Accessibility)</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.imageAlt}
+                    onChange={(e) => setFormData({ ...formData, imageAlt: e.target.value })}
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs focus:ring-2 focus:ring-[#EA1D2C] focus:outline-none mt-0.5"
+                    placeholder="e.g. GoShipping Freight Cargo"
+                  />
+                </div>
               </div>
 
               {/* Features (Checkpoints) */}

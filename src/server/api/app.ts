@@ -26,6 +26,7 @@ import { TrackingService } from '../services/tracking.service';
 import { WarehouseService } from '../services/warehouse.service';
 import { ShippingConfigService } from '../services/shippingConfig.service';
 import { BannerService } from '../services/banner.service';
+import { UploadService } from '../services/upload.service';
 import { TestimonialService } from '../services/testimonial.service';
 import { PosLedgerService } from '../services/posLedger.service';
 import {
@@ -1476,6 +1477,67 @@ app.post('/admin/banners/reorder', async (c) => {
     return c.json({ success: true, banners: reordered });
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to reorder banners' }, 400);
+  }
+});
+
+app.post('/admin/banners/upload', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized.' }, 403);
+  }
+
+  try {
+    const contentType = c.req.header('content-type') || '';
+    let uploadedUrl = '';
+    let bannerId = '';
+
+    if (contentType.includes('application/json')) {
+      const body = await c.req.json();
+      const base64Data = body.imageBase64 || body.image || '';
+      const filename = body.filename || 'banner.png';
+      bannerId = body.bannerId || '';
+
+      if (!base64Data) {
+        return c.json({ error: 'Missing image data.' }, 400);
+      }
+      uploadedUrl = await UploadService.saveBase64Image(base64Data, filename, 'banners');
+    } else {
+      const formData = await c.req.formData();
+      const file = formData.get('image') || formData.get('file');
+      bannerId = (formData.get('bannerId') as string) || '';
+
+      if (!file || !(file instanceof File)) {
+        return c.json({ error: 'Please select an image file to upload.' }, 400);
+      }
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      uploadedUrl = await UploadService.saveImageBuffer(buffer, file.name, 'banners');
+    }
+
+    let updatedBanner = null;
+    if (bannerId) {
+      updatedBanner = await BannerService.updateBanner(bannerId, { imageUrl: uploadedUrl });
+    }
+
+    await AuditService.logAction({
+      userId: user.id,
+      userName: user.fullName,
+      action: 'BANNER_IMAGE_UPLOADED',
+      entityType: 'banner',
+      entityId: bannerId || 'direct_upload',
+      details: { url: uploadedUrl, bannerId }
+    });
+
+    return c.json({
+      success: true,
+      url: uploadedUrl,
+      banner: updatedBanner
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Image upload failed' }, 400);
   }
 });
 

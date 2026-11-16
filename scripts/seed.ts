@@ -13,9 +13,18 @@ async function main() {
 
   console.log('🌱 Seeding database tables with initial enterprise records...');
   const defaultPasswordHash = await hashPassword('password');
+  const shaishobPasswordHash = await hashPassword('Saimur#2000#');
 
   // Seed users
   await db.insert(schema.users).values([
+    {
+      id: 'usr-shaishob-01',
+      email: 'sr.shaishob@gmail.com',
+      passwordHash: shaishobPasswordHash,
+      fullName: 'Saimur Rahman Shaishob',
+      role: 'super_admin',
+      status: 'active'
+    },
     {
       id: 'usr-admin-01',
       email: 'admin@goshipping.com',
