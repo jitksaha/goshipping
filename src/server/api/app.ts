@@ -33,7 +33,12 @@ import {
   syncOrderToGoogleSheet,
   batchSyncOrdersToGoogleSheet,
   setupGoogleSheetHeaders,
-  getGoogleSheetWebhookUrl
+  getGoogleSheetWebhookUrl,
+  setGoogleSheetWebhookUrl,
+  updateEnvFileWebhookUrl,
+  TARGET_GOOGLE_SHEET_URL,
+  TARGET_GOOGLE_SHEET_ID,
+  TARGET_SHEET_TAB_NAME
 } from '../services/googleSheetSync.service';
 import { AuditService } from '../services/audit.service';
 import { RealtimeService } from '../services/realtime.service';
@@ -1880,8 +1885,53 @@ app.get('/admin/pos-ledger/sync-sheet/status', async (c) => {
   const url = getGoogleSheetWebhookUrl();
   return c.json({
     configured: Boolean(url),
-    webhookUrl: url ? url.substring(0, 45) + '...' : null
+    webhookUrl: url || '',
+    webhookUrlMasked: url ? (url.length > 50 ? `${url.substring(0, 42)}...${url.substring(url.length - 8)}` : url) : null,
+    sheetUrl: TARGET_GOOGLE_SHEET_URL,
+    sheetId: TARGET_GOOGLE_SHEET_ID,
+    sheetTab: TARGET_SHEET_TAB_NAME,
+    columnsCount: 29
   });
+});
+
+app.post('/admin/pos-ledger/sync-sheet/config', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized.' }, 403);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const { webhookUrl } = body;
+    if (!webhookUrl || typeof webhookUrl !== 'string' || !webhookUrl.startsWith('https://script.google.com/')) {
+      return c.json({
+        error: 'Please enter a valid Google Apps Script Webhook URL (must start with https://script.google.com/)'
+      }, 400);
+    }
+
+    setGoogleSheetWebhookUrl(webhookUrl);
+    updateEnvFileWebhookUrl(webhookUrl);
+
+    await AuditService.logAction({
+      userId: user.id,
+      userName: user.fullName,
+      action: 'GOOGLE_SHEET_WEBHOOK_UPDATED',
+      entityType: 'system_settings',
+      entityId: 'google_sheet_sync',
+      details: { webhookUrl: webhookUrl.substring(0, 45) + '...' }
+    });
+
+    return c.json({
+      success: true,
+      message: 'Google Sheet Webhook URL saved successfully',
+      webhookUrl
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to update Webhook URL' }, 500);
+  }
 });
 
 app.post('/admin/pos-ledger/sync-sheet', async (c) => {
@@ -1898,6 +1948,13 @@ app.post('/admin/pos-ledger/sync-sheet', async (c) => {
     if (body.action === 'setup_headers') {
       const res = await setupGoogleSheetHeaders();
       return c.json({ success: res.success, result: res });
+    }
+
+    if (body.action === 'save_webhook' && body.webhookUrl) {
+      const { webhookUrl } = body;
+      setGoogleSheetWebhookUrl(webhookUrl);
+      updateEnvFileWebhookUrl(webhookUrl);
+      return c.json({ success: true, message: 'Webhook URL updated', webhookUrl });
     }
 
     if (body.id) {

@@ -399,6 +399,9 @@ export const posLedger = mysqlTable('pos_ledger', {
   bdTrackingNo: varchar('bd_tracking_no', { length: 100 }),
   remark: text('remark'),
   profitEstimateBdt: decimal('profit_estimate_bdt', { precision: 12, scale: 2 }).default('0.00'),
+  sheetSyncStatus: varchar('sheet_sync_status', { length: 30 }).default('pending'),
+  sheetSyncedAt: varchar('sheet_synced_at', { length: 50 }),
+  sheetSyncError: text('sheet_sync_error'),
   createdAt: timestamp('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp('updated_at').default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
 });

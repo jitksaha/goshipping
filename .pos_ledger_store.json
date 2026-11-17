@@ -33,7 +33,9 @@
     "remark": "Verified full page flow with custom selectors",
     "profitEstimateBdt": 3986.25,
     "createdAt": "2026-11-07T13:43:55.954Z",
-    "updatedAt": "2026-11-07T14:14:44.379Z"
+    "updatedAt": "2026-11-07T14:14:44.379Z",
+    "sheetSyncStatus": "synced",
+    "sheetSyncedAt": "2026-11-17T15:02:57.278Z"
   },
   {
     "id": "pos-1793963216769-0f7982",
@@ -69,7 +71,8 @@
     "remark": "",
     "profitEstimateBdt": 6315,
     "createdAt": "2026-11-06T11:06:56.769Z",
-    "updatedAt": "2026-11-06T11:06:56.769Z"
+    "updatedAt": "2026-11-06T11:06:56.769Z",
+    "sheetSyncStatus": "synced"
   },
   {
     "orderId": "POS-2026-001",
@@ -105,7 +108,8 @@
     "profitEstimateBdt": 113.7,
     "id": "pos-1-1793960673980",
     "createdAt": "2026-11-06T10:24:33.980Z",
-    "updatedAt": "2026-11-06T10:24:33.980Z"
+    "updatedAt": "2026-11-06T10:24:33.980Z",
+    "sheetSyncStatus": "synced"
   },
   {
     "orderId": "POS-2026-002",
@@ -141,7 +145,8 @@
     "profitEstimateBdt": 3192,
     "id": "pos-2-1793960673980",
     "createdAt": "2026-11-06T10:24:33.980Z",
-    "updatedAt": "2026-11-06T10:24:33.980Z"
+    "updatedAt": "2026-11-06T10:24:33.980Z",
+    "sheetSyncStatus": "synced"
   },
   {
     "orderId": "POS-2026-003",
@@ -177,6 +182,7 @@
     "profitEstimateBdt": 5692.5,
     "id": "pos-3-1793960673980",
     "createdAt": "2026-11-06T10:24:33.980Z",
-    "updatedAt": "2026-11-06T10:24:33.980Z"
+    "updatedAt": "2026-11-06T10:24:33.980Z",
+    "sheetSyncStatus": "synced"
   }
 ]

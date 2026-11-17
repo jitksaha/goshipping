@@ -1,23 +1,22 @@
 /**
  * =========================================================================
  * GoShipping Official POS Ledger & Order Synchronization Script
- * Target Spreadsheet: https://docs.google.com/spreadsheets/d/1qoEIU65CTDn_AYUyozRJiBJgnpWmmCThz4rM0jAWl8s/edit
- * Sheet / Tab Name: "All-in-One"
- * Total Columns: 30 (Columns A to AD)
+ * Target Spreadsheet: https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0
+ * Sheet / Tab Name: "Sheet1" (or "All-in-One")
+ * Total Columns: 29 (Columns A to AC)
  * =========================================================================
  *
  * HOW TO DEPLOY:
- * 1. Open your Google Sheet: https://docs.google.com/spreadsheets/d/1qoEIU65CTDn_AYUyozRJiBJgnpWmmCThz4rM0jAWl8s/edit
+ * 1. Open your Google Sheet: https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0
  * 2. Click "Extensions" > "Apps Script".
  * 3. Delete any code in the editor, and paste this entire script.
  * 4. Click "Deploy" > "New deployment".
- * 5. Select type: "Web app".
- * 6. Description: "GoShipping Live Ledger Webhook".
+ * 5. Select type: "Web app" (click gear icon next to Select type if needed).
+ * 6. Description: "GoShipping Live Ledger Webhook 2026".
  * 7. Execute as: "Me" (your Google account).
  * 8. Who has access: "Anyone" (allows GoShipping server to POST order data).
  * 9. Click "Deploy" and copy the Web App URL (ends with /exec).
- * 10. Paste the Web App URL into your .env as:
- *     GOOGLE_SHEET_WEBHOOK_URL=https://script.google.com/macros/s/.../exec
+ * 10. Paste the Web App URL into GoShipping Admin Terminal (or in .env as GOOGLE_SHEET_WEBHOOK_URL).
  * =========================================================================
  */
 
@@ -25,41 +24,40 @@ var HEADERS = [
   "Order ID",                          // 1 (A)
   "Order Date",                        // 2 (B)
   "CN Date",                           // 3 (C)
-  "BD Date",                           // 4 (D)
+  "China Courier Tracking (SF/ZTO)",   // 4 (D)
   "Customer Name",                     // 5 (E)
-  "Mobile No",                         // 6 (F)
-  "Importer / Client",                 // 7 (G)
-  "Shipping Mark",                     // 8 (H)
-  "Website Order No",                  // 9 (I)
-  "Item / Product Details",            // 10 (J)
-  "China Courier Tracking (SF/ZTO)",   // 11 (K)
-  "Current Status",                    // 12 (L)
-  "Supplier / Shop Name",              // 13 (M)
-  "Quantity (Pcs)",                    // 14 (N)
-  "Unit Price (RMB)",                  // 15 (O)
-  "Total Purchase (RMB) [Auto]",       // 16 (P)
-  "RMB Rate (BDT)",                    // 17 (Q)
-  "Purchase Cost (BDT) [Auto]",        // 18 (R)
-  "Purchase Cost Paid     [ Customer ]", // 19 (S)
-  "Purchase Cost Due [Auto]",          // 20 (T)
-  "Service Type",                      // 21 (U)
-  "CN Weight (KG)",                    // 22 (V)
-  "BD Weight (KG)",                    // 23 (W)
-  "Shipping Rate / KG (BDT)",          // 24 (X)
-  "International Freight (BDT) [Auto]", // 25 (Y)
-  "Total Bill (BDT) [Auto]",           // 26 (Z)
-  "Payment Status [Auto]",             // 27 (AA)
-  "BD Tracking No",                    // 28 (AB)
-  "Remark / Customer Update",          // 29 (AC)
-  "Profit Estimate (BDT) [Auto]"       // 30 (AD)
+  "Current Status",                    // 6 (F)
+  "Mobile No",                         // 7 (G)
+  "Importer / Client",                 // 8 (H)
+  "Shipping Mark",                     // 9 (I)
+  "Website Order No",                  // 10 (J)
+  "Item / Product Details",            // 11 (K)
+  "Supplier / Shop Name",              // 12 (L)
+  "Quantity (Pcs)",                    // 13 (M)
+  "Unit Price (RMB)",                  // 14 (N)
+  "Total Purchase (RMB) [Auto]",       // 15 (O)
+  "RMB Rate (BDT)",                    // 16 (P)
+  "Purchase Cost (BDT) [Auto]",        // 17 (Q)
+  "Purchase Cost Paid     [ Customer ]", // 18 (R)
+  "Purchase Cost Due [Auto]",          // 19 (S)
+  "Service Type",                      // 20 (T)
+  "BD Date",                           // 21 (U)
+  "BD Weight (KG)",                    // 22 (V)
+  "Shipping Rate / KG (BDT)",          // 23 (W)
+  "International Freight (BDT) [Auto]", // 24 (X)
+  "Total Bill (BDT) [Auto]",           // 25 (Y)
+  "Payment Status [Auto]",             // 26 (Z)
+  "BD Tracking No",                    // 27 (AA)
+  "Remark / Customer Update",          // 28 (AB)
+  "Profit Estimate (BDT) [Auto]"       // 29 (AC)
 ];
 
 /**
- * Initializes and styles the header row in the "All-in-One" sheet.
+ * Initializes and styles the header row in the "Sheet1" / "All-in-One" sheet.
  */
 function setupSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("All-in-One") || ss.getActiveSheet();
+  var sheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("All-in-One") || ss.getActiveSheet();
   var firstCellVal = sheet.getRange(1, 1).getValue().toString().trim();
 
   // If row 1 is not already header, insert new row at top
@@ -80,13 +78,13 @@ function setupSheet() {
   sheet.setRowHeight(1, 40);
   sheet.setFrozenRows(1);
 
-  // Set plain text format for Order ID, Mobile, Tracking numbers to prevent formula errors
+  // Set plain text format for Order ID, Tracking numbers, Mobile to prevent formula errors
   sheet.getRange("A:A").setNumberFormat("@");
-  sheet.getRange("F:F").setNumberFormat("@");
-  sheet.getRange("H:H").setNumberFormat("@");
+  sheet.getRange("D:D").setNumberFormat("@");
+  sheet.getRange("G:G").setNumberFormat("@");
   sheet.getRange("I:I").setNumberFormat("@");
-  sheet.getRange("K:K").setNumberFormat("@");
-  sheet.getRange("AB:AB").setNumberFormat("@");
+  sheet.getRange("J:J").setNumberFormat("@");
+  sheet.getRange("AA:AA").setNumberFormat("@");
 
   for (var c = 1; c <= HEADERS.length; c++) {
     sheet.autoResizeColumn(c);
@@ -109,7 +107,7 @@ function onOpen() {
 function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("All-in-One") || ss.getActiveSheet();
+    var sheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("All-in-One") || ss.getActiveSheet();
     var data = JSON.parse(e.postData.contents);
 
     // If manual header setup action
@@ -139,7 +137,7 @@ function doPost(e) {
       }
     }
 
-    // 2. If not found, find the first available row where Col A or Col E is empty
+    // 2. If not found, find the first available row where Col A is empty
     if (targetRow === -1 && lastRow > 1) {
       var colA = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
       for (var j = 0; j < colA.length; j++) {
@@ -157,20 +155,19 @@ function doPost(e) {
       mobile = "'" + mobile;
     }
 
-    // Build the 30-column row array
-    var rowValues = [
+    // Build the 29-column row array (matching GoShipping 2026 Spreadsheet A to AC)
+    var rowValues = (data.rowValues && data.rowValues.length === 29) ? data.rowValues : [
       data.orderId || '',
       data.orderDate || '',
       data.cnDate || '',
-      data.bdDate || '',
+      data.chinaCourierTracking || '',
       data.customerName || '',
+      data.currentStatus || 'Processing',
       mobile,
       data.importerClient || '',
       data.shippingMark || '',
       data.websiteOrderNo || '',
       data.itemDetails || '',
-      data.chinaCourierTracking || '',
-      data.currentStatus || 'Processing',
       data.supplierName || 'Taobao',
       Number(data.quantity) || 1,
       Number(data.unitPriceRmb) || 0,
@@ -180,7 +177,7 @@ function doPost(e) {
       Number(data.purchaseCostPaidBdt) || 0,
       Number(data.purchaseCostDueBdt) || 0,
       data.serviceType || 'Sourcing & Shipping',
-      Number(data.cnWeightKg) || 0,
+      data.bdDate || '',
       Number(data.bdWeightKg) || 0,
       Number(data.shippingRatePerKgBdt) || 850,
       Number(data.internationalFreightBdt) || 0,

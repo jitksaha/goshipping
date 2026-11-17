@@ -39,6 +39,66 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const [isSettingUpHeaders, setIsSettingUpHeaders] = useState(false);
   const [copiedScript, setCopiedScript] = useState(false);
   const [copiedHeaders, setCopiedHeaders] = useState(false);
+  const [webhookUrlInput, setWebhookUrlInput] = useState('');
+  const [isSavingWebhook, setIsSavingWebhook] = useState(false);
+  const [isRetryingFailed, setIsRetryingFailed] = useState(false);
+
+  const failedSyncsCount = useMemo(() => {
+    return records.filter((r) => r.sheetSyncStatus === 'failed').length;
+  }, [records]);
+
+  const syncedCount = useMemo(() => {
+    return records.filter((r) => r.sheetSyncStatus === 'synced' || !r.sheetSyncStatus).length;
+  }, [records]);
+  const [sheetStatus, setSheetStatus] = useState<{
+    configured: boolean;
+    webhookUrl?: string;
+    webhookUrlMasked?: string;
+    sheetUrl?: string;
+    sheetTab?: string;
+    columnsCount?: number;
+  } | null>(null);
+
+  const fetchSheetStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/pos-ledger/sync-sheet/status');
+      const data = await res.json();
+      setSheetStatus(data);
+      if (data.webhookUrl) {
+        setWebhookUrlInput(data.webhookUrl);
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchSheetStatus();
+  }, []);
+
+  const handleSaveWebhookUrl = async () => {
+    if (!webhookUrlInput.trim() || !webhookUrlInput.startsWith('https://script.google.com/')) {
+      showToast('Please enter a valid Google Apps Script URL (starts with https://script.google.com/)', 'error');
+      return;
+    }
+    setIsSavingWebhook(true);
+    try {
+      const res = await fetch('/api/admin/pos-ledger/sync-sheet/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl: webhookUrlInput.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Google Sheet Webhook URL saved successfully!', 'success');
+        fetchSheetStatus();
+      } else {
+        throw new Error(data.error || 'Failed to save webhook URL');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error saving webhook URL', 'error');
+    } finally {
+      setIsSavingWebhook(false);
+    }
+  };
 
   // Quick POS Form State
   const [formData, setFormData] = useState({
@@ -335,6 +395,9 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
 
   const handleSyncSingleOrder = async (recordId: string, orderCode: string) => {
     setSyncingOrderId(recordId);
+    setRecords((prev) =>
+      prev.map((item) => (item.id === recordId ? { ...item, sheetSyncStatus: 'pending' } : item))
+    );
     try {
       const res = await fetch('/api/admin/pos-ledger/sync-sheet', {
         method: 'POST',
@@ -344,13 +407,56 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
       const data = await res.json();
       if (res.ok && data.success) {
         showToast(`Order ${orderCode} synced to Google Sheet!`, 'success');
+        setRecords((prev) =>
+          prev.map((item) =>
+            item.id === recordId
+              ? { ...item, sheetSyncStatus: 'synced', sheetSyncedAt: new Date().toISOString(), sheetSyncError: undefined }
+              : item
+          )
+        );
       } else {
         throw new Error(data.error || 'Failed to sync order');
       }
     } catch (err: any) {
-      showToast(err.message || 'Sync error', 'error');
+      const errMsg = err.message || 'Sync error';
+      showToast(errMsg, 'error');
+      setRecords((prev) =>
+        prev.map((item) =>
+          item.id === recordId
+            ? { ...item, sheetSyncStatus: 'failed', sheetSyncError: errMsg }
+            : item
+        )
+      );
     } finally {
       setSyncingOrderId(null);
+    }
+  };
+
+  const handleRetryFailedSyncs = async () => {
+    setIsRetryingFailed(true);
+    try {
+      const res = await fetch('/api/admin/pos-ledger/sync-sheet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'retry_failed' })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const total = data.result?.total || 0;
+        const passed = data.result?.successful || 0;
+        const failed = data.result?.failed || 0;
+        showToast(
+          `Processed ${total} orders (${passed} synced successfully, ${failed} failed)`,
+          failed === 0 ? 'success' : 'info'
+        );
+        loadLedger();
+      } else {
+        throw new Error(data.error || 'Failed to retry syncs');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Retry failed', 'error');
+    } finally {
+      setIsRetryingFailed(false);
     }
   };
 
@@ -376,57 +482,58 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   };
 
   const copyHeadersToClipboard = () => {
-    const headersTab = "Order ID\tOrder Date\tCN Date\tBD Date\tCustomer Name\tMobile No\tImporter / Client\tShipping Mark\tWebsite Order No\tItem / Product Details\tChina Courier Tracking (SF/ZTO)\tCurrent Status\tSupplier / Shop Name\tQuantity (Pcs)\tUnit Price (RMB)\tTotal Purchase (RMB) [Auto]\tRMB Rate (BDT)\tPurchase Cost (BDT) [Auto]\tPurchase Cost Paid     [ Customer ]\tPurchase Cost Due [Auto]\tService Type\tCN Weight (KG)\tBD Weight (KG)\tShipping Rate / KG (BDT)\tInternational Freight (BDT) [Auto]\tTotal Bill (BDT) [Auto]\tPayment Status [Auto]\tBD Tracking No\tRemark / Customer Update\tProfit Estimate (BDT) [Auto]";
+    const headersTab = "Order ID\tOrder Date\tCN Date\tChina Courier Tracking (SF/ZTO)\tCustomer Name\tCurrent Status\tMobile No\tImporter / Client\tShipping Mark\tWebsite Order No\tItem / Product Details\tSupplier / Shop Name\tQuantity (Pcs)\tUnit Price (RMB)\tTotal Purchase (RMB) [Auto]\tRMB Rate (BDT)\tPurchase Cost (BDT) [Auto]\tPurchase Cost Paid     [ Customer ]\tPurchase Cost Due [Auto]\tService Type\tBD Date\tBD Weight (KG)\tShipping Rate / KG (BDT)\tInternational Freight (BDT) [Auto]\tTotal Bill (BDT) [Auto]\tPayment Status [Auto]\tBD Tracking No\tRemark / Customer Update\tProfit Estimate (BDT) [Auto]";
     navigator.clipboard.writeText(headersTab);
     setCopiedHeaders(true);
-    showToast('30 Column Titles copied! Paste directly in cell A1 of Google Sheets', 'success');
+    showToast('29 Column Titles copied! Paste directly in cell A1 of Google Sheets', 'success');
     setTimeout(() => setCopiedHeaders(false), 3000);
   };
 
   const copyScriptToClipboard = () => {
     const fullScript = `/**
- * GoShipping — Automated Google Sheet Ledger Sync & Setup
- * Matching Official Spreadsheet (All-in-One: 30 Columns A-AD)
+ * =========================================================================
+ * GoShipping Official POS Ledger & Order Synchronization Script 2026
+ * Target Spreadsheet: https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0
+ * Sheet Tab Name: "Sheet1" (Cols A to AC: 29 Columns)
+ * =========================================================================
  */
 var HEADERS = [
-  "Order ID",
-  "Order Date",
-  "CN Date",
-  "BD Date",
-  "Customer Name",
-  "Mobile No",
-  "Importer / Client",
-  "Shipping Mark",
-  "Website Order No",
-  "Item / Product Details",
-  "China Courier Tracking (SF/ZTO)",
-  "Current Status",
-  "Supplier / Shop Name",
-  "Quantity (Pcs)",
-  "Unit Price (RMB)",
-  "Total Purchase (RMB) [Auto]",
-  "RMB Rate (BDT)",
-  "Purchase Cost (BDT) [Auto]",
-  "Purchase Cost Paid     [ Customer ]",
-  "Purchase Cost Due [Auto]",
-  "Service Type",
-  "CN Weight (KG)",
-  "BD Weight (KG)",
-  "Shipping Rate / KG (BDT)",
-  "International Freight (BDT) [Auto]",
-  "Total Bill (BDT) [Auto]",
-  "Payment Status [Auto]",
-  "BD Tracking No",
-  "Remark / Customer Update",
-  "Profit Estimate (BDT) [Auto]"
+  "Order ID",                          // 1 (A)
+  "Order Date",                        // 2 (B)
+  "CN Date",                           // 3 (C)
+  "China Courier Tracking (SF/ZTO)",   // 4 (D)
+  "Customer Name",                     // 5 (E)
+  "Current Status",                    // 6 (F)
+  "Mobile No",                         // 7 (G)
+  "Importer / Client",                 // 8 (H)
+  "Shipping Mark",                     // 9 (I)
+  "Website Order No",                  // 10 (J)
+  "Item / Product Details",            // 11 (K)
+  "Supplier / Shop Name",              // 12 (L)
+  "Quantity (Pcs)",                    // 13 (M)
+  "Unit Price (RMB)",                  // 14 (N)
+  "Total Purchase (RMB) [Auto]",       // 15 (O)
+  "RMB Rate (BDT)",                    // 16 (P)
+  "Purchase Cost (BDT) [Auto]",        // 17 (Q)
+  "Purchase Cost Paid     [ Customer ]", // 18 (R)
+  "Purchase Cost Due [Auto]",          // 19 (S)
+  "Service Type",                      // 20 (T)
+  "BD Date",                           // 21 (U)
+  "BD Weight (KG)",                    // 22 (V)
+  "Shipping Rate / KG (BDT)",          // 23 (W)
+  "International Freight (BDT) [Auto]", // 24 (X)
+  "Total Bill (BDT) [Auto]",           // 25 (Y)
+  "Payment Status [Auto]",             // 26 (Z)
+  "BD Tracking No",                    // 27 (AA)
+  "Remark / Customer Update",          // 28 (AB)
+  "Profit Estimate (BDT) [Auto]"       // 29 (AC)
 ];
 
 function setupSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("All-in-One") || ss.getActiveSheet();
+  var sheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("All-in-One") || ss.getActiveSheet();
   var firstCellVal = sheet.getRange(1, 1).getValue().toString().trim();
 
-  // If row 1 is not already header, insert new row at top
   if (firstCellVal !== "Order ID") {
     sheet.insertRowBefore(1);
   }
@@ -444,13 +551,12 @@ function setupSheet() {
   sheet.setRowHeight(1, 40);
   sheet.setFrozenRows(1);
 
-  // Set plain text format for Order ID, Mobile, Tracking numbers to prevent #ERROR!
   sheet.getRange("A:A").setNumberFormat("@");
-  sheet.getRange("F:F").setNumberFormat("@");
-  sheet.getRange("H:H").setNumberFormat("@");
+  sheet.getRange("D:D").setNumberFormat("@");
+  sheet.getRange("G:G").setNumberFormat("@");
   sheet.getRange("I:I").setNumberFormat("@");
-  sheet.getRange("K:K").setNumberFormat("@");
-  sheet.getRange("AB:AB").setNumberFormat("@");
+  sheet.getRange("J:J").setNumberFormat("@");
+  sheet.getRange("AA:AA").setNumberFormat("@");
 
   for (var c = 1; c <= HEADERS.length; c++) {
     sheet.autoResizeColumn(c);
@@ -467,7 +573,7 @@ function onOpen() {
 function doPost(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("All-in-One") || ss.getActiveSheet();
+    var sheet = ss.getSheetByName("Sheet1") || ss.getSheetByName("All-in-One") || ss.getActiveSheet();
     var data = JSON.parse(e.postData.contents);
     
     if (data.action === "setup_headers") {
@@ -485,7 +591,6 @@ function doPost(e) {
     var lastRow = sheet.getLastRow();
     var targetRow = -1;
 
-    // 1. Search if order already exists in Column A (from row 2 down)
     if (lastRow > 1) {
       var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
       for (var i = 0; i < ids.length; i++) {
@@ -496,7 +601,6 @@ function doPost(e) {
       }
     }
 
-    // 2. If not found, find the first available row where Col A or Col E is empty
     if (targetRow === -1 && lastRow > 1) {
       var colA = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
       for (var j = 0; j < colA.length; j++) {
@@ -513,19 +617,18 @@ function doPost(e) {
       mobile = "'" + mobile;
     }
     
-    var rowValues = [
+    var rowValues = (data.rowValues && data.rowValues.length === 29) ? data.rowValues : [
       data.orderId || '',
       data.orderDate || '',
       data.cnDate || '',
-      data.bdDate || '',
+      data.chinaCourierTracking || '',
       data.customerName || '',
+      data.currentStatus || 'Processing',
       mobile,
       data.importerClient || '',
       data.shippingMark || '',
       data.websiteOrderNo || '',
       data.itemDetails || '',
-      data.chinaCourierTracking || '',
-      data.currentStatus || 'Processing',
       data.supplierName || 'Taobao',
       Number(data.quantity) || 1,
       Number(data.unitPriceRmb) || 0,
@@ -535,7 +638,7 @@ function doPost(e) {
       Number(data.purchaseCostPaidBdt) || 0,
       Number(data.purchaseCostDueBdt) || 0,
       data.serviceType || 'Sourcing & Shipping',
-      Number(data.cnWeightKg) || 0,
+      data.bdDate || '',
       Number(data.bdWeightKg) || 0,
       Number(data.shippingRatePerKgBdt) || 850,
       Number(data.internationalFreightBdt) || 0,
@@ -567,7 +670,7 @@ function doPost(e) {
 }`;
     navigator.clipboard.writeText(fullScript);
     setCopiedScript(true);
-    showToast('Complete Google Apps Script copied!', 'success');
+    showToast('Complete 29-Column Google Apps Script copied!', 'success');
     setTimeout(() => setCopiedScript(false), 3000);
   };
 
@@ -732,6 +835,19 @@ function doPost(e) {
             </button>
           </div>
 
+          {failedSyncsCount > 0 && (
+            <button
+              type="button"
+              disabled={isRetryingFailed}
+              onClick={handleRetryFailedSyncs}
+              className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-300 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-none"
+              title="Click to retry all failed Google Sheet syncs"
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
+              <span>{isRetryingFailed ? 'Retrying...' : `${failedSyncsCount} Failed · Retry All`}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={openNewOrderDrawer}
@@ -763,19 +879,23 @@ function doPost(e) {
                 <th className="py-2.5 px-3 border-r border-slate-200 text-right font-bold text-slate-900">Total Bill</th>
                 <th className="py-2.5 px-3 border-r border-slate-200 text-center">Payment</th>
                 <th className="py-2.5 px-3 border-r border-slate-200">Courier &amp; Tracking</th>
+                <th className="py-2.5 px-3 border-r border-slate-200 text-center font-bold">
+                  <span className="block">Sheet Sync</span>
+                  <span className="text-[9px] font-normal text-slate-400">Google Sheet</span>
+                </th>
                 <th className="py-2.5 px-3 text-right sticky right-0 bg-slate-100 z-10">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-xs text-slate-500">
+                  <td colSpan={12} className="py-12 text-center text-xs text-slate-500">
                     Loading operations ledger...
                   </td>
                 </tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-xs text-slate-500">
+                  <td colSpan={12} className="py-12 text-center text-xs text-slate-500">
                     No orders found matching criteria. Click "+ Quick POS Order" to add.
                   </td>
                 </tr>
@@ -881,6 +1001,99 @@ function doPost(e) {
                       ) : (
                         <span className="text-[10px] text-slate-400 italic">No tracking yet</span>
                       )}
+                    </td>
+
+                    {/* Google Sheet Sync Status Column */}
+                    <td className="py-2.5 px-3 border-r border-slate-200 text-center">
+                      <div className="relative group inline-block">
+                        <button
+                          type="button"
+                          disabled={syncingOrderId === r.id}
+                          onClick={() => handleSyncSingleOrder(r.id, r.orderId)}
+                          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EA1D2C] rounded-full cursor-pointer transition-none inline-flex items-center justify-center p-0.5"
+                          aria-label={
+                            syncingOrderId === r.id || r.sheetSyncStatus === 'pending'
+                              ? 'সিনক্রোনাইজ হচ্ছে'
+                              : r.sheetSyncStatus === 'failed'
+                              ? 'ফেইল্ড - ক্লিক করে রিট্রাই করুন'
+                              : 'পাস্ট - সাকসেসফুলি এন্টারড'
+                          }
+                        >
+                          {syncingOrderId === r.id || r.sheetSyncStatus === 'pending' ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 text-sky-700 border border-sky-300 shadow-2xs">
+                              <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                              </svg>
+                            </span>
+                          ) : r.sheetSyncStatus === 'failed' ? (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500 text-white shadow-2xs hover:bg-rose-600">
+                              {/* Filled Red Cross */}
+                              <svg className="w-3.5 h-3.5 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-2xs hover:bg-emerald-600">
+                              {/* Filled Green Check */}
+                              <svg className="w-3.5 h-3.5 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+
+                        {/* Interactive Hover Tooltip */}
+                        <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 w-56 p-2.5 rounded-lg bg-slate-900 text-white shadow-xl text-left border border-slate-700">
+                          {syncingOrderId === r.id || r.sheetSyncStatus === 'pending' ? (
+                            <div>
+                              <div className="flex items-center gap-1.5 font-bold text-sky-400 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
+                                <span>সিনক্রোনাইজ হচ্ছে...</span>
+                              </div>
+                              <p className="text-[11px] text-slate-300 mt-1">গুগল শিটে ডেটা পাঠানো হচ্ছে। অপেক্ষা করুন।</p>
+                            </div>
+                          ) : r.sheetSyncStatus === 'failed' ? (
+                            <div>
+                              <div className="flex items-center gap-1.5 font-bold text-rose-400 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                <span>ফেইল্ড (Failed)</span>
+                              </div>
+                              <p className="text-[11px] text-slate-300 mt-0.5">গুগল শিটে সিঙ্ক ব্যর্থ হয়েছে।</p>
+                              {r.sheetSyncError && (
+                                <p className="text-[10px] font-mono text-rose-300 mt-1 bg-rose-950/60 p-1 rounded border border-rose-800/50 truncate">
+                                  {r.sheetSyncError}
+                                </p>
+                              )}
+                              <p className="text-[10px] text-amber-300 font-semibold mt-1.5 flex items-center gap-1">
+                                <span>👆 ক্লিক করে এখনই রিট্রাই করুন</span>
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex items-center gap-1.5 font-bold text-emerald-400 text-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                                <span>পাস্ট (Passed)</span>
+                              </div>
+                              <p className="text-[11px] text-slate-200 mt-0.5 font-medium">সাকসেসফুলি এন্টারড</p>
+                              <p className="text-[10px] text-slate-400 mt-1">
+                                গুগল শিটে রো সফলভাবে আপডেট হয়েছে।
+                                {r.sheetSyncedAt && (
+                                  <span className="block text-[9px] font-mono text-slate-400 mt-0.5">
+                                    {new Date(r.sheetSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-[9px] text-slate-400 mt-1.5 italic">
+                                (আবার সিঙ্ক করতে আইকনে ক্লিক করুন)
+                              </p>
+                            </div>
+                          )}
+                          {/* Tooltip downward caret */}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-slate-900" />
+                        </div>
+                      </div>
                     </td>
 
                     {/* Actions */}
@@ -1481,7 +1694,7 @@ function doPost(e) {
 
             <div className="space-y-4 pt-4 text-xs">
               <p className="text-slate-600 leading-relaxed">
-                Copy and paste the raw CSV rows or content from your <strong>All-in-One Google Sheet</strong>. All 30 columns will be parsed and auto-calculated into the POS ledger.
+                Copy and paste the raw CSV rows or content from your <strong>GoShipping Google Sheet</strong>. All 29 columns will be parsed and auto-calculated into the POS ledger.
               </p>
 
               <textarea
@@ -1527,10 +1740,10 @@ function doPost(e) {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900 font-['Manrope']">
-                    Official Google Sheet Ledger Setup (All-in-One: 30 Columns)
+                    Official Google Sheet Ledger Setup (29 Columns: A to AC)
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Format Row 1 with 30 official titles matching our POS Ledger, freeze headers, and prevent formula errors.
+                    Format Row 1 with 29 official titles matching our POS Ledger, freeze headers, and sync orders automatically in real-time.
                   </p>
                 </div>
               </div>
@@ -1548,6 +1761,64 @@ function doPost(e) {
             </div>
 
             <div className="space-y-4 pt-4 text-xs">
+              {/* Connected Target Google Sheet Details */}
+              <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="font-bold text-emerald-900 text-xs">Target Spreadsheet (Go Shipping Order List)</span>
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-200/80 text-[10px] font-mono text-emerald-800 font-bold">Tab: Sheet1</span>
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-200/80 text-[10px] font-mono text-emerald-800 font-bold">29 Columns (A-AC)</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-emerald-800 truncate max-w-lg">
+                    https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0
+                  </div>
+                </div>
+                <a
+                  href="https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] shrink-0 shadow-2xs"
+                >
+                  <span>Open Sheet</span>
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* Webhook Configuration Box */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-slate-900">Google Apps Script Webhook URL</h4>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${sheetStatus?.configured ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    {sheetStatus?.configured ? '● Connected' : '○ Not Configured'}
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="url"
+                    value={webhookUrlInput}
+                    onChange={(e) => setWebhookUrlInput(e.target.value)}
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                    className="flex-1 p-2 rounded-lg border border-slate-300 font-mono text-[11px] focus:ring-2 focus:ring-[#EA1D2C] focus:outline-none bg-white"
+                  />
+                  <button
+                    type="button"
+                    disabled={isSavingWebhook}
+                    onClick={handleSaveWebhookUrl}
+                    className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shrink-0 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-2xs"
+                  >
+                    {isSavingWebhook ? 'Saving...' : 'Save Webhook URL'}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-normal">
+                  Deploy the Apps Script below in your Google Sheet, then paste the web app URL (ending with <code>/exec</code>) here.
+                </p>
+              </div>
+
               {/* Quick Actions Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Method 1: Instant Copy Headers */}
@@ -1556,7 +1827,7 @@ function doPost(e) {
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded">
                       Fastest: 10 Seconds
                     </span>
-                    <h4 className="text-sm font-bold text-slate-900 mt-2">Copy 30 Column Titles</h4>
+                    <h4 className="text-sm font-bold text-slate-900 mt-2">Copy 29 Column Titles</h4>
                     <p className="text-slate-600 text-xs mt-1 leading-relaxed">
                       1. In Google Sheets, right-click row 1 &gt; <strong>Insert 1 row above</strong>.<br />
                       2. Click cell <strong>A1</strong> and press <strong>Ctrl+V / Cmd+V</strong>.
@@ -1571,7 +1842,7 @@ function doPost(e) {
                       <rect x="9" y="9" width="13" height="13" rx="2" />
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
-                    <span>{copiedHeaders ? 'Copied to Clipboard!' : 'Copy 30 Header Titles'}</span>
+                    <span>{copiedHeaders ? 'Copied to Clipboard!' : 'Copy 29 Header Titles'}</span>
                   </button>
                 </div>
 
@@ -1606,10 +1877,10 @@ function doPost(e) {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-bold text-slate-900 font-['Manrope']">
-                      Official 30-Column Google Apps Script
+                      Official 29-Column Google Apps Script
                     </h4>
                     <p className="text-[11px] text-slate-500">
-                      Matches the <strong>All-in-One</strong> tab with 30 columns (A to AD), auto-updates existing orders, and fills template rows.
+                      Matches the <strong>Sheet1</strong> tab with 29 columns (A to AC), auto-updates existing orders, and fills template rows.
                     </p>
                   </div>
                   <button
@@ -1626,26 +1897,26 @@ function doPost(e) {
                 </div>
                 <div className="p-3 bg-slate-950 text-slate-200 rounded-lg font-mono text-[11px] overflow-x-auto max-h-40 border border-slate-800">
                   <pre className="text-emerald-400">// In Google Sheets: Extensions &gt; Apps Script &gt; Paste code &gt; Deploy as Web App</pre>
-                  <pre className="text-slate-300">function setupSheet() &#123; ... sets 30 headers, #11181E styling, freezes row 1 &#125;</pre>
-                  <pre className="text-slate-400">function doPost(e) &#123; ... writes 30 columns into All-in-One tab &#125;</pre>
+                  <pre className="text-slate-300">function setupSheet() &#123; ... sets 29 headers, #11181E styling, freezes row 1 &#125;</pre>
+                  <pre className="text-slate-400">function doPost(e) &#123; ... writes 29 columns into Sheet1 tab &#125;</pre>
                 </div>
               </div>
 
-              {/* 30 Columns Reference Table */}
+              {/* 29 Columns Reference Table */}
               <div className="rounded-xl border border-slate-200 overflow-hidden">
                 <div className="bg-slate-100/80 px-3 py-2 border-b border-slate-200 font-bold text-slate-800 text-[11px]">
-                  All 30 Columns Reference (1:1 with Official Google Sheet A-AD)
+                  All 29 Columns Reference (1:1 with Official Google Sheet A-AC)
                 </div>
                 <div className="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5 text-[10px] max-h-56 overflow-y-auto font-mono">
                   {[
-                    "A: Order ID", "B: Order Date", "C: CN Date", "D: BD Date",
-                    "E: Customer Name", "F: Mobile No", "G: Importer / Client", "H: Shipping Mark",
-                    "I: Website Order No", "J: Item / Product Details", "K: China Courier Tracking", "L: Current Status",
-                    "M: Supplier / Shop Name", "N: Quantity (Pcs)", "O: Unit Price (RMB)", "P: Total Purchase RMB [Auto]",
-                    "Q: RMB Rate (BDT)", "R: Purchase Cost BDT [Auto]", "S: Purchase Cost Paid", "T: Purchase Cost Due [Auto]",
-                    "U: Service Type", "V: CN Weight (KG)", "W: BD Weight (KG)", "X: Shipping Rate / KG",
-                    "Y: Int'l Freight [Auto]", "Z: Total Bill [Auto]", "AA: Payment Status [Auto]", "AB: BD Tracking No",
-                    "AC: Remark / Update", "AD: Profit Estimate [Auto]"
+                    "A: Order ID", "B: Order Date", "C: CN Date", "D: China Courier Tracking (SF/ZTO)",
+                    "E: Customer Name", "F: Current Status", "G: Mobile No", "H: Importer / Client",
+                    "I: Shipping Mark", "J: Website Order No", "K: Item / Product Details", "L: Supplier / Shop Name",
+                    "M: Quantity (Pcs)", "N: Unit Price (RMB)", "O: Total Purchase RMB [Auto]", "P: RMB Rate (BDT)",
+                    "Q: Purchase Cost BDT [Auto]", "R: Purchase Cost Paid", "S: Purchase Cost Due [Auto]", "T: Service Type",
+                    "U: BD Date", "V: BD Weight (KG)", "W: Shipping Rate / KG", "X: Int'l Freight [Auto]",
+                    "Y: Total Bill [Auto]", "Z: Payment Status [Auto]", "AA: BD Tracking No", "AB: Remark / Update",
+                    "AC: Profit Estimate [Auto]"
                   ].map((col, idx) => (
                     <div key={idx} className="px-2 py-1 rounded bg-slate-50 border border-slate-200 text-slate-700 truncate">
                       {col}

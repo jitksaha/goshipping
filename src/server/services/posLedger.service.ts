@@ -1,10 +1,10 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as crypto from 'node:crypto';
 import { db } from '../db/client';
 import { posLedger } from '../db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { syncOrderToGoogleSheet } from './googleSheetSync.service';
+import { syncOrderToGoogleSheet, setSyncStatusListener } from './googleSheetSync.service';
 
 export interface PosLedgerRecord {
   id: string;
@@ -39,6 +39,9 @@ export interface PosLedgerRecord {
   bdTrackingNo?: string;
   remark?: string;
   profitEstimateBdt: number;
+  sheetSyncStatus?: 'synced' | 'failed' | 'pending';
+  sheetSyncedAt?: string;
+  sheetSyncError?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -198,7 +201,10 @@ function loadFromFile(): PosLedgerRecord[] {
       const content = fs.readFileSync(STORE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        return parsed.map((item) => ({
+          ...item,
+          sheetSyncStatus: item.sheetSyncStatus || 'synced'
+        }));
       }
     }
   } catch (err) {
@@ -218,7 +224,65 @@ function saveToFile(data: PosLedgerRecord[]): void {
 let memoryLedger: PosLedgerRecord[] = globalThis.__goshipping_pos_ledger || loadFromFile();
 globalThis.__goshipping_pos_ledger = memoryLedger;
 
+// Connect sync status listener so all background Google Sheet syncs automatically reflect in memory and database
+setSyncStatusListener((idOrOrderId, status, error) => {
+  PosLedgerService.updateSheetSyncStatusInMemory(idOrOrderId, status, error);
+});
+
 export class PosLedgerService {
+  /**
+   * Update sync status in memory and database
+   */
+  static updateSheetSyncStatusInMemory(
+    idOrOrderId: string,
+    status: 'synced' | 'failed' | 'pending',
+    error?: string
+  ): void {
+    const idx = memoryLedger.findIndex((r) => r.id === idOrOrderId || r.orderId === idOrOrderId);
+    if (idx !== -1) {
+      memoryLedger[idx].sheetSyncStatus = status;
+      if (status === 'synced') {
+        memoryLedger[idx].sheetSyncedAt = new Date().toISOString();
+        memoryLedger[idx].sheetSyncError = undefined;
+      } else if (status === 'failed') {
+        memoryLedger[idx].sheetSyncError = error || 'Sync failed';
+      }
+      saveToFile(memoryLedger);
+
+      try {
+        db.update(posLedger).set({
+          sheetSyncStatus: status,
+          sheetSyncedAt: status === 'synced' ? new Date().toISOString() : undefined,
+          sheetSyncError: status === 'failed' ? (error || 'Sync failed') : null
+        }).where(eq(posLedger.id, memoryLedger[idx].id)).catch(() => {});
+      } catch {}
+    }
+  }
+
+  /**
+   * Automatically retry all failed or pending Google Sheet syncs
+   */
+  static async retryFailedSyncs(): Promise<{ total: number; successful: number; failed: number }> {
+    const failedRecords = memoryLedger.filter(
+      (r) => r.sheetSyncStatus === 'failed' || r.sheetSyncStatus === 'pending'
+    );
+    let successful = 0;
+    let failed = 0;
+    for (const rec of failedRecords) {
+      try {
+        const res = await syncOrderToGoogleSheet(rec);
+        if (res.success) {
+          successful++;
+        } else {
+          failed++;
+        }
+        await new Promise((r) => setTimeout(r, 400));
+      } catch {
+        failed++;
+      }
+    }
+    return { total: failedRecords.length, successful, failed };
+  }
   /**
    * List records with optional filtering
    */
@@ -306,6 +370,7 @@ export class PosLedgerService {
       bdTrackingNo: payload.bdTrackingNo || '',
       remark: payload.remark || '',
       profitEstimateBdt: calc.profitEstimateBdt,
+      sheetSyncStatus: 'pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -375,6 +440,7 @@ export class PosLedgerService {
       ...calc,
       id: existing.id,
       orderId: updates.orderId ? updates.orderId.trim() : existing.orderId,
+      sheetSyncStatus: 'pending',
       updatedAt: new Date().toISOString()
     };
 
@@ -481,22 +547,21 @@ export class PosLedgerService {
   }
 
   /**
-   * Export to 1:1 Google Sheet CSV
+   * Export to 1:1 Google Sheet CSV (29 Columns matching GoShipping Sheet1 A-AC)
    */
   static exportToCsv(): string {
     const headers = [
       'Order ID',
       'Order Date',
       'CN Date',
-      'BD Date',
+      'China Courier Tracking (SF/ZTO)',
       'Customer Name',
+      'Current Status',
       'Mobile No',
       'Importer / Client',
       'Shipping Mark',
       'Website Order No',
       'Item / Product Details',
-      'China Courier Tracking (SF/ZTO)',
-      'Current Status',
       'Supplier / Shop Name',
       'Quantity (Pcs)',
       'Unit Price (RMB)',
@@ -506,13 +571,13 @@ export class PosLedgerService {
       'Purchase Cost Paid     [ Customer ]',
       'Purchase Cost Due [Auto]',
       'Service Type',
-      'CN Weight (KG)',
+      'BD Date',
       'BD Weight (KG)',
       'Shipping Rate / KG (BDT)',
       'International Freight (BDT) [Auto]',
       'Total Bill (BDT) [Auto]',
       'Payment Status [Auto]',
-      'BD Courier & Tracking',
+      'BD Tracking No',
       'Remark / Customer Update',
       'Profit Estimate (BDT) [Auto]'
     ];
@@ -523,15 +588,14 @@ export class PosLedgerService {
       escape(r.orderId),
       escape(r.orderDate),
       escape(r.cnDate),
-      escape(r.bdDate),
+      escape(r.chinaCourierTracking),
       escape(r.customerName),
+      escape(r.currentStatus),
       escape(r.mobileNo),
       escape(r.importerClient),
       escape(r.shippingMark),
       escape(r.websiteOrderNo),
       escape(r.itemDetails),
-      escape(r.chinaCourierTracking),
-      escape(r.currentStatus),
       escape(r.supplierName),
       escape(r.quantity),
       escape(r.unitPriceRmb.toFixed(2)),
@@ -541,7 +605,7 @@ export class PosLedgerService {
       escape(r.purchaseCostPaidBdt.toFixed(2)),
       escape(r.purchaseCostDueBdt.toFixed(2)),
       escape(r.serviceType),
-      escape(r.cnWeightKg.toFixed(2)),
+      escape(r.bdDate),
       escape(r.bdWeightKg.toFixed(2)),
       escape(r.shippingRatePerKgBdt.toFixed(2)),
       escape(r.internationalFreightBdt.toFixed(2)),
@@ -556,7 +620,7 @@ export class PosLedgerService {
   }
 
   /**
-   * Import from CSV Text
+   * Import from CSV Text (Intelligently maps headers for 29-column and 30-column formats)
    */
   static async importFromCsv(csvText: string): Promise<{ imported: number; errors: string[] }> {
     const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
@@ -565,52 +629,71 @@ export class PosLedgerService {
     let count = 0;
     const errors: string[] = [];
 
+    const parseLine = (line: string): string[] => {
+      const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
+      const matches: string[] = [];
+      let m: RegExpExecArray | null;
+      while ((m = regex.exec(line)) !== null) {
+        let val = m[1] || '';
+        if (val.startsWith('"') && val.endsWith('"')) {
+          val = val.slice(1, -1).replace(/""/g, '"');
+        }
+        matches.push(val.trim());
+        if (regex.lastIndex >= line.length) break;
+      }
+      return matches;
+    };
+
+    const headerMatches = parseLine(lines[0]);
+    const headerMap: Record<string, number> = {};
+    headerMatches.forEach((h, idx) => {
+      const norm = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (norm) headerMap[norm] = idx;
+    });
+
+    const getCol = (matches: string[], ...keys: string[]): string => {
+      for (const k of keys) {
+        const norm = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (norm in headerMap && headerMap[norm] < matches.length) {
+          return matches[headerMap[norm]] || '';
+        }
+      }
+      return '';
+    };
+
     // Skip header line
     for (let i = 1; i < lines.length; i++) {
       try {
         const line = lines[i];
-        // Parse CSV fields handling quotes
-        const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
-        const matches: string[] = [];
-        let m: RegExpExecArray | null;
-        while ((m = regex.exec(line)) !== null) {
-          let val = m[1] || '';
-          if (val.startsWith('"') && val.endsWith('"')) {
-            val = val.slice(1, -1).replace(/""/g, '"');
-          }
-          matches.push(val.trim());
-          if (regex.lastIndex >= line.length) break;
-        }
+        const matches = parseLine(line);
+        if (matches.length < 3) continue;
 
-        if (matches.length < 5) continue;
-
-        const customerName = matches[4] || matches[0];
+        const customerName = getCol(matches, 'Customer Name') || matches[4] || matches[0];
         if (!customerName) continue;
 
         await this.createRecord({
-          orderId: matches[0] || undefined,
-          orderDate: matches[1] || undefined,
-          cnDate: matches[2] || undefined,
-          bdDate: matches[3] || undefined,
+          orderId: getCol(matches, 'Order ID') || matches[0] || undefined,
+          orderDate: getCol(matches, 'Order Date') || matches[1] || undefined,
+          cnDate: getCol(matches, 'CN Date') || matches[2] || undefined,
+          chinaCourierTracking: getCol(matches, 'China Courier Tracking', 'China Courier Tracking (SF/ZTO)') || matches[3] || '',
           customerName,
-          mobileNo: matches[5] || '',
-          importerClient: matches[6] || '',
-          shippingMark: matches[7] || '',
-          websiteOrderNo: matches[8] || '',
-          itemDetails: matches[9] || 'Imported Goods',
-          chinaCourierTracking: matches[10] || '',
-          currentStatus: matches[11] || 'Processing',
-          supplierName: matches[12] || 'Taobao',
-          quantity: Number(matches[13]) || 1,
-          unitPriceRmb: Number(matches[14]) || 0,
-          rmbRateBdt: Number(matches[16]) || 19.5,
-          purchaseCostPaidBdt: Number(matches[18]) || 0,
-          serviceType: matches[20] || 'Sourcing & Shipping',
-          cnWeightKg: Number(matches[21]) || 0,
-          bdWeightKg: Number(matches[22]) || 0,
-          shippingRatePerKgBdt: Number(matches[23]) || 0,
-          bdTrackingNo: matches[27] || '',
-          remark: matches[28] || ''
+          currentStatus: getCol(matches, 'Current Status') || matches[5] || 'Processing',
+          mobileNo: getCol(matches, 'Mobile No', 'Mobile') || matches[6] || '',
+          importerClient: getCol(matches, 'Importer / Client', 'Importer') || matches[7] || '',
+          shippingMark: getCol(matches, 'Shipping Mark') || matches[8] || '',
+          websiteOrderNo: getCol(matches, 'Website Order No') || matches[9] || '',
+          itemDetails: getCol(matches, 'Item / Product Details', 'Item Details') || matches[10] || 'Imported Goods',
+          supplierName: getCol(matches, 'Supplier / Shop Name', 'Supplier') || matches[11] || 'Taobao',
+          quantity: Number(getCol(matches, 'Quantity (Pcs)', 'Quantity') || matches[12]) || 1,
+          unitPriceRmb: Number(getCol(matches, 'Unit Price (RMB)', 'Unit Price') || matches[13]) || 0,
+          rmbRateBdt: Number(getCol(matches, 'RMB Rate (BDT)', 'RMB Rate') || matches[15]) || 19.5,
+          purchaseCostPaidBdt: Number(getCol(matches, 'Purchase Cost Paid', 'Purchase Cost Paid [ Customer ]') || matches[17]) || 0,
+          serviceType: getCol(matches, 'Service Type') || matches[19] || 'Sourcing & Shipping',
+          bdDate: getCol(matches, 'BD Date') || matches[20] || undefined,
+          bdWeightKg: Number(getCol(matches, 'BD Weight (KG)', 'BD Weight') || matches[21]) || 0,
+          shippingRatePerKgBdt: Number(getCol(matches, 'Shipping Rate / KG (BDT)', 'Shipping Rate') || matches[22]) || 0,
+          bdTrackingNo: getCol(matches, 'BD Tracking No', 'BD Tracking') || matches[26] || '',
+          remark: getCol(matches, 'Remark / Customer Update', 'Remark') || matches[27] || ''
         });
         count++;
       } catch (err: any) {

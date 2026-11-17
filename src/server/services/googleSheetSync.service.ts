@@ -1,10 +1,77 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type { PosLedgerRecord } from './posLedger.service';
+
+export const TARGET_GOOGLE_SHEET_URL =
+  'https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0';
+
+export const TARGET_GOOGLE_SHEET_ID = '1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ';
+
+export const TARGET_SHEET_TAB_NAME = 'Sheet1';
+
+export const GOOGLE_SHEET_HEADERS_29 = [
+  'Order ID',                          // 1 (A)
+  'Order Date',                        // 2 (B)
+  'CN Date',                           // 3 (C)
+  'China Courier Tracking (SF/ZTO)',   // 4 (D)
+  'Customer Name',                     // 5 (E)
+  'Current Status',                    // 6 (F)
+  'Mobile No',                         // 7 (G)
+  'Importer / Client',                 // 8 (H)
+  'Shipping Mark',                     // 9 (I)
+  'Website Order No',                  // 10 (J)
+  'Item / Product Details',            // 11 (K)
+  'Supplier / Shop Name',              // 12 (L)
+  'Quantity (Pcs)',                    // 13 (M)
+  'Unit Price (RMB)',                  // 14 (N)
+  'Total Purchase (RMB) [Auto]',       // 15 (O)
+  'RMB Rate (BDT)',                    // 16 (P)
+  'Purchase Cost (BDT) [Auto]',        // 17 (Q)
+  'Purchase Cost Paid     [ Customer ]', // 18 (R)
+  'Purchase Cost Due [Auto]',          // 19 (S)
+  'Service Type',                      // 20 (T)
+  'BD Date',                           // 21 (U)
+  'BD Weight (KG)',                    // 22 (V)
+  'Shipping Rate / KG (BDT)',          // 23 (W)
+  'International Freight (BDT) [Auto]', // 24 (X)
+  'Total Bill (BDT) [Auto]',           // 25 (Y)
+  'Payment Status [Auto]',             // 26 (Z)
+  'BD Tracking No',                    // 27 (AA)
+  'Remark / Customer Update',          // 28 (AB)
+  'Profit Estimate (BDT) [Auto]'       // 29 (AC)
+] as const;
 
 const DEFAULT_WEBHOOK_URL =
   'https://script.google.com/macros/s/AKfycbx5tQavZn3PMkb0Ds-OqQoh2ykjL1Z0d3LyMx5ZRB4LJW0NzevuYOgSAx7rufm6sC0o/exec';
 
+let dynamicWebhookUrl: string | null = null;
+
 export function getGoogleSheetWebhookUrl(): string {
-  return process.env.GOOGLE_SHEET_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+  return dynamicWebhookUrl || process.env.GOOGLE_SHEET_WEBHOOK_URL || DEFAULT_WEBHOOK_URL;
+}
+
+export function setGoogleSheetWebhookUrl(url: string): void {
+  dynamicWebhookUrl = url.trim();
+  process.env.GOOGLE_SHEET_WEBHOOK_URL = dynamicWebhookUrl;
+}
+
+export function updateEnvFileWebhookUrl(newUrl: string): boolean {
+  try {
+    const envPath = path.resolve(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      let content = fs.readFileSync(envPath, 'utf8');
+      if (content.includes('GOOGLE_SHEET_WEBHOOK_URL=')) {
+        content = content.replace(/GOOGLE_SHEET_WEBHOOK_URL=.*/, `GOOGLE_SHEET_WEBHOOK_URL=${newUrl}`);
+      } else {
+        content += `\nGOOGLE_SHEET_WEBHOOK_URL=${newUrl}\n`;
+      }
+      fs.writeFileSync(envPath, content, 'utf8');
+      return true;
+    }
+  } catch (err) {
+    console.error('[GoogleSheetSync] Failed to update .env with new webhook URL:', err);
+  }
+  return false;
 }
 
 export interface GoogleSheetSyncResult {
@@ -41,23 +108,56 @@ function formatPhoneForSheet(phone: string | null | undefined): string {
 }
 
 /**
- * Format a PosLedgerRecord into the complete 30-column payload matching
- * the official GoShipping Google Spreadsheet (All-in-One tab).
+ * Format a PosLedgerRecord into the complete 29-column payload matching
+ * the official GoShipping Google Spreadsheet (Sheet1, Columns A to AC).
  */
-function formatRecordForSheet(record: PosLedgerRecord) {
+export function formatRecordForSheet(record: PosLedgerRecord) {
+  const mobile = formatPhoneForSheet(record.mobileNo);
+
+  const rowValues = [
+    record.orderId || '',
+    record.orderDate || '',
+    record.cnDate || '',
+    record.chinaCourierTracking || '',
+    record.customerName || '',
+    record.currentStatus || 'Processing',
+    mobile,
+    record.importerClient || '',
+    record.shippingMark || '',
+    record.websiteOrderNo || '',
+    record.itemDetails || '',
+    record.supplierName || 'Taobao',
+    Number(record.quantity || 1),
+    Number(record.unitPriceRmb || 0),
+    Number(record.totalPurchaseRmb || 0),
+    Number(record.rmbRateBdt || 19.5),
+    Number(record.purchaseCostBdt || 0),
+    Number(record.purchaseCostPaidBdt || 0),
+    Number(record.purchaseCostDueBdt || 0),
+    record.serviceType || 'Sourcing & Shipping',
+    record.bdDate || '',
+    Number(record.bdWeightKg || 0),
+    Number(record.shippingRatePerKgBdt || 850),
+    Number(record.internationalFreightBdt || 0),
+    Number(record.totalBillBdt || 0),
+    record.paymentStatus || 'Due',
+    record.bdTrackingNo || '',
+    record.remark || '',
+    Number(record.profitEstimateBdt || 0)
+  ];
+
   return {
     orderId: record.orderId || '',
     orderDate: record.orderDate || '',
     cnDate: record.cnDate || '',
-    bdDate: record.bdDate || '',
+    chinaCourierTracking: record.chinaCourierTracking || '',
     customerName: record.customerName || '',
-    mobileNo: formatPhoneForSheet(record.mobileNo),
+    currentStatus: record.currentStatus || 'Processing',
+    mobileNo: mobile,
     importerClient: record.importerClient || '',
     shippingMark: record.shippingMark || '',
     websiteOrderNo: record.websiteOrderNo || '',
     itemDetails: record.itemDetails || '',
-    chinaCourierTracking: record.chinaCourierTracking || '',
-    currentStatus: record.currentStatus || 'Processing',
     supplierName: record.supplierName || 'Taobao',
     quantity: Number(record.quantity || 1),
     unitPriceRmb: Number(record.unitPriceRmb || 0),
@@ -67,7 +167,7 @@ function formatRecordForSheet(record: PosLedgerRecord) {
     purchaseCostPaidBdt: Number(record.purchaseCostPaidBdt || 0),
     purchaseCostDueBdt: Number(record.purchaseCostDueBdt || 0),
     serviceType: record.serviceType || 'Sourcing & Shipping',
-    cnWeightKg: Number(record.cnWeightKg || 0),
+    bdDate: record.bdDate || '',
     bdWeightKg: Number(record.bdWeightKg || 0),
     shippingRatePerKgBdt: Number(record.shippingRatePerKgBdt || 850),
     internationalFreightBdt: Number(record.internationalFreightBdt || 0),
@@ -76,7 +176,11 @@ function formatRecordForSheet(record: PosLedgerRecord) {
     bdCourierName: record.bdCourierName || '',
     bdTrackingNo: record.bdTrackingNo || '',
     remark: record.remark || '',
-    profitEstimateBdt: Number(record.profitEstimateBdt || 0)
+    profitEstimateBdt: Number(record.profitEstimateBdt || 0),
+    // Pre-aligned 29 values for Columns A to AC
+    rowValues,
+    sheetUrl: TARGET_GOOGLE_SHEET_URL,
+    sheetTab: TARGET_SHEET_TAB_NAME
   };
 }
 
@@ -120,21 +224,46 @@ export async function setupGoogleSheetHeaders(): Promise<GoogleSheetSyncResult> 
   }
 }
 
+export type SyncStatusListener = (
+  idOrOrderId: string,
+  status: 'synced' | 'failed' | 'pending',
+  error?: string
+) => Promise<void> | void;
+
+let syncStatusListener: SyncStatusListener | null = null;
+
+export function setSyncStatusListener(listener: SyncStatusListener | null) {
+  syncStatusListener = listener;
+}
+
 /**
  * Push a single order row to the Google Sheet webhook.
- * Executes asynchronously with safe error handling and 1 retry.
+ * Executes with automatic 3-tier exponential backoff and persistent status updates.
  */
 export async function syncOrderToGoogleSheet(
   record: PosLedgerRecord
 ): Promise<GoogleSheetSyncResult> {
   const webhookUrl = getGoogleSheetWebhookUrl();
+  const idOrCode = record.id || record.orderId;
+
   if (!webhookUrl) {
+    if (syncStatusListener && idOrCode) {
+      syncStatusListener(idOrCode, 'failed', 'Google Sheet webhook URL not configured');
+    }
     return { success: false, error: 'Google Sheet webhook URL not configured' };
   }
 
-  const payload = formatRecordForSheet(record);
+  // Notify listener of pending state
+  if (syncStatusListener && idOrCode) {
+    try {
+      syncStatusListener(idOrCode, 'pending');
+    } catch {}
+  }
 
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  const payload = formatRecordForSheet(record);
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -142,11 +271,11 @@ export async function syncOrderToGoogleSheet(
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(10000) // 10 second timeout
+        signal: AbortSignal.timeout(15000) // 15 second timeout to handle Google Apps Script cold starts
       });
 
       if (!response.ok) {
-        throw new Error(`Google Apps Script returned HTTP ${response.status}`);
+        throw new Error(`Google Apps Script HTTP ${response.status}: ${response.statusText}`);
       }
 
       const text = await response.text();
@@ -157,22 +286,39 @@ export async function syncOrderToGoogleSheet(
         data = { success: true, raw: text };
       }
 
+      if (data.success === false) {
+        throw new Error(data.error || 'Apps Script returned failure');
+      }
+
+      // Mark as successfully synced
+      if (syncStatusListener && idOrCode) {
+        try {
+          syncStatusListener(idOrCode, 'synced');
+        } catch {}
+      }
+
       return {
-        success: data.success !== false,
+        success: true,
         orderId: record.orderId,
         action: data.action || 'synced'
       };
     } catch (err: any) {
-      if (attempt === 2) {
-        console.error(`[GoogleSheetSync] Error syncing order ${record.orderId}:`, err.message);
+      if (attempt === maxAttempts) {
+        console.error(`[GoogleSheetSync] Error syncing order ${record.orderId} after ${maxAttempts} attempts:`, err.message);
+        if (syncStatusListener && idOrCode) {
+          try {
+            syncStatusListener(idOrCode, 'failed', err.message || 'Sync failed');
+          } catch {}
+        }
         return {
           success: false,
           orderId: record.orderId,
           error: err.message || 'Unknown webhook sync error'
         };
       }
-      // Wait 1 second before retry
-      await new Promise((r) => setTimeout(r, 1000));
+      // Progressive backoff: 1s, then 2.5s
+      const delayMs = attempt === 1 ? 1000 : 2500;
+      await new Promise((r) => setTimeout(r, delayMs));
     }
   }
 
