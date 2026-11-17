@@ -9,11 +9,11 @@ import sys
 import subprocess
 import pexpect
 
-HOST = os.environ.get("HOSTINGER_HOST", "195.35.62.136")
+HOST = os.environ.get("HOSTINGER_HOST", "217.21.87.101")
 PORT = os.environ.get("HOSTINGER_PORT", "65002")
 USER = os.environ.get("HOSTINGER_USER", "u398667964")
 PASSWORD = os.environ.get("HOSTINGER_SSH_PASS", "Strong#@!1234")
-REMOTE_PATH = os.environ.get("HOSTINGER_REMOTE_PATH", "public_html/")
+REMOTE_PATH = os.environ.get("HOSTINGER_REMOTE_PATH", "domains/goshipping.com.bd/public_html/")
 
 def run_local_build():
     print("\n📦 1. Building production assets with Astro...")
@@ -45,7 +45,19 @@ def deploy_to_hostinger():
     
     child.close()
     if child.exitstatus == 0:
-        print(f"\n🎉 3. Successfully deployed GoShipping production build to {USER}@{HOST}:{REMOTE_PATH}!")
+        print(f"\n🔄 3. Reloading production server application (Passenger & PM2)...")
+        restart_cmd = (
+            f'ssh -p {PORT} -o StrictHostKeyChecking=no {USER}@{HOST} '
+            f'"touch domains/goshipping.com.bd/public_html/tmp/restart.txt && '
+            f'cd domains/goshipping.com.bd/public_html && npx pm2 restart goshipping 2>/dev/null || true"'
+        )
+        r_child = pexpect.spawn(restart_cmd, encoding="utf-8", timeout=60)
+        r_idx = r_child.expect(["(?i)password:", pexpect.EOF, pexpect.TIMEOUT])
+        if r_idx == 0:
+            r_child.sendline(PASSWORD)
+            r_child.expect(pexpect.EOF, timeout=60)
+        r_child.close()
+        print(f"\n🎉 4. Successfully deployed GoShipping production build to {USER}@{HOST}:{REMOTE_PATH}!")
     else:
         print(f"\n⚠️ Rsync exit code: {child.exitstatus}")
         print("If you received 'Permission denied' or '/sbin/nologin', please ensure SSH Access is toggled ON in Hostinger hPanel -> Advanced -> SSH Access.")

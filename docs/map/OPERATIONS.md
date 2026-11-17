@@ -104,14 +104,14 @@ In Hostinger Control Panel (hPanel) -> Advanced -> Cron Jobs:
 For automated or remote terminal deployment to Hostinger Cloud / VPS:
 
 ### Connection Parameters
-- **Host / IP**: `195.35.62.136`
+- **Host / IP**: `217.21.87.101`
 - **SSH Port**: `65002`
 - **SSH User**: `u398667964`
 - **SSH Password**: `[REDACTED]` (Stored securely in local environment / secrets vault)
 
 ### Quick Connection
 ```bash
-ssh -p 65002 u398667964@195.35.62.136
+ssh -p 65002 u398667964@217.21.87.101
 ```
 
 ### Standard Deployment Runbook (When Ready to Deploy)
@@ -121,10 +121,10 @@ ssh -p 65002 u398667964@195.35.62.136
    ```
 2. **Synchronize Code / Artifacts**:
    ```bash
-   rsync -avz -e 'ssh -p 65002' --exclude 'node_modules' --exclude '.git' ./dist/ package.json u398667964@195.35.62.136:~/public_html/
+   rsync -avz -e 'ssh -p 65002' --exclude 'node_modules' --exclude '.git' ./dist/ package.json u398667964@217.21.87.101:domains/goshipping.com.bd/public_html/
    ```
 3. **Remote Dependency & Restart**:
    ```bash
-   ssh -p 65002 u398667964@195.35.62.136 "cd ~/public_html && npm install --omit=dev && pm2 restart goshipping || node ./dist/server/entry.mjs"
+   ssh -p 65002 u398667964@217.21.87.101 "touch domains/goshipping.com.bd/public_html/tmp/restart.txt && cd domains/goshipping.com.bd/public_html && npx pm2 restart goshipping"
    ```
 
