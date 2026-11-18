@@ -2573,10 +2573,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       case 'pos_ledger':
       case 'ledger':
         return {
-          title: ordersSubView === 'sourcing' ? 'POS Sourcing & Freight Ledger' : 'Orders & Freight Shipments',
-          subtitle: ordersSubView === 'sourcing'
-            ? 'Unified order desk: Taobao & 1688 product purchasing, supplier ledger, and vector receipts'
-            : 'Track live international shipments, update delivery status, and manage customs clearance'
+          title: 'ORDERS',
+          subtitle: 'Unified order desk, live China sourcing ledger, cargo freight & Google Sheet sync'
         };
       case 'quotes':
         return {

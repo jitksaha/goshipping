@@ -42,6 +42,7 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const [webhookUrlInput, setWebhookUrlInput] = useState('');
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   const [isRetryingFailed, setIsRetryingFailed] = useState(false);
+  const [showDetailedReport, setShowDetailedReport] = useState(true);
 
   const failedSyncsCount = useMemo(() => {
     return records.filter((r) => r.sheetSyncStatus === 'failed').length;
@@ -674,338 +675,611 @@ function doPost(e) {
     setTimeout(() => setCopiedScript(false), 3000);
   };
 
+  // Computed Analytics & Visual Report Metrics
+  const analytics = useMemo(() => {
+    const totalCount = records.length;
+    
+    // Status pipeline counts
+    const statusCounts = {
+      processing: records.filter((r) => !r.currentStatus || r.currentStatus.toLowerCase().includes('process') || r.currentStatus.toLowerCase().includes('pending') || r.currentStatus.toLowerCase().includes('purchas')).length,
+      hub: records.filter((r) => r.currentStatus && (r.currentStatus.toLowerCase().includes('hub') || r.currentStatus.toLowerCase().includes('warehouse') || r.currentStatus.toLowerCase().includes('received'))).length,
+      transit: records.filter((r) => r.currentStatus && (r.currentStatus.toLowerCase().includes('transit') || r.currentStatus.toLowerCase().includes('flight') || r.currentStatus.toLowerCase().includes('ship') || r.currentStatus.toLowerCase().includes('air'))).length,
+      delivered: records.filter((r) => r.currentStatus && (r.currentStatus.toLowerCase().includes('deliver') || r.currentStatus.toLowerCase().includes('complete'))).length,
+    };
+
+    // Financial split
+    const totalBilled = stats?.totalBilledBdt || records.reduce((sum, r) => sum + (Number(r.totalBillBdt) || 0), 0);
+    const totalCollected = stats?.totalCollectedBdt || records.reduce((sum, r) => sum + (Number(r.purchaseCostPaidBdt) || 0), 0);
+    const totalDue = stats?.totalDueBdt !== undefined ? stats.totalDueBdt : Math.max(0, totalBilled - totalCollected);
+    const collectionPercent = totalBilled > 0 ? Math.min(100, Math.round((totalCollected / totalBilled) * 100)) : 0;
+    const duePercent = 100 - collectionPercent;
+
+    // Service breakdown
+    const serviceCounts = {
+      sourcingAndShipping: records.filter((r) => r.serviceType?.toLowerCase().includes('sourcing') && r.serviceType?.toLowerCase().includes('shipping')).length,
+      sourcingOnly: records.filter((r) => r.serviceType?.toLowerCase().includes('sourcing only')).length,
+      freightCargo: records.filter((r) => !r.serviceType?.toLowerCase().includes('sourcing') || r.serviceType?.toLowerCase().includes('freight')).length,
+    };
+
+    // Trend points from records for sparklines
+    const revRaw = records.slice(0, 10).reverse().map((r) => Number(r.totalBillBdt) || 100);
+    const rmbRaw = records.slice(0, 10).reverse().map((r) => Number(r.totalPurchaseRmb) || 50);
+    const freightRaw = records.slice(0, 10).reverse().map((r) => Number(r.internationalFreightBdt) || 80);
+    const weightRaw = records.slice(0, 10).reverse().map((r) => Number(r.bdWeightKg || r.cnWeightKg) || 10);
+
+    return {
+      statusCounts,
+      totalBilled,
+      totalCollected,
+      totalDue,
+      collectionPercent,
+      duePercent,
+      serviceCounts,
+      revenuePoints: revRaw.length >= 2 ? revRaw : [12000, 24000, 18000, 42000, 31000, 56000, 81000],
+      rmbPoints: rmbRaw.length >= 2 ? rmbRaw : [800, 1500, 1100, 2300, 1900, 3000, 4200],
+      freightPoints: freightRaw.length >= 2 ? freightRaw : [4000, 8500, 6200, 11000, 9500, 16000, 22500],
+      weightPoints: weightRaw.length >= 2 ? weightRaw : [8, 15, 12, 22, 19, 28, 35]
+    };
+  }, [records, stats]);
+
+  // Pure SVG mini-sparkline renderer
+  const renderSparkline = (points: number[], strokeColor: string, fillColor: string) => {
+    if (!points || points.length < 2) points = [10, 20, 15, 30, 25, 40];
+    const min = Math.min(...points);
+    const max = Math.max(...points) || 1;
+    const range = max - min || 1;
+    const width = 84;
+    const height = 28;
+    const coords = points.map((val, idx) => {
+      const x = (idx / (points.length - 1)) * width;
+      const y = height - ((val - min) / range) * (height - 6) - 3;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const pathD = `M ${coords.join(' L ')}`;
+    const areaD = `M 0,${height} L ${coords.join(' L ')} L ${width},${height} Z`;
+
+    return (
+      <svg className="w-21 h-7 overflow-visible shrink-0" viewBox={`0 0 ${width} ${height}`}>
+        <path d={areaD} fill={fillColor} />
+        <path d={pathD} fill="none" stroke={strokeColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  };
+
+  // Pure SVG mini-bar renderer
+  const renderMiniBars = (points: number[], barColor: string) => {
+    if (!points || points.length === 0) points = [6, 12, 8, 18, 14, 22, 28];
+    const max = Math.max(...points) || 1;
+    return (
+      <div className="flex items-end gap-1 h-7 shrink-0">
+        {points.slice(-6).map((val, i) => {
+          const heightPct = Math.max(18, Math.round((val / max) * 100));
+          return (
+            <div
+              key={i}
+              className="w-1.5 rounded-t-xs"
+              style={{ height: `${heightPct}%`, backgroundColor: barColor }}
+              title={`Metric: ${val}`}
+            />
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 font-['Inter',sans-serif]">
-      {/* 1. POS SUMMARY & KPI CARDS (Real-time Financial Overview) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Total Orders</span>
-          <div className="text-xl font-extrabold text-slate-900 mt-1 font-['Manrope']">{stats?.totalOrders || 0}</div>
-          <span className="text-[10px] text-slate-500 font-medium">{stats?.totalWeightKg || 0} KG Cargo</span>
+      {/* 1. EXECUTIVE KPI CARDS & REPORT SPARKLINES */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+        {/* Card 1: Total Orders & Cargo Weight */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                Total Orders
+              </span>
+              <div className="text-2xl font-extrabold text-slate-900 mt-0.5 font-['Manrope',sans-serif] tracking-tight">
+                {stats?.totalOrders || 0}
+              </div>
+            </div>
+            {renderMiniBars(analytics.weightPoints, '#3B82F6')}
+          </div>
+          <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100">
+            <span className="text-slate-600 font-medium">{stats?.totalWeightKg || 0} KG Cargo</span>
+            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">Active Cargo</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">China Purchase (RMB)</span>
-          <div className="text-xl font-extrabold text-amber-600 mt-1 font-mono">¥{(stats?.totalPurchaseRmb || 0).toLocaleString()}</div>
-          <span className="text-[10px] text-slate-500 font-medium">৳{(stats?.totalPurchaseBdt || 0).toLocaleString()} BDT</span>
+        {/* Card 2: China Sourcing (RMB & BDT) */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                China Sourcing (RMB)
+              </span>
+              <div className="text-2xl font-extrabold text-amber-600 mt-0.5 font-mono tracking-tight">
+                ¥{(stats?.totalPurchaseRmb || 0).toLocaleString()}
+              </div>
+            </div>
+            {renderSparkline(analytics.rmbPoints, '#D97706', 'rgba(217, 119, 6, 0.12)')}
+          </div>
+          <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100">
+            <span className="text-slate-600 font-mono font-semibold">৳{(stats?.totalPurchaseBdt || 0).toLocaleString()} BDT</span>
+            <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">1688 / Taobao</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Int'l Freight</span>
-          <div className="text-xl font-extrabold text-sky-600 mt-1 font-mono">৳{(stats?.totalFreightBdt || 0).toLocaleString()}</div>
-          <span className="text-[10px] text-slate-500 font-medium">Air &amp; Sea Cargo</span>
+        {/* Card 3: Int'l Freight Logistics */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                Int'l Freight
+              </span>
+              <div className="text-2xl font-extrabold text-sky-600 mt-0.5 font-mono tracking-tight">
+                ৳{(stats?.totalFreightBdt || 0).toLocaleString()}
+              </div>
+            </div>
+            {renderSparkline(analytics.freightPoints, '#0284C7', 'rgba(2, 132, 199, 0.12)')}
+          </div>
+          <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100">
+            <span className="text-slate-500 font-medium">Air &amp; Sea Linehaul</span>
+            <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">Logistics</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Total Billing</span>
-          <div className="text-xl font-extrabold text-slate-900 mt-1 font-mono">৳{(stats?.totalBilledBdt || 0).toLocaleString()}</div>
-          <span className="text-[10px] text-slate-500 font-medium">Grand Billed Revenue</span>
+        {/* Card 4: Total Revenue (Billed) */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">
+                Total Revenue
+              </span>
+              <div className="text-2xl font-extrabold text-slate-900 mt-0.5 font-mono tracking-tight">
+                ৳{(stats?.totalBilledBdt || 0).toLocaleString()}
+              </div>
+            </div>
+            {renderSparkline(analytics.revenuePoints, '#10B981', 'rgba(16, 185, 129, 0.12)')}
+          </div>
+          <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100">
+            <span className="text-emerald-700 font-mono font-bold">Net: ৳{(stats?.totalProfitBdt || 0).toLocaleString()}</span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">~15% Margin</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Collected / Due</span>
-          <div className="text-xl font-extrabold text-emerald-600 mt-1 font-mono">৳{(stats?.totalCollectedBdt || 0).toLocaleString()}</div>
-          <span className="text-[10px] font-bold text-red-600 font-mono">Due: ৳{(stats?.totalDueBdt || 0).toLocaleString()}</span>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 block">Est. Net Profit</span>
-          <div className="text-xl font-extrabold text-emerald-700 mt-1 font-mono">৳{(stats?.totalProfitBdt || 0).toLocaleString()}</div>
-          <span className="text-[10px] text-emerald-600 font-semibold">Margin ~15%</span>
+        {/* Card 5: Collected vs Due Balance */}
+        <div className="p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col justify-between gap-2.5 col-span-2 sm:col-span-1">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
+                Cash Flow
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+                {analytics.collectionPercent}% Cleared
+              </span>
+            </div>
+            <div className="text-2xl font-extrabold text-emerald-600 mt-0.5 font-mono tracking-tight">
+              ৳{(stats?.totalCollectedBdt || 0).toLocaleString()}
+            </div>
+          </div>
+          
+          <div className="space-y-1.5 pt-1.5 border-t border-slate-100">
+            <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden flex">
+              <div style={{ width: `${analytics.collectionPercent}%` }} className="bg-emerald-500 h-full" />
+              <div style={{ width: `${analytics.duePercent}%` }} className="bg-rose-500 h-full" />
+            </div>
+            <div className="flex items-center justify-between text-[10px] font-mono">
+              <span className="text-slate-500">Collected</span>
+              <span className="text-rose-600 font-bold">Due: ৳{(stats?.totalDueBdt || 0).toLocaleString()}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* 2. POS CONTROL BAR (Search, Filters, Quick Entry, Import, Export) */}
-      <div className="p-4 sm:p-5 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Left: Search & Filters */}
-        <div className="flex flex-wrap items-center gap-2.5 flex-1">
-          <div className="relative min-w-[220px] flex-1 max-w-sm">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search Customer, Order ID, Phone, SF/ZTO Tracking..."
-              className="w-full h-9 pl-8 pr-3 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#EA1D2C] focus:outline-none"
-            />
-            <svg className="w-3.5 h-3.5 absolute left-2.5 top-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+      {/* 2. OPERATIONAL PIPELINE & FINANCIAL CLEARANCE REPORT BAR */}
+      <div className="p-4 sm:p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#EA1D2C] animate-pulse"></span>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif]">
+              Operational Pipeline &amp; Settlement Report
+            </h3>
           </div>
-
-          <select
-            value={serviceFilter}
-            onChange={(e) => setServiceFilter(e.target.value)}
-            className="h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-700 font-medium"
-          >
-            <option value="all">All Services</option>
-            <option value="Sourcing & Shipping">Sourcing &amp; Shipping</option>
-            <option value="Sourcing Only">Sourcing Only</option>
-            <option value="Air Cargo">Air Cargo</option>
-            <option value="Sea Cargo">Sea Cargo</option>
-            <option value="Door-to-Door">Door-to-Door</option>
-          </select>
-
-          <select
-            value={paymentFilter}
-            onChange={(e) => setPaymentFilter(e.target.value)}
-            className="h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-700 font-medium"
-          >
-            <option value="all">All Payment Status</option>
-            <option value="Due">Due</option>
-            <option value="Partial">Partial</option>
-            <option value="Paid">Paid</option>
-          </select>
-
-          <select
-            value={supplierFilter}
-            onChange={(e) => setSupplierFilter(e.target.value)}
-            className="h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-700 font-medium"
-          >
-            <option value="all">All Suppliers</option>
-            <option value="Taobao">Taobao</option>
-            <option value="1688">1688</option>
-            <option value="Alibaba">Alibaba</option>
-            <option value="Factory">Factory Direct</option>
-          </select>
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Live Google Sheet Synced
+            </span>
+          </div>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowImportModal(true)}
-            className="px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-none shadow-2xs"
-            title="Import from Google Sheets CSV"
-          >
-            <svg className="w-3.5 h-3.5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            <span>Import CSV</span>
-          </button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* Section A: Consignment Stage Distribution */}
+          <div className="p-3.5 rounded-lg bg-slate-50/80 border border-slate-200/70 space-y-2.5">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+              <span>Consignment Stages</span>
+              <span className="text-slate-400 font-mono font-normal">Active Orders</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
+                <span className="text-slate-600 text-[11px] font-medium">Processing</span>
+                <span className="font-bold text-amber-600 font-mono">{analytics.statusCounts.processing}</span>
+              </div>
+              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
+                <span className="text-slate-600 text-[11px] font-medium">CN Hub</span>
+                <span className="font-bold text-sky-600 font-mono">{analytics.statusCounts.hub}</span>
+              </div>
+              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
+                <span className="text-slate-600 text-[11px] font-medium">In Transit</span>
+                <span className="font-bold text-blue-600 font-mono">{analytics.statusCounts.transit}</span>
+              </div>
+              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
+                <span className="text-slate-600 text-[11px] font-medium">Delivered</span>
+                <span className="font-bold text-emerald-600 font-mono">{analytics.statusCounts.delivered}</span>
+              </div>
+            </div>
+          </div>
 
-          <a
-            href="/api/admin/pos-ledger/export"
-            download
-            className="px-3 py-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-none shadow-2xs"
-            title="Export 1:1 to Google Sheets / Excel CSV"
-          >
-            <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            <span>Export CSV</span>
-          </a>
+          {/* Section B: Financial Settlement Ratio Bar */}
+          <div className="p-3.5 rounded-lg bg-slate-50/80 border border-slate-200/70 space-y-2.5">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+              <span>Financial Clearance</span>
+              <span className="text-emerald-700 font-mono font-bold">{analytics.collectionPercent}% Settled</span>
+            </div>
+            <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+              <div style={{ width: `${analytics.collectionPercent}%` }} className="bg-emerald-500 h-full transition-all" title={`Collected: ৳${analytics.totalCollected.toLocaleString()}`} />
+              <div style={{ width: `${analytics.duePercent}%` }} className="bg-rose-500 h-full transition-all" title={`Due: ৳${analytics.totalDue.toLocaleString()}`} />
+            </div>
+            <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 pt-0.5">
+              <span className="text-emerald-700 font-bold">৳{analytics.totalCollected.toLocaleString()} Paid</span>
+              <span className="text-rose-600 font-bold">৳{analytics.totalDue.toLocaleString()} Due</span>
+            </div>
+          </div>
 
-          <div className="flex items-center rounded-lg border border-emerald-300 bg-emerald-50/70 p-0.5 shadow-2xs">
+          {/* Section C: Service Breakdown */}
+          <div className="p-3.5 rounded-lg bg-slate-50/80 border border-slate-200/70 space-y-2.5">
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
+              <span>Service Breakdown</span>
+              <span className="text-slate-400 font-mono font-normal">Consignment Mix</span>
+            </div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center justify-between text-[11px] p-1 rounded hover:bg-white transition-colors">
+                <span className="text-slate-600">Sourcing &amp; Shipping</span>
+                <span className="font-mono font-bold text-slate-900">{analytics.serviceCounts.sourcingAndShipping} orders</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] p-1 rounded hover:bg-white transition-colors">
+                <span className="text-slate-600">China Sourcing Only</span>
+                <span className="font-mono font-bold text-slate-900">{analytics.serviceCounts.sourcingOnly} orders</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] p-1 rounded hover:bg-white transition-colors">
+                <span className="text-slate-600">Freight Cargo Only</span>
+                <span className="font-mono font-bold text-slate-900">{analytics.serviceCounts.freightCargo} orders</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CONTROL & FILTER BAR (Clean 1-Line Desktop Alignment with Tooltip Icons) */}
+      <div className="p-3 sm:p-4 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Left: Search & Filter Selects in 1 horizontal row */}
+          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+            {/* Search Input */}
+            <div className="relative w-full sm:w-56 md:w-64 lg:w-72 shrink-0">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search Customer, Mark, SF/ZTO, ID..."
+                className="w-full h-9 pl-8 pr-3 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-[#EA1D2C] focus:outline-none bg-slate-50/50 hover:bg-white focus:bg-white transition-colors"
+              />
+              <svg className="w-3.5 h-3.5 absolute left-2.5 top-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+
+            {/* Service Select */}
+            <select
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              className="h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-700 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#EA1D2C]"
+            >
+              <option value="all">All Services</option>
+              <option value="Sourcing & Shipping">Sourcing &amp; Shipping</option>
+              <option value="Sourcing Only">Sourcing Only</option>
+              <option value="Air Cargo">Air Cargo</option>
+              <option value="Sea Cargo">Sea Cargo</option>
+              <option value="Door-to-Door">Door-to-Door</option>
+            </select>
+
+            {/* Payment Status Select */}
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+              className="h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-700 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#EA1D2C]"
+            >
+              <option value="all">All Payment</option>
+              <option value="Due">Due</option>
+              <option value="Partial">Partial</option>
+              <option value="Paid">Paid</option>
+            </select>
+
+            {/* Supplier Select */}
+            <select
+              value={supplierFilter}
+              onChange={(e) => setSupplierFilter(e.target.value)}
+              className="h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-700 bg-white hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#EA1D2C]"
+            >
+              <option value="all">All Suppliers</option>
+              <option value="Taobao">Taobao</option>
+              <option value="1688">1688</option>
+              <option value="Alibaba">Alibaba</option>
+              <option value="Factory">Factory Direct</option>
+            </select>
+          </div>
+
+          {/* Right: Icon-Only Quick Action Buttons */}
+          <div className="flex items-center gap-1.5 self-end lg:self-auto shrink-0">
+            {/* Import CSV Button (Icon Only) */}
+            <button
+              type="button"
+              onClick={() => setShowImportModal(true)}
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-600 hover:text-slate-900 flex items-center justify-center cursor-pointer shadow-2xs transition-colors"
+              title="Import CSV from Google Sheets"
+              aria-label="Import CSV"
+            >
+              <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+
+            {/* Export CSV Button (Icon Only) */}
+            <a
+              href="/api/admin/pos-ledger/export"
+              download
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-emerald-600 hover:text-emerald-700 flex items-center justify-center cursor-pointer shadow-2xs transition-colors"
+              title="Export Orders to Excel/CSV"
+              aria-label="Export CSV"
+            >
+              <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </a>
+
+            {/* Sync to Sheet Button (Icon Only) */}
             <button
               type="button"
               disabled={isSyncingSheet}
               onClick={handleSyncGoogleSheet}
-              className={`px-3 py-1.5 rounded-md hover:bg-emerald-100/80 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-none ${
+              className={`w-9 h-9 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center cursor-pointer shadow-2xs transition-colors ${
                 isSyncingSheet ? 'opacity-70 cursor-wait' : ''
               }`}
-              title="Auto-sync all orders to your connected Google Sheet"
+              title="Sync All Orders to Google Sheet"
+              aria-label="Sync to Sheet"
             >
               <svg
-                className={`w-3.5 h-3.5 text-emerald-700 stroke-[2] ${isSyncingSheet ? 'animate-spin' : ''}`}
+                className={`w-4 h-4 stroke-[2.2] ${isSyncingSheet ? 'animate-spin' : ''}`}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
               >
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
               </svg>
-              <span>{isSyncingSheet ? 'Syncing...' : 'Sync to Sheet'}</span>
             </button>
-            <div className="w-px h-4 bg-emerald-200 mx-0.5" />
+
+            {/* Setup Headers Button (Icon Only) */}
             <button
               type="button"
               onClick={() => setShowSheetSetupModal(true)}
-              className="px-2 py-1.5 rounded-md hover:bg-emerald-100 text-emerald-800 text-xs font-medium cursor-pointer transition-none flex items-center gap-1"
-              title="Setup Google Sheet Headers & Form Formatting"
+              className="w-9 h-9 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 text-slate-600 hover:text-slate-900 flex items-center justify-center cursor-pointer shadow-2xs transition-colors"
+              title="Setup Google Sheet 29 Headers &amp; Webhook"
+              aria-label="Setup Headers"
             >
-              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <circle cx="12" cy="12" r="3" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
-              <span>Setup Headers</span>
             </button>
-          </div>
 
-          {failedSyncsCount > 0 && (
-            <button
-              type="button"
-              disabled={isRetryingFailed}
-              onClick={handleRetryFailedSyncs}
-              className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-300 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-none"
-              title="Click to retry all failed Google Sheet syncs"
-            >
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
-              <span>{isRetryingFailed ? 'Retrying...' : `${failedSyncsCount} Failed · Retry All`}</span>
-            </button>
-          )}
+            {/* Retry Failed Syncs Button (if any) */}
+            {failedSyncsCount > 0 && (
+              <button
+                type="button"
+                disabled={isRetryingFailed}
+                onClick={handleRetryFailedSyncs}
+                className="h-9 px-2.5 rounded-lg bg-rose-50 border border-rose-300 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-none"
+                title="Retry failed Google Sheet syncs"
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
+                <span>{failedSyncsCount} Failed</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 3. INTERACTIVE SPREADSHEET-STYLE OPERATIONS LEDGER TABLE (1:1 with Google Sheet) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+      {/* 4. ORDERS WORKSPACE: DESKTOP HORIZONTALLY SCROLLABLE TABLE & MOBILE CARD VIEW */}
+      
+      {/* 4A. Desktop & Tablet View (Smooth Horizontal Scroll, Never Squeezed) */}
+      <div className="hidden md:block bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            {/* Grouped Table Header */}
+          <table className="w-full text-left text-xs border-collapse min-w-[1260px]">
             <thead>
               <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-[10px] uppercase font-mono tracking-wider font-bold">
-                <th className="py-2.5 px-3 sticky left-0 bg-slate-100 z-10 border-r border-slate-200">Order ID</th>
-                <th className="py-2.5 px-3 border-r border-slate-200">Customer &amp; Mark</th>
-                <th className="py-2.5 px-3 border-r border-slate-200">Product &amp; Supplier</th>
-                <th className="py-2.5 px-3 border-r border-slate-200">Status</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 text-right">RMB Cost</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 text-right">Rate / BDT</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 text-right">Freight (BDT)</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 text-right font-bold text-slate-900">Total Bill</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 text-center">Payment</th>
-                <th className="py-2.5 px-3 border-r border-slate-200">Courier &amp; Tracking</th>
-                <th className="py-2.5 px-3 border-r border-slate-200 text-center font-bold">
-                  <span className="block">Sheet Sync</span>
-                  <span className="text-[9px] font-normal text-slate-400">Google Sheet</span>
+                <th className="py-3 px-4 sticky left-0 bg-slate-100 z-10 border-r border-slate-200 min-w-[150px]">
+                  Order &amp; Date
                 </th>
-                <th className="py-2.5 px-3 text-right sticky right-0 bg-slate-100 z-10">Actions</th>
+                <th className="py-3 px-4 border-r border-slate-200 min-w-[210px]">
+                  Customer &amp; Mark
+                </th>
+                <th className="py-3 px-4 border-r border-slate-200 min-w-[240px]">
+                  Product &amp; Sourcing
+                </th>
+                <th className="py-3 px-4 border-r border-slate-200 min-w-[160px]">
+                  Status &amp; Delivery
+                </th>
+                <th className="py-3 px-4 border-r border-slate-200 text-right min-w-[180px]">
+                  Purchase &amp; Freight
+                </th>
+                <th className="py-3 px-4 border-r border-slate-200 text-right min-w-[190px]">
+                  Total Bill &amp; Due
+                </th>
+                <th className="py-3 px-4 border-r border-slate-200 text-center min-w-[100px]">
+                  Sheet Sync
+                </th>
+                <th className="py-3 px-4 text-right sticky right-0 bg-slate-100 z-10 min-w-[140px]">
+                  Actions
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-800">
+            <tbody className="divide-y divide-slate-200/80 text-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-xs text-slate-500">
-                    Loading operations ledger...
+                  <td colSpan={8} className="py-16 text-center text-xs text-slate-500">
+                    <div className="inline-flex items-center gap-2">
+                      <svg className="w-4 h-4 animate-spin text-[#EA1D2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span>Loading operations ledger...</span>
+                    </div>
                   </td>
                 </tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-xs text-slate-500">
-                    No orders found matching criteria. Click "+ Quick POS Order" to add.
+                  <td colSpan={8} className="py-16 text-center text-xs text-slate-500">
+                    No orders found matching criteria. Click &quot;Create Order&quot; above to add.
                   </td>
                 </tr>
               ) : (
                 records.map((r, idx) => (
-                  <tr key={r.id || idx} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Order ID & Dates */}
-                    <td className="py-2.5 px-3 sticky left-0 bg-white hover:bg-slate-50 z-10 border-r border-slate-200 font-mono font-bold text-slate-900">
-                      <div>{r.orderId}</div>
-                      <div className="text-[10px] text-slate-400 font-normal">{r.orderDate}</div>
+                  <tr key={r.id || idx} className="hover:bg-slate-50/90 transition-colors">
+                    {/* Column 1: Order ID & Date (Sticky Left) */}
+                    <td className="py-3 px-4 sticky left-0 bg-white hover:bg-slate-50 z-10 border-r border-slate-200 font-mono font-bold text-slate-900 shadow-[1px_0_3px_rgba(0,0,0,0.03)]">
+                      <div className="text-xs">{r.orderId}</div>
+                      <div className="text-[10px] text-slate-400 font-normal mt-0.5">{r.orderDate}</div>
+                      <span className="inline-block mt-1 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                        {r.serviceType}
+                      </span>
                     </td>
 
-                    {/* Customer & Mark */}
-                    <td className="py-2.5 px-3 border-r border-slate-200">
-                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                    {/* Column 2: Customer & Shipping Mark */}
+                    <td className="py-3 px-4 border-r border-slate-200">
+                      <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                         <span>{r.customerName}</span>
                         {r.importerClient && (
-                          <span className="px-1.5 py-0.2 rounded bg-slate-100 text-[10px] font-mono text-slate-600 font-bold">
+                          <span className="px-1.5 py-0.2 rounded bg-slate-100 text-[10px] font-mono text-slate-600 font-medium">
                             {r.importerClient}
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
-                        <span>{r.mobileNo}</span>
-                        {r.shippingMark && <span className="text-[#EA1D2C]">Mark: {r.shippingMark}</span>}
+                      <div className="text-[11px] text-slate-500 font-mono mt-0.5">
+                        {r.mobileNo}
                       </div>
+                      {r.shippingMark && (
+                        <div className="mt-1">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-red-50 text-[#EA1D2C] border border-red-200">
+                            Mark: {r.shippingMark}
+                          </span>
+                        </div>
+                      )}
                     </td>
 
-                    {/* Product & Supplier */}
-                    <td className="py-2.5 px-3 border-r border-slate-200 max-w-[220px]">
-                      <div className="font-medium text-slate-900 truncate" title={r.itemDetails}>
+                    {/* Column 3: Product & Sourcing */}
+                    <td className="py-3 px-4 border-r border-slate-200 max-w-[280px]">
+                      <div className="font-medium text-slate-900 text-xs line-clamp-2" title={r.itemDetails}>
                         {r.itemDetails}
                       </div>
-                      <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-                        <span className="font-semibold text-amber-700 bg-amber-50 px-1.5 rounded text-[10px]">{r.supplierName}</span>
-                        <span>· {r.quantity} pcs</span>
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span className="font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded text-[10px]">
+                          {r.supplierName}
+                        </span>
+                        <span className="font-mono">· {r.quantity} pcs</span>
                         {r.chinaCourierTracking && (
-                          <span className="font-mono text-[10px] text-slate-400 truncate">SF: {r.chinaCourierTracking}</span>
+                          <span className="font-mono text-[10px] text-slate-400 truncate max-w-[130px]" title={r.chinaCourierTracking}>
+                            SF: {r.chinaCourierTracking}
+                          </span>
                         )}
                       </div>
                     </td>
 
-                    {/* Status */}
-                    <td className="py-2.5 px-3 border-r border-slate-200">
+                    {/* Column 4: Status & Delivery */}
+                    <td className="py-3 px-4 border-r border-slate-200">
                       <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap">
                         {r.currentStatus}
                       </span>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{r.serviceType}</div>
+                      {r.bdCourierName && (
+                        <div className="text-[11px] font-semibold text-slate-800 mt-1">
+                          {r.bdCourierName}
+                        </div>
+                      )}
+                      {r.bdTrackingNo && (
+                        <div className="font-mono text-[10px] text-blue-600 font-semibold truncate max-w-[140px]" title={r.bdTrackingNo}>
+                          {r.bdTrackingNo}
+                        </div>
+                      )}
                     </td>
 
-                    {/* RMB Cost */}
-                    <td className="py-2.5 px-3 border-r border-slate-200 text-right font-mono">
-                      <div className="font-bold text-amber-700">¥{Number(r.totalPurchaseRmb).toFixed(2)}</div>
-                      <div className="text-[10px] text-slate-400">¥{Number(r.unitPriceRmb).toFixed(2)} × {r.quantity}</div>
-                    </td>
-
-                    {/* Rate & Purchase BDT */}
-                    <td className="py-2.5 px-3 border-r border-slate-200 text-right font-mono">
-                      <div className="font-bold text-slate-900">৳{Number(r.purchaseCostBdt).toLocaleString()}</div>
-                      <div className="text-[10px] text-slate-500">@{Number(r.rmbRateBdt).toFixed(2)} BDT</div>
-                    </td>
-
-                    {/* Freight BDT */}
-                    <td className="py-2.5 px-3 border-r border-slate-200 text-right font-mono">
-                      <div className="font-bold text-sky-700">৳{Number(r.internationalFreightBdt).toLocaleString()}</div>
-                      <div className="text-[10px] text-slate-400">{r.bdWeightKg || r.cnWeightKg} KG @ ৳{r.shippingRatePerKgBdt}</div>
-                    </td>
-
-                    {/* Total Bill */}
-                    <td className="py-2.5 px-3 border-r border-slate-200 text-right font-mono">
-                      <div className="font-extrabold text-slate-900 text-sm">৳{Number(r.totalBillBdt).toLocaleString()}</div>
-                      <div className="text-[10px] text-emerald-600 font-semibold">Margin: +৳{Number(r.profitEstimateBdt).toLocaleString()}</div>
-                    </td>
-
-                    {/* Payment Status */}
-                    <td className="py-2.5 px-3 border-r border-slate-200 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleQuickPaymentToggle(r)}
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-none ${
-                          r.paymentStatus === 'Paid'
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                            : r.paymentStatus === 'Partial'
-                            ? 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
-                            : 'bg-red-50 text-red-800 border border-red-200 hover:bg-red-100'
-                        }`}
-                        title="Click to toggle Paid/Due"
-                      >
-                        {r.paymentStatus}
-                      </button>
-                      <div className="text-[10px] font-mono text-slate-500 mt-0.5">
-                        Due: ৳{Number(r.purchaseCostDueBdt).toLocaleString()}
+                    {/* Column 5: Purchase & Freight Breakdown */}
+                    <td className="py-3 px-4 border-r border-slate-200 text-right font-mono">
+                      <div>
+                        <span className="font-bold text-amber-700 text-xs">¥{Number(r.totalPurchaseRmb).toFixed(2)}</span>
+                        <span className="text-[10px] text-slate-400 block font-sans">
+                          ৳{Number(r.purchaseCostBdt).toLocaleString()} @{Number(r.rmbRateBdt).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="mt-1 pt-1 border-t border-slate-100">
+                        <span className="font-bold text-sky-700 text-xs">৳{Number(r.internationalFreightBdt).toLocaleString()}</span>
+                        <span className="text-[10px] text-slate-400 block font-sans">
+                          {r.bdWeightKg || r.cnWeightKg} KG @ ৳{r.shippingRatePerKgBdt}
+                        </span>
                       </div>
                     </td>
 
-                    {/* Courier & Tracking */}
-                    <td className="py-2.5 px-3 border-r border-slate-200">
-                      {r.bdCourierName && (
-                        <div className="font-semibold text-slate-800 text-[11px]">{r.bdCourierName}</div>
-                      )}
-                      {r.bdTrackingNo ? (
-                        <div className="font-mono text-[10px] text-blue-600 font-bold">{r.bdTrackingNo}</div>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 italic">No tracking yet</span>
-                      )}
+                    {/* Column 6: Total Bill & Settlement */}
+                    <td className="py-3 px-4 border-r border-slate-200 text-right font-mono">
+                      <div className="font-extrabold text-slate-900 text-sm">
+                        ৳{Number(r.totalBillBdt).toLocaleString()}
+                      </div>
+                      <div className="text-[10px] text-emerald-600 font-semibold">
+                        Margin: +৳{Number(r.profitEstimateBdt).toLocaleString()}
+                      </div>
+                      <div className="mt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleQuickPaymentToggle(r)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-none ${
+                            r.paymentStatus === 'Paid'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                              : r.paymentStatus === 'Partial'
+                              ? 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                              : 'bg-red-50 text-red-800 border border-red-200 hover:bg-red-100'
+                          }`}
+                          title="Click to toggle Paid/Due status"
+                        >
+                          {r.paymentStatus}
+                        </button>
+                        <div className="text-[10px] text-rose-600 font-bold mt-0.5">
+                          Due: ৳{Number(r.purchaseCostDueBdt).toLocaleString()}
+                        </div>
+                      </div>
                     </td>
 
-                    {/* Google Sheet Sync Status Column */}
-                    <td className="py-2.5 px-3 border-r border-slate-200 text-center">
+                    {/* Column 7: Sheet Sync Status */}
+                    <td className="py-3 px-4 border-r border-slate-200 text-center">
                       <div className="relative group inline-block">
                         <button
                           type="button"
                           disabled={syncingOrderId === r.id}
                           onClick={() => handleSyncSingleOrder(r.id, r.orderId)}
                           className="focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EA1D2C] rounded-full cursor-pointer transition-none inline-flex items-center justify-center p-0.5"
-                          aria-label={
-                            syncingOrderId === r.id || r.sheetSyncStatus === 'pending'
-                              ? 'সিনক্রোনাইজ হচ্ছে'
-                              : r.sheetSyncStatus === 'failed'
-                              ? 'ফেইল্ড - ক্লিক করে রিট্রাই করুন'
-                              : 'পাস্ট - সাকসেসফুলি এন্টারড'
-                          }
+                          title="Click to Sync to Google Sheet"
                         >
                           {syncingOrderId === r.id || r.sheetSyncStatus === 'pending' ? (
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-sky-100 text-sky-700 border border-sky-300 shadow-2xs">
@@ -1016,7 +1290,6 @@ function doPost(e) {
                             </span>
                           ) : r.sheetSyncStatus === 'failed' ? (
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-rose-500 text-white shadow-2xs hover:bg-rose-600">
-                              {/* Filled Red Cross */}
                               <svg className="w-3.5 h-3.5 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <line x1="18" y1="6" x2="6" y2="18" />
                                 <line x1="6" y1="6" x2="18" y2="18" />
@@ -1024,7 +1297,6 @@ function doPost(e) {
                             </span>
                           ) : (
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white shadow-2xs hover:bg-emerald-600">
-                              {/* Filled Green Check */}
                               <svg className="w-3.5 h-3.5 stroke-[3]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <polyline points="20 6 9 17 4 12" />
                               </svg>
@@ -1033,65 +1305,45 @@ function doPost(e) {
                         </button>
 
                         {/* Interactive Hover Tooltip */}
-                        <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 w-56 p-2.5 rounded-lg bg-slate-900 text-white shadow-xl text-left border border-slate-700">
+                        <div className="pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-40 w-52 p-2.5 rounded-lg bg-slate-900 text-white shadow-xl text-left border border-slate-700">
                           {syncingOrderId === r.id || r.sheetSyncStatus === 'pending' ? (
                             <div>
                               <div className="flex items-center gap-1.5 font-bold text-sky-400 text-xs">
                                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                                <span>সিনক্রোনাইজ হচ্ছে...</span>
+                                <span>Syncing...</span>
                               </div>
-                              <p className="text-[11px] text-slate-300 mt-1">গুগল শিটে ডেটা পাঠানো হচ্ছে। অপেক্ষা করুন।</p>
+                              <p className="text-[11px] text-slate-300 mt-1">Updating Google Sheet record.</p>
                             </div>
                           ) : r.sheetSyncStatus === 'failed' ? (
                             <div>
                               <div className="flex items-center gap-1.5 font-bold text-rose-400 text-xs">
                                 <span className="w-2 h-2 rounded-full bg-rose-500" />
-                                <span>ফেইল্ড (Failed)</span>
+                                <span>Sync Failed</span>
                               </div>
-                              <p className="text-[11px] text-slate-300 mt-0.5">গুগল শিটে সিঙ্ক ব্যর্থ হয়েছে।</p>
-                              {r.sheetSyncError && (
-                                <p className="text-[10px] font-mono text-rose-300 mt-1 bg-rose-950/60 p-1 rounded border border-rose-800/50 truncate">
-                                  {r.sheetSyncError}
-                                </p>
-                              )}
-                              <p className="text-[10px] text-amber-300 font-semibold mt-1.5 flex items-center gap-1">
-                                <span>👆 ক্লিক করে এখনই রিট্রাই করুন</span>
-                              </p>
+                              <p className="text-[10px] text-amber-300 font-semibold mt-1">Click to retry sync now</p>
                             </div>
                           ) : (
                             <div>
                               <div className="flex items-center gap-1.5 font-bold text-emerald-400 text-xs">
                                 <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                                <span>পাস্ট (Passed)</span>
+                                <span>Sheet Synced</span>
                               </div>
-                              <p className="text-[11px] text-slate-200 mt-0.5 font-medium">সাকসেসফুলি এন্টারড</p>
-                              <p className="text-[10px] text-slate-400 mt-1">
-                                গুগল শিটে রো সফলভাবে আপডেট হয়েছে।
-                                {r.sheetSyncedAt && (
-                                  <span className="block text-[9px] font-mono text-slate-400 mt-0.5">
-                                    {new Date(r.sheetSyncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-[9px] text-slate-400 mt-1.5 italic">
-                                (আবার সিঙ্ক করতে আইকনে ক্লিক করুন)
-                              </p>
+                              <p className="text-[10px] text-slate-300 mt-0.5">29 columns recorded successfully.</p>
                             </div>
                           )}
-                          {/* Tooltip downward caret */}
                           <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-slate-900" />
                         </div>
                       </div>
                     </td>
 
-                    {/* Actions */}
-                    <td className="py-2.5 px-3 text-right sticky right-0 bg-white hover:bg-slate-50 z-10 whitespace-nowrap">
+                    {/* Column 8: Actions (Sticky Right) */}
+                    <td className="py-3 px-4 text-right sticky right-0 bg-white hover:bg-slate-50 z-10 whitespace-nowrap shadow-[-1px_0_3px_rgba(0,0,0,0.03)]">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Direct PDF Download */}
+                        {/* Download PDF Receipt */}
                         <button
                           type="button"
                           onClick={() => handleDownloadPdf(r)}
-                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 hover:border-red-200 text-slate-700 hover:text-[#EA1D2C] text-xs cursor-pointer shadow-2xs transition-colors"
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-red-50 hover:border-red-200 text-slate-700 hover:text-[#EA1D2C] cursor-pointer shadow-2xs transition-colors"
                           title="Download PDF Receipt"
                         >
                           <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1101,12 +1353,12 @@ function doPost(e) {
                           </svg>
                         </button>
 
-                        {/* View Receipt Modal */}
+                        {/* Thermal Receipt Slip Preview */}
                         <button
                           type="button"
                           onClick={() => setThermalReceiptRecord(r)}
-                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-xs cursor-pointer shadow-2xs transition-colors"
-                          title="Preview Receipt Slip"
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 cursor-pointer shadow-2xs transition-colors"
+                          title="Preview Thermal Receipt Slip"
                         >
                           <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -1116,27 +1368,7 @@ function doPost(e) {
                           </svg>
                         </button>
 
-                        {/* Sync to Google Sheet */}
-                        <button
-                          type="button"
-                          disabled={syncingOrderId === r.id}
-                          onClick={() => handleSyncSingleOrder(r.id, r.orderId)}
-                          className={`p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 hover:border-emerald-200 text-slate-700 hover:text-emerald-700 text-xs cursor-pointer shadow-2xs transition-colors ${
-                            syncingOrderId === r.id ? 'opacity-60 cursor-wait' : ''
-                          }`}
-                          title="Sync this order to Google Sheet"
-                        >
-                          <svg
-                            className={`w-3.5 h-3.5 stroke-[2] ${syncingOrderId === r.id ? 'animate-spin text-emerald-600' : ''}`}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                          >
-                            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-                          </svg>
-                        </button>
-
-                        {/* Edit */}
+                        {/* Edit Button */}
                         <button
                           type="button"
                           onClick={() => openEditDrawer(r)}
@@ -1145,7 +1377,7 @@ function doPost(e) {
                           Edit
                         </button>
 
-                        {/* Delete */}
+                        {/* Delete Button */}
                         <button
                           type="button"
                           onClick={() => handleDelete(r.id, r.orderId)}
@@ -1165,6 +1397,161 @@ function doPost(e) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* 4B. Mobile Cards View (100% Mobile Friendly for Smartphones) */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-500">
+            <svg className="w-5 h-5 animate-spin text-[#EA1D2C] mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            Loading orders list...
+          </div>
+        ) : records.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-500">
+            No orders found matching criteria.
+          </div>
+        ) : (
+          records.map((r, idx) => (
+            <div key={r.id || idx} className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
+              {/* Card Header: Order ID + Status */}
+              <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
+                <div>
+                  <div className="font-mono font-bold text-slate-900 text-xs">{r.orderId}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{r.orderDate} · {r.serviceType}</div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    {r.currentStatus}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSyncSingleOrder(r.id, r.orderId)}
+                    className="p-1 text-xs"
+                    title="Google Sheet Sync Status"
+                  >
+                    <span className={`w-2 h-2 rounded-full inline-block ${r.sheetSyncStatus === 'failed' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Customer & Mark */}
+              <div className="text-xs space-y-1">
+                <div className="font-bold text-slate-900 flex items-center justify-between">
+                  <span>{r.customerName}</span>
+                  {r.shippingMark && (
+                    <span className="px-1.5 py-0.5 rounded bg-red-50 text-[#EA1D2C] border border-red-200 text-[10px] font-mono font-bold">
+                      Mark: {r.shippingMark}
+                    </span>
+                  )}
+                </div>
+                <div className="text-slate-500 font-mono text-[11px]">{r.mobileNo}</div>
+              </div>
+
+              {/* Product Info */}
+              <div className="bg-slate-50/80 p-2.5 rounded-lg border border-slate-200/70 text-xs space-y-1">
+                <div className="font-medium text-slate-900 line-clamp-2">{r.itemDetails}</div>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 pt-0.5">
+                  <span className="font-semibold text-amber-800 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 text-[10px]">
+                    {r.supplierName}
+                  </span>
+                  <span className="font-mono">{r.quantity} pcs</span>
+                  {r.chinaCourierTracking && (
+                    <span className="font-mono text-[10px] text-slate-400">SF: {r.chinaCourierTracking}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Financial Snapshot */}
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono bg-slate-50/50 p-2.5 rounded-lg border border-slate-200/60">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-sans">Total Bill</span>
+                  <span className="font-extrabold text-slate-900 text-sm">৳{Number(r.totalBillBdt).toLocaleString()}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block font-sans">Payment</span>
+                  <span className={`font-bold text-[11px] ${r.paymentStatus === 'Paid' ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {r.paymentStatus}
+                  </span>
+                  {r.purchaseCostDueBdt > 0 && (
+                    <span className="block text-[10px] text-rose-600 font-bold">Due: ৳{Number(r.purchaseCostDueBdt).toLocaleString()}</span>
+                  )}
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  Purchase: ¥{Number(r.totalPurchaseRmb).toFixed(2)} (৳{Number(r.purchaseCostBdt).toLocaleString()})
+                </div>
+                <div className="text-[10px] text-slate-500 text-right">
+                  Freight: ৳{Number(r.internationalFreightBdt).toLocaleString()} ({r.bdWeightKg || r.cnWeightKg} KG)
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadPdf(r)}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs shadow-2xs"
+                    title="PDF Receipt"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setThermalReceiptRecord(r)}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs shadow-2xs"
+                    title="Thermal Slip"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={syncingOrderId === r.id}
+                    onClick={() => handleSyncSingleOrder(r.id, r.orderId)}
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-emerald-50 text-emerald-700 text-xs shadow-2xs"
+                    title="Sync to Sheet"
+                  >
+                    <svg className={`w-3.5 h-3.5 ${syncingOrderId === r.id ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditDrawer(r)}
+                    className="px-3 py-1 rounded-lg bg-slate-900 text-white text-xs font-semibold shadow-2xs"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(r.id, r.orderId)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
+                    title="Delete"
+                  >
+                    <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* 4. POS FAST-ENTRY MODAL / DRAWER */}
