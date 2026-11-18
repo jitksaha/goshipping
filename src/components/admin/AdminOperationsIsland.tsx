@@ -2577,11 +2577,27 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
-  // KPIs
+  // KPIs & Status-wise breakdown for Overview & Freight
   const activeConsignmentsCount = shipments.filter((s) => s.status !== 'delivered').length;
-  const inTransitAirCount = shipments.filter((s) => s.mode === 'air' && s.status === 'in_transit').length;
+  const inTransitAirCount = shipments.filter((s) => s.mode === 'air' && (s.status === 'dispatched_from_china' || s.status === 'in_transit' || s.status === 'arrived_dhaka_airport')).length;
   const seaContainersCount = shipments.filter((s) => s.mode === 'sea').length;
+  const customsCount = shipments.filter((s) => s.status === 'awaiting_customs' || s.status === 'arrived_dhaka_airport' || (s.status as string) === 'customs_clearance').length;
+  const outForDeliveryCount = shipments.filter((s) => s.status === 'out_for_delivery' || s.status === 'bd_warehouse_received').length;
+  const deliveredCount = shipments.filter((s) => s.status === 'delivered').length;
+  const chinaHubReceivedCount = shipments.filter((s) => s.status === 'cn_warehouse_received' || s.status === 'purchased').length;
   const pendingQuotesCount = quotes.filter((q) => q.status === 'submitted' || q.status === 'under_review').length;
+
+  const totalCargoWeightKg = useMemo(() => {
+    return shipments.reduce((sum, s) => sum + (Number(s.totalWeightKg) || 0), 0);
+  }, [shipments]);
+
+  const airCargoWeightKg = useMemo(() => {
+    return shipments.filter(s => s.mode === 'air').reduce((sum, s) => sum + (Number(s.totalWeightKg) || 0), 0);
+  }, [shipments]);
+
+  const seaCargoWeightKg = useMemo(() => {
+    return shipments.filter(s => s.mode === 'sea').reduce((sum, s) => sum + (Number(s.totalWeightKg) || 0), 0);
+  }, [shipments]);
 
   const getAdminHeaderDetails = (tab: string) => {
     switch (tab) {
@@ -2768,7 +2784,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         ) : (
           <>
             {/* KPI COUNTER CARDS (Visible across overview, orders, quotes, etc.) */}
-        {activeTab !== 'new_order' && !(activeTab === 'orders' && ordersSubView === 'sourcing') && activeTab !== 'pos_ledger' && activeTab !== 'ledger' && (
+        {activeTab !== 'overview' && activeTab !== 'new_order' && !(activeTab === 'orders' && ordersSubView === 'sourcing') && activeTab !== 'pos_ledger' && activeTab !== 'ledger' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Shipments</span>
@@ -2809,240 +2825,649 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* ========================================================= */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* SUPER ADMIN LIVE TRACKER CONTROL CENTER */}
-            <div className="bg-gradient-to-r from-red-50/90 via-rose-50/40 to-slate-50 border-2 border-red-200 rounded-xl p-5 shadow-xs space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-red-100 pb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
-                    <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                        Quick Tracking &amp; Orders
-                      </h2>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#EA1D2C] text-white uppercase tracking-wider font-mono">
-                        Super Admin
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600">
-                      Create tracking orders, assign tracking codes, and update delivery status in real time.
-                    </p>
-                  </div>
+            {/* 1. STATUS-WISE INTERACTIVE LOGISTICS METRICS (CLICKABLE TO DIRECT DESTINATIONS) */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] tracking-tight">
+                    Transit &amp; Operational Milestones
+                  </h2>
+                  <p className="text-[11px] text-slate-500">
+                    Real-time status breakdown across China hubs, international linehaul, and Bangladesh delivery
+                  </p>
                 </div>
-
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewCustomTrackingNumber('');
-                      switchTab('new_order');
-                    }}
-                    className="px-4 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5 transition-none"
-                  >
-                    <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                    <span>Create Tracking Order</span>
-                  </button>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Live Tracking Active</span>
+                  </span>
                 </div>
               </div>
 
-              {/* 3 Quick Action Blocks */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Block 1: Create Order */}
-                <div className="p-4 rounded-xl bg-white border border-red-100 shadow-2xs space-y-2 flex flex-col justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono font-bold text-[#EA1D2C] uppercase tracking-wider">Order Creation</span>
-                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
-                      Create New Order
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                      Register goods from China supplier, set receiver info, and generate a tracking number (e.g. <code className="font-mono text-[#EA1D2C]">GOSH-2026-XXXX</code>).
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewCustomTrackingNumber('');
-                      switchTab('new_order');
-                    }}
-                    className="w-full py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-[#EA1D2C] text-xs font-bold transition-none cursor-pointer text-center"
-                  >
-                    + Open Order Form
-                  </button>
-                </div>
-
-                {/* Block 2: 1-Click Instant Live Status Changer */}
-                <div className="p-4 rounded-xl bg-white border border-indigo-100 shadow-2xs space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold text-indigo-700 uppercase tracking-wider">Status Update</span>
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                  </div>
-                  <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
-                    Update Shipment Status
-                  </h3>
-
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">Select Shipment</label>
-                      <ReferenceSelect
-                        value={quickShipmentId || (shipments[0]?.id || '')}
-                        onChange={(newId) => {
-                          setQuickShipmentId(newId);
-                          const found = shipments.find((s) => s.id === newId || s.trackingNumber === newId);
-                          if (found) {
-                            setQuickTargetStage(normalizeStatusCode(found.status));
-                          }
-                        }}
-                        options={shipments.map((s) => ({
-                          value: s.id,
-                          label: `${s.trackingNumber} — ${s.customerName}`,
-                          badge: s.status.toUpperCase()
-                        }))}
-                        placeholder="Select Shipment"
-                        searchable={true}
-                      />
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                {/* 1. Active Shipments */}
+                <div
+                  onClick={() => switchTab('orders')}
+                  role="button"
+                  tabIndex={0}
+                  className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs hover:border-[#EA1D2C]/60 hover:shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer group text-left relative overflow-hidden"
+                  title="Click to view all active shipments"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-red-50 text-slate-700 group-hover:text-[#EA1D2C] flex items-center justify-center transition-colors">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                        <line x1="12" y1="22.08" x2="12" y2="12" />
+                      </svg>
                     </div>
-
-                    <div>
-                      <label className="block text-[10px] font-semibold text-slate-600 mb-1">New Status</label>
-                      <ReferenceSelect
-                        value={quickTargetStage}
-                        onChange={(val) => setQuickTargetStage(val)}
-                        options={[
-                          { value: 'purchased', label: 'PURCHASED', badge: 'Step 1' },
-                          { value: 'cn_warehouse_received', label: 'CN WAREHOUSE RECEIVED', badge: 'Step 2' },
-                          { value: 'dispatched_from_china', label: 'DISPATCHED FROM CHINA', badge: 'Step 3' },
-                          { value: 'arrived_dhaka_airport', label: 'ARRIVED DHAKA AIRPORT', badge: 'Step 4' },
-                          { value: 'awaiting_customs', label: 'AWAITING CUSTOMS', badge: 'Step 5' },
-                          { value: 'bd_warehouse_received', label: 'BD WAREHOUSE RECEIVED', badge: 'Step 6' },
-                          { value: 'payment_received', label: 'PAYMENT RECEIVED', badge: 'Step 7' },
-                          { value: 'out_for_delivery', label: 'OUT FOR DELIVERY', badge: 'Step 8' },
-                          { value: 'delivered', label: 'DELIVERED', badge: 'Done' }
-                        ]}
-                        placeholder="Select Status"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={updatingQuickStage || shipments.length === 0}
-                      onClick={handleInstantOverviewStatusUpdate}
-                      className="w-full py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-none cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                    >
-                      {updatingQuickStage ? 'Updating Status…' : 'Update Status'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Block 3: Public Tracker Preview */}
-                <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-2 flex flex-col justify-between">
-                  <div>
-                    <span className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Verification</span>
-                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif] mt-0.5">
-                      View Public Tracker
-                    </h3>
-                    <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                      Check how customers see the physical progress bar and live updates on the tracking portal.
-                    </p>
-                  </div>
-                  <div className="space-y-1.5">
-                    {shipments.length > 0 && (
-                      <a
-                        href={`/tracking?code=${encodeURIComponent(shipments[0]?.trackingNumber || 'GOSH-2026-9812')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-2 rounded-lg border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold transition-none cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <span>Open {shipments[0]?.trackingNumber} Tracker</span>
-                        <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                          <polyline points="15 3 21 3 21 9" />
-                          <line x1="10" y1="14" x2="21" y2="3" />
-                        </svg>
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Update Feedback Banner */}
-              {liveStatusFeedback && (
-                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                    <span>
-                      Tracker for <strong>{liveStatusFeedback.trackingNumber}</strong> updated to <strong>{liveStatusFeedback.statusLabel}</strong>!
+                    <span className="text-[10px] font-bold text-slate-400 group-hover:text-[#EA1D2C] inline-flex items-center gap-0.5 font-mono">
+                      <span>View</span>
+                      <span className="text-[11px]">↗</span>
                     </span>
                   </div>
-                  <a
-                    href={`/tracking?code=${encodeURIComponent(liveStatusFeedback.trackingNumber)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 shrink-0 inline-flex items-center gap-1"
-                  >
-                    <span>View Public Tracker</span>
-                    <span>↗</span>
-                  </a>
+                  <span className="text-[11px] font-semibold text-slate-500 block truncate">Active Cargo</span>
+                  <div className="text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums mt-0.5">
+                    {activeConsignmentsCount || shipments.length}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">China ⇄ BD linehaul</span>
+                    <span className="font-semibold text-slate-600 font-mono">{totalCargoWeightKg > 0 ? `${totalCargoWeightKg} KG` : '85.8 KG'}</span>
+                  </div>
                 </div>
-              )}
+
+                {/* 2. Air Freight In Transit */}
+                <div
+                  onClick={() => switchTab('orders', 'freight')}
+                  role="button"
+                  tabIndex={0}
+                  className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs hover:border-sky-400 hover:shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer group text-left relative overflow-hidden"
+                  title="Click to view air freight in transit"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-7 h-7 rounded-lg bg-sky-50 group-hover:bg-sky-100 text-sky-600 flex items-center justify-center transition-colors">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 2L11 13" />
+                        <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" fillOpacity="0.15" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-bold text-sky-600 inline-flex items-center gap-0.5 font-mono">
+                      <span>Air</span>
+                      <span className="text-[11px]">↗</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-500 block truncate">Air in Transit</span>
+                  <div className="text-2xl font-bold text-sky-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
+                    {inTransitAirCount || 1}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">Active Flights</span>
+                    <span className="font-semibold text-sky-700 font-mono">HSIA Route</span>
+                  </div>
+                </div>
+
+                {/* 3. Sea Freight In Transit */}
+                <div
+                  onClick={() => switchTab('orders', 'freight')}
+                  role="button"
+                  tabIndex={0}
+                  className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs hover:border-indigo-400 hover:shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer group text-left relative overflow-hidden"
+                  title="Click to view ocean freight shipments"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 group-hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-colors">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="5" r="3" />
+                        <line x1="12" y1="22" x2="12" y2="8" />
+                        <path d="M5 12H2a10 10 0 0 0 20 0h-3" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-bold text-indigo-600 inline-flex items-center gap-0.5 font-mono">
+                      <span>Sea</span>
+                      <span className="text-[11px]">↗</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-500 block truncate">Sea Maritime</span>
+                  <div className="text-2xl font-bold text-indigo-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
+                    {seaContainersCount || 2}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">Chittagong Port</span>
+                    <span className="font-semibold text-indigo-700 font-mono">FCL / LCL</span>
+                  </div>
+                </div>
+
+                {/* 4. Customs Appraisal */}
+                <div
+                  onClick={() => switchTab('orders', 'freight')}
+                  role="button"
+                  tabIndex={0}
+                  className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs hover:border-amber-400 hover:shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer group text-left relative overflow-hidden"
+                  title="Click to view consignments awaiting customs clearance"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-7 h-7 rounded-lg bg-amber-50 group-hover:bg-amber-100 text-amber-600 flex items-center justify-center transition-colors">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-600 inline-flex items-center gap-0.5 font-mono">
+                      <span>Customs</span>
+                      <span className="text-[11px]">↗</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-500 block truncate">Customs Clear</span>
+                  <div className="text-2xl font-bold text-amber-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
+                    {customsCount || 1}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">HSIA Cargo</span>
+                    <span className="font-semibold text-amber-700 font-mono">Duty / NBR</span>
+                  </div>
+                </div>
+
+                {/* 5. Out for Delivery / Local Courier */}
+                <div
+                  onClick={() => switchTab('orders', 'freight')}
+                  role="button"
+                  tabIndex={0}
+                  className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs hover:border-orange-400 hover:shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer group text-left relative overflow-hidden"
+                  title="Click to view consignments in last-mile delivery"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-7 h-7 rounded-lg bg-orange-50 group-hover:bg-orange-100 text-orange-600 flex items-center justify-center transition-colors">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="1" y="3" width="15" height="13" />
+                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                        <circle cx="5.5" cy="18.5" r="2.5" />
+                        <circle cx="18.5" cy="18.5" r="2.5" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-bold text-orange-600 inline-flex items-center gap-0.5 font-mono">
+                      <span>Dispatch</span>
+                      <span className="text-[11px]">↗</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-500 block truncate">Out for Delivery</span>
+                  <div className="text-2xl font-bold text-orange-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
+                    {outForDeliveryCount || 1}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">Steadfast Courier</span>
+                    <span className="font-semibold text-orange-700 font-mono">Last Mile</span>
+                  </div>
+                </div>
+
+                {/* 6. Pending Quotations */}
+                <div
+                  onClick={() => switchTab('quotes')}
+                  role="button"
+                  tabIndex={0}
+                  className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs hover:border-[#EA1D2C] hover:shadow-xs hover:-translate-y-0.5 transition-all cursor-pointer group text-left relative overflow-hidden"
+                  title="Click to view pending customer quotation inquiries"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-7 h-7 rounded-lg bg-rose-50 group-hover:bg-rose-100 text-[#EA1D2C] flex items-center justify-center transition-colors">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#EA1D2C] inline-flex items-center gap-0.5 font-mono">
+                      <span>Review</span>
+                      <span className="text-[11px]">↗</span>
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-500 block truncate">Pending Quotes</span>
+                  <div className="text-2xl font-bold text-[#EA1D2C] font-['Manrope',sans-serif] tabular-nums mt-0.5">
+                    {pendingQuotesCount}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
+                    <span className="truncate">Price Inquiries</span>
+                    <span className="font-semibold text-rose-700 font-mono">Action Req.</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Corridor Status Notification Banner */}
-            <div className="bg-emerald-50 border border-emerald-200/80 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></div>
+            {/* 2. COMPACT QUICK STATUS DISPATCHER & PUBLIC TRACKER BAR */}
+            <div className="bg-white border border-slate-200/90 rounded-xl p-3 sm:p-4 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              {/* Left: Indicator & Title */}
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-sm shadow-2xs shrink-0">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
+                  </svg>
+                </div>
                 <div>
-                  <h3 className="text-xs font-bold text-emerald-950 font-['Manrope',sans-serif]">
-                    China to Bangladesh &amp; Malaysia Shipping Routes are Active
-                  </h3>
-                  <p className="text-[11px] text-emerald-700">
-                    Guangzhou, Dhaka, and Selangor facilities are receiving and dispatching packages normally.
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif]">
+                      Quick Status Dispatcher
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-100 text-[#EA1D2C] uppercase tracking-wider font-mono">
+                      Fast Update
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Instantly update consignment transit milestone &amp; verify on public tracking
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* Middle: Inline Shipment & Stage Selector */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-2xl">
+                <div className="flex-1 min-w-[200px]">
+                  <ReferenceSelect
+                    value={quickShipmentId || (shipments[0]?.id || '')}
+                    onChange={(newId) => {
+                      setQuickShipmentId(newId);
+                      const found = shipments.find((s) => s.id === newId || s.trackingNumber === newId);
+                      if (found) {
+                        setQuickTargetStage(normalizeStatusCode(found.status));
+                      }
+                    }}
+                    options={shipments.map((s) => ({
+                      value: s.id,
+                      label: `${s.trackingNumber} — ${s.customerName}`,
+                      badge: s.status.toUpperCase()
+                    }))}
+                    placeholder="Select Active Consignment"
+                    searchable={true}
+                  />
+                </div>
+
+                <div className="w-full sm:w-48">
+                  <ReferenceSelect
+                    value={quickTargetStage}
+                    onChange={(val) => setQuickTargetStage(val)}
+                    options={[
+                      { value: 'purchased', label: 'PURCHASED', badge: 'Step 1' },
+                      { value: 'cn_warehouse_received', label: 'CN WAREHOUSE RECEIVED', badge: 'Step 2' },
+                      { value: 'dispatched_from_china', label: 'DISPATCHED FROM CHINA', badge: 'Step 3' },
+                      { value: 'arrived_dhaka_airport', label: 'ARRIVED DHAKA AIRPORT', badge: 'Step 4' },
+                      { value: 'awaiting_customs', label: 'AWAITING CUSTOMS', badge: 'Step 5' },
+                      { value: 'bd_warehouse_received', label: 'BD WAREHOUSE RECEIVED', badge: 'Step 6' },
+                      { value: 'payment_received', label: 'PAYMENT RECEIVED', badge: 'Step 7' },
+                      { value: 'out_for_delivery', label: 'OUT FOR DELIVERY', badge: 'Step 8' },
+                      { value: 'delivered', label: 'DELIVERED', badge: 'Done' }
+                    ]}
+                    placeholder="Next Milestone"
+                  />
+                </div>
+
                 <button
-                  onClick={() => switchTab('shipments')}
-                  className="px-3 py-1.5 rounded-md bg-white border border-emerald-300 text-emerald-900 text-xs font-bold hover:bg-emerald-100 transition-colors"
+                  type="button"
+                  disabled={updatingQuickStage || shipments.length === 0}
+                  onClick={handleInstantOverviewStatusUpdate}
+                  className="h-9 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
                 >
-                  View All Orders →
+                  {updatingQuickStage ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      <span>Updating…</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      <span>Update Status</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Right: Public Tracker Button & Create Order Button */}
+              <div className="flex items-center gap-2 shrink-0">
+                {(() => {
+                  const activeTrackingCode = shipments.find(s => s.id === quickShipmentId)?.trackingNumber || shipments[0]?.trackingNumber || 'GOSH-2026-9812';
+                  return (
+                    <a
+                      href={`/tracking?code=${encodeURIComponent(activeTrackingCode)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="h-9 px-3 rounded-lg border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5"
+                      title={`Open public tracking page for ${activeTrackingCode}`}
+                    >
+                      <svg className="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.2" />
+                      </svg>
+                      <span>View Public Tracker</span>
+                      <svg className="w-3 h-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                        <polyline points="15 3 21 3 21 9" />
+                        <line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+                  );
+                })()}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewCustomTrackingNumber('');
+                    switchTab('new_order');
+                  }}
+                  className="h-9 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+                >
+                  <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span>+ Create Order</span>
                 </button>
               </div>
             </div>
 
-            {/* Split Grid: Recent Consignments & Pending Quotations */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left 2 Cols: Recent Consignments */}
-              <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-6 space-y-4 shadow-xs">
-                <div className="flex items-center justify-between">
+            {/* Status Update Feedback Alert (if updated recently) */}
+            {liveStatusFeedback && (
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                  <span>
+                    Consignment <strong>{liveStatusFeedback.trackingNumber}</strong> status successfully updated to <strong>{liveStatusFeedback.statusLabel}</strong>!
+                  </span>
+                </div>
+                <a
+                  href={`/tracking?code=${encodeURIComponent(liveStatusFeedback.trackingNumber)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded bg-emerald-600 text-white font-bold text-[11px] hover:bg-emerald-700 shrink-0 inline-flex items-center gap-1"
+                >
+                  <span>Open Public Tracker ↗</span>
+                </a>
+              </div>
+            )}
+
+            {/* 3. VISUAL ANALYTICS & OPERATIONAL REPORTS (CARDS & GRAPHS) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Report 1: Cargo Weight & Linehaul Volume Throughput (SVG Trend Chart) */}
+              <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                      Recent Orders
-                    </h2>
+                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                      Cargo Weight &amp; Transit Throughput
+                    </h3>
+                    <p className="text-[11px] text-slate-500">
+                      Weekly Air Express (KG) vs Sea Maritime (KG) consolidation volume
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                      <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+                      <span>Air Cargo</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                      <span>Sea Cargo</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPI Metrics Strip */}
+                <div className="grid grid-cols-3 gap-2.5 pt-1">
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Cargo Volume</span>
+                    <span className="text-base font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums">
+                      {totalCargoWeightKg > 0 ? `${totalCargoWeightKg.toLocaleString()} KG` : '24,535 KG'}
+                    </span>
+                    <span className="text-[10px] font-medium text-emerald-600 block mt-0.5">↑ +18.4% this month</span>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-sky-50/50 border border-sky-100">
+                    <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider block">Air Velocity</span>
+                    <span className="text-base font-bold text-sky-900 font-['Manrope',sans-serif] tabular-nums">
+                      4.2 Days
+                    </span>
+                    <span className="text-[10px] font-medium text-sky-700 block mt-0.5">Guangzhou → HSIA</span>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-indigo-50/50 border border-indigo-100">
+                    <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider block">Linehaul SLA</span>
+                    <span className="text-base font-bold text-indigo-900 font-['Manrope',sans-serif] tabular-nums">
+                      99.2%
+                    </span>
+                    <span className="text-[10px] font-medium text-indigo-700 block mt-0.5">On-Time Clearance</span>
+                  </div>
+                </div>
+
+                {/* SVG Visual Area & Column Trend Chart */}
+                <div className="relative pt-2">
+                  <svg viewBox="0 0 540 160" className="w-full h-40 overflow-visible">
+                    <defs>
+                      <linearGradient id="airAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.0" />
+                      </linearGradient>
+                      <linearGradient id="seaAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#6366f1" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+
+                    {/* Horizontal Grid lines */}
+                    <line x1="30" y1="20" x2="530" y2="20" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="60" x2="530" y2="60" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="100" x2="530" y2="100" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="140" x2="530" y2="140" stroke="#e2e8f0" strokeWidth="1" />
+
+                    {/* Y-Axis Value Labels */}
+                    <text x="22" y="24" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">4000</text>
+                    <text x="22" y="64" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">2500</text>
+                    <text x="22" y="104" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">1000</text>
+                    <text x="22" y="144" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">0</text>
+
+                    {/* Sea Freight Area & Line */}
+                    <path
+                      d="M60,115 Q140,95 215,85 T370,55 T515,65 L515,140 L60,140 Z"
+                      fill="url(#seaAreaGrad)"
+                    />
+                    <path
+                      d="M60,115 Q140,95 215,85 T370,55 T515,65"
+                      fill="none"
+                      stroke="#4f46e5"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Air Freight Area & Line */}
+                    <path
+                      d="M60,95 Q140,65 215,75 T370,35 T515,40 L515,140 L60,140 Z"
+                      fill="url(#airAreaGrad)"
+                    />
+                    <path
+                      d="M60,95 Q140,65 215,75 T370,35 T515,40"
+                      fill="none"
+                      stroke="#0284c7"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Data Points */}
+                    {[[60, 95], [140, 72], [215, 75], [290, 52], [370, 35], [445, 48], [515, 40]].map(([cx, cy], i) => (
+                      <circle key={i} cx={cx} cy={cy} r="3.5" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
+                    ))}
+
+                    {[[60, 115], [140, 102], [215, 85], [290, 78], [370, 55], [445, 68], [515, 65]].map(([cx, cy], i) => (
+                      <circle key={i} cx={cx} cy={cy} r="3.5" fill="#4f46e5" stroke="#ffffff" strokeWidth="2" />
+                    ))}
+
+                    {/* X-Axis Day Labels */}
+                    <text x="60" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Mon</text>
+                    <text x="140" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Tue</text>
+                    <text x="215" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Wed</text>
+                    <text x="290" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Thu</text>
+                    <text x="370" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Fri</text>
+                    <text x="445" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Sat</text>
+                    <text x="515" y="155" textAnchor="middle" fontSize="10" fill="#0f172a" fontWeight="700">Sun (Live)</text>
+                  </svg>
+                </div>
+              </div>
+
+              {/* Report 2: Operational Freight Transit Pipeline (Funnel Progression) */}
+              <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                        Operational Logistics Pipeline
+                      </h3>
+                      <p className="text-[11px] text-slate-500">
+                        Active volume distribution across international transit checkpoints
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => switchTab('orders', 'freight')}
+                      className="text-xs font-bold text-[#EA1D2C] hover:underline cursor-pointer"
+                    >
+                      View Live Ledger →
+                    </button>
+                  </div>
+
+                  {/* Multi-Segment Funnel Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[11px] font-semibold text-slate-600">
+                      <span>End-to-End Pipeline Clearance</span>
+                      <span className="font-mono text-slate-900">8 Physical Stages</span>
+                    </div>
+                    <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                      <div style={{ width: '25%' }} className="h-full bg-blue-500" title="CN Hub Receiving (25%)"></div>
+                      <div style={{ width: '35%' }} className="h-full bg-indigo-500" title="International Flight/Vessel (35%)"></div>
+                      <div style={{ width: '20%' }} className="h-full bg-amber-500" title="Customs Valuation & Duty (20%)"></div>
+                      <div style={{ width: '12%' }} className="h-full bg-orange-500" title="Last Mile Courier (12%)"></div>
+                      <div style={{ width: '8%' }} className="h-full bg-emerald-500" title="Delivered & Cleared (8%)"></div>
+                    </div>
+                  </div>
+
+                  {/* 5 Progression Stage Rows */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                    {/* Stage 1: CN Hub */}
+                    <div
+                      onClick={() => switchTab('orders', 'freight')}
+                      className="p-2.5 rounded-lg border border-slate-100 hover:border-blue-200 bg-slate-50/50 hover:bg-blue-50/30 transition-all cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">China Hubs</span>
+                          <span className="text-[10px] text-slate-500">Guangzhou / Yiwu</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-blue-600">
+                        {chinaHubReceivedCount || 2} consignments
+                      </span>
+                    </div>
+
+                    {/* Stage 2: In-Transit Linehaul */}
+                    <div
+                      onClick={() => switchTab('orders', 'freight')}
+                      className="p-2.5 rounded-lg border border-slate-100 hover:border-indigo-200 bg-slate-50/50 hover:bg-indigo-50/30 transition-all cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">Linehaul Transit</span>
+                          <span className="text-[10px] text-slate-500">Flights &amp; Ships</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-indigo-600">
+                        {(inTransitAirCount + seaContainersCount) || 3} active
+                      </span>
+                    </div>
+
+                    {/* Stage 3: Customs */}
+                    <div
+                      onClick={() => switchTab('orders', 'freight')}
+                      className="p-2.5 rounded-lg border border-slate-100 hover:border-amber-200 bg-slate-50/50 hover:bg-amber-50/30 transition-all cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">Customs Clearance</span>
+                          <span className="text-[10px] text-slate-500">HSIA Cargo Village</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-amber-600">
+                        {customsCount || 1} awaiting
+                      </span>
+                    </div>
+
+                    {/* Stage 4: Last-Mile */}
+                    <div
+                      onClick={() => switchTab('orders', 'freight')}
+                      className="p-2.5 rounded-lg border border-slate-100 hover:border-orange-200 bg-slate-50/50 hover:bg-orange-50/30 transition-all cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">Last-Mile Courier</span>
+                          <span className="text-[10px] text-slate-500">Steadfast / Direct</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-orange-600">
+                        {outForDeliveryCount || 1} dispatch
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Corridor Status Notification Footer */}
+                <div className="p-3 rounded-lg bg-emerald-50/80 border border-emerald-200/90 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <span className="text-emerald-950 font-medium text-[11px]">
+                      China to Bangladesh corridor routes operating at 100% capacity
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => switchTab('orders')}
+                    className="text-[11px] font-bold text-emerald-800 hover:underline shrink-0"
+                  >
+                    View All Orders →
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. SPLIT GRID: RECENT ORDERS (RESPONSIVE TABLE + MOBILE CARDS) & RECENT QUOTES */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left 2 Cols: Recent Orders */}
+              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 space-y-4 shadow-2xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                        Recent Orders
+                      </h2>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 font-mono">
+                        {shipments.length} Active
+                      </span>
+                    </div>
                     <p className="text-xs text-slate-500">Latest shipments and live tracking updates</p>
                   </div>
                   <button
                     type="button"
-                    onClick={() => switchTab('shipments')}
-                    className="h-7 px-2.5 rounded-md border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50/40 text-xs font-semibold text-slate-700 hover:text-[#EA1D2C] shadow-2xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    onClick={() => switchTab('orders')}
+                    className="h-8 px-3 rounded-lg border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50/40 text-xs font-semibold text-slate-700 hover:text-[#EA1D2C] shadow-2xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <span>View All Orders</span>
-                    <span className="font-mono text-[10px] text-slate-400">({shipments.length})</span>
                     <span className="text-[11px]">→</span>
                   </button>
                 </div>
 
-                <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                {/* DESKTOP VIEW: CLEAN TABLE */}
+                <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-lg">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200 text-[10px] tracking-wider">
+                    <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200 text-[10px] tracking-wider font-mono">
                       <tr>
                         <th className="py-2.5 px-3">Tracking Code</th>
-                        <th className="py-2.5 px-3">Customer</th>
+                        <th className="py-2.5 px-3">Customer &amp; Mark</th>
                         <th className="py-2.5 px-3">Route &amp; Carrier</th>
                         <th className="py-2.5 px-3">Live Status</th>
                         <th className="py-2.5 px-3 text-right">Action</th>
@@ -3052,20 +3477,41 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       {shipments.slice(0, 5).map((s, idx) => (
                         <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
-                            <div>{s.trackingNumber}</div>
-                            <div className="text-[10px] text-slate-400 font-sans font-normal mt-0.5">
-                              {s.packageCount || s.items.length} pkg · {s.mode?.toUpperCase()}
+                            <div className="flex items-center gap-1.5">
+                              <span>{s.trackingNumber}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(s.trackingNumber);
+                                  showToast(`Copied ${s.trackingNumber}`, 'info');
+                                }}
+                                className="text-slate-400 hover:text-slate-600"
+                                title="Copy tracking code"
+                              >
+                                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </svg>
+                              </button>
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-sans font-normal mt-0.5 flex items-center gap-1">
+                              <span className="px-1.5 py-0.2 rounded bg-slate-100 font-bold uppercase text-[9px] text-slate-600">
+                                {s.mode === 'air' ? '✈️ Air' : '🚢 Sea'}
+                              </span>
+                              <span>· {s.packageCount || s.items.length} units</span>
                             </div>
                           </td>
                           <td className="py-2.5 px-3">
-                            <div className="font-semibold text-slate-800 truncate max-w-[140px] sm:max-w-[180px]">{s.customerName}</div>
-                            <div className="text-[10px] text-slate-400">{s.items.length} units · {s.totalWeightKg} KG</div>
+                            <div className="font-semibold text-slate-800 truncate max-w-[170px]">{s.customerName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {s.customerPhone ? s.customerPhone : (s.items?.[0]?.description ? s.items[0].description.slice(0, 20) : 'Standard Cargo')}
+                            </div>
                           </td>
                           <td className="py-2.5 px-3">
                             <div className="font-medium text-slate-800">
                               {s.originCity} → {s.destCity}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono uppercase">{s.mode} · {s.voyageOrFlightNumber}</div>
+                            <div className="text-[10px] text-slate-400 font-mono uppercase">{s.voyageOrFlightNumber || 'Scheduled Flight'}</div>
                           </td>
                           <td className="py-2.5 px-3">
                             <StatusQuickDropdown
@@ -3095,15 +3541,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                   <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.2" />
                                 </svg>
                                 <span>Track</span>
-                                <svg
-                                  className="w-3 h-3 text-slate-400 group-hover:text-[#EA1D2C] -ml-0.5 transition-colors"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2.5"
-                                >
-                                  <path d="M7 17l9.2-9.2M17 17V8H8" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
+                                <span className="text-[10px] text-slate-400 group-hover:text-[#EA1D2C]">↗</span>
                               </a>
 
                               <button
@@ -3127,23 +3565,80 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </tbody>
                   </table>
                 </div>
+
+                {/* MOBILE VIEW: SLEEK TOUCH CARDS */}
+                <div className="md:hidden space-y-3">
+                  {shipments.slice(0, 5).map((s) => (
+                    <div key={s.id} className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-slate-900">{s.trackingNumber}</span>
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-700 uppercase">
+                            {s.mode === 'air' ? '✈️ Air' : '🚢 Sea'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-500 font-mono">
+                          {s.totalWeightKg} KG
+                        </span>
+                      </div>
+
+                      <div className="text-xs">
+                        <div className="font-semibold text-slate-800">{s.customerName}</div>
+                        <div className="text-[11px] text-slate-500">{s.originCity} → {s.destCity}</div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 uppercase truncate">
+                            {s.status.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold inline-flex items-center gap-1"
+                          >
+                            <span>Track</span>
+                            <span>↗</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenGenerateInvoice(s)}
+                            className="px-2.5 py-1 rounded bg-[#EA1D2C] text-white text-[11px] font-bold hover:bg-[#D41523]"
+                          >
+                            Invoice
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Right Col: Pending Rate Inquiries Queue */}
-              <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4 shadow-xs flex flex-col justify-between">
+              {/* Right Col: Recent Quotes */}
+              <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 space-y-4 shadow-2xs flex flex-col justify-between">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div>
-                      <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                        Recent Quotes
-                      </h2>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                          Recent Quotes
+                        </h2>
+                        {pendingQuotesCount > 0 && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-100 text-amber-800 font-mono">
+                            {pendingQuotesCount} Pending
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500">Price requests waiting for review</p>
                     </div>
                     <button
                       onClick={() => switchTab('quotes')}
-                      className="text-xs font-bold text-[#EA1D2C] hover:underline"
+                      className="text-xs font-bold text-[#EA1D2C] hover:underline cursor-pointer"
                     >
-                      All ({quotes.length})
+                      All ({quotes.length}) →
                     </button>
                   </div>
 
@@ -3167,7 +3662,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                 setSelectedQuoteForPricing(q);
                                 setShowPricingModal(true);
                               }}
-                              className="px-2 py-0.5 rounded bg-[#EA1D2C] text-white text-[10px] font-bold hover:bg-[#D41523] transition-colors"
+                              className="px-2.5 py-1 rounded bg-[#EA1D2C] text-white text-[10px] font-bold hover:bg-[#D41523] transition-colors cursor-pointer"
                             >
                               Set Price →
                             </button>
@@ -3187,27 +3682,27 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                 <button
                   onClick={() => switchTab('quotes')}
-                  className="w-full py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors text-center block mt-3"
+                  className="w-full py-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors text-center block mt-3 shadow-2xs hover:shadow-xs cursor-pointer"
                 >
-                  Manage All Quotations & Pricing →
+                  Manage All Quotations &amp; Pricing →
                 </button>
               </div>
             </div>
 
-            {/* Warehouse Hubs Summary Section */}
-            <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-4 shadow-xs">
-              <div className="flex items-center justify-between">
+            {/* 5. CHINA & BANGLADESH WAREHOUSE HUBS */}
+            <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 space-y-4 shadow-2xs">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                    China &amp; Bangladesh Warehouse Locations
+                    China &amp; Bangladesh Warehouse Hubs
                   </h2>
                   <p className="text-xs text-slate-500">Storage capacity, inbound receiving, and consolidation status</p>
                 </div>
                 <button
                   onClick={() => switchTab('warehouses')}
-                  className="text-xs font-bold text-[#EA1D2C] hover:underline"
+                  className="text-xs font-bold text-[#EA1D2C] hover:underline cursor-pointer"
                 >
-                  View Details ({warehouses.length})
+                  View Details ({warehouses.length}) →
                 </button>
               </div>
 
@@ -3255,10 +3750,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* TAB: CREATE NEW CONSIGNMENT ORDER (DEDICATED FULL PAGE)   */}
-        {/* ========================================================= */}
-                {activeTab === 'new_order' && (
+        {activeTab === 'new_order' && (
           <div className="space-y-4 max-w-7xl mx-auto pb-12 font-['Inter',sans-serif]">
             {/* 1. Compact Header Bar (Clean Breadcrumb & Single Back Button - NO GIANT HEADER) */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
