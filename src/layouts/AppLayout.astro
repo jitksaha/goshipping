@@ -108,41 +108,26 @@ const user = Astro.locals.user as AuthUser;
                 <span>Overview</span>
               </a>
 
-              {/* 2. Unified Orders Group with Submenu */}
-              <div class="space-y-0.5">
-                <a
-                  href="/admin?tab=orders"
-                  data-tab="orders"
-                  class={`dashboard-nav-link flex items-center justify-between px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                    activeTab === 'orders' || activeTab === 'shipments' || activeTab === 'tracking' || activeTab === 'pos_ledger' || activeTab === 'ledger' || activeTab === 'new_order'
-                      ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-                  }`}
-                >
-                  <div class="flex items-center gap-3 min-w-0">
-                    <svg class="w-4 h-4 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="m7.5 4.27 9 5.15" />
-                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                      <path d="m3.3 7 8.7 5 8.7-5" />
-                      <path d="M12 22V12" />
-                    </svg>
-                    <span class="truncate">Orders</span>
-                  </div>
-                </a>
-
-                {/* Submenu tree under Orders with vertical branch line */}
-                <div class="pl-6 pr-2 py-0.5 space-y-0.5 border-l-2 border-slate-200 ml-5 my-0.5">
-                  <a
-                    href="/admin?tab=orders&view=freight"
-                    data-tab="orders"
-                    data-view="freight"
-                    class="dashboard-nav-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-none"
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0 dot-indicator"></span>
-                    <span class="truncate">Freight Shipments</span>
-                  </a>
+              {/* 2. Unified Orders Menu Item */}
+              <a
+                href="/admin?tab=orders"
+                data-tab="orders"
+                class={`dashboard-nav-link flex items-center justify-between px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
+                  activeTab === 'orders' || activeTab === 'shipments' || activeTab === 'tracking' || activeTab === 'pos_ledger' || activeTab === 'ledger' || activeTab === 'new_order'
+                    ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
+                }`}
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <svg class="w-4 h-4 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m7.5 4.27 9 5.15" />
+                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                    <path d="m3.3 7 8.7 5 8.7-5" />
+                    <path d="M12 22V12" />
+                  </svg>
+                  <span class="truncate">Orders</span>
                 </div>
-              </div>
+              </a>
 
               {/* 3. Quote */}
               <a

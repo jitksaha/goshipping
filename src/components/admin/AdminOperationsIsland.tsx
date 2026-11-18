@@ -3,7 +3,6 @@ import { ReferenceSelect } from "./ReferenceSelect";
 import BannersManager from './BannersManager';
 import TestimonialsManager from './TestimonialsManager';
 import PosLedgerTerminal from './PosLedgerTerminal';
-import UnifiedCreateOrderModal from './UnifiedCreateOrderModal';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
@@ -479,9 +478,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     return 'sourcing';
   });
 
-  // Unified Create Order Modal State
-  const [isUnifiedOrderModalOpen, setIsUnifiedOrderModalOpen] = useState(false);
-  const [unifiedOrderModalTab, setUnifiedOrderModalTab] = useState<'sourcing' | 'freight'>('sourcing');
+
   const [shipments, setShipments] = useState<ShipmentRecord[]>([]);
   const [quotes, setQuotes] = useState<QuoteRecord[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseRecord[]>([]);
@@ -604,6 +601,22 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newCarrier, setNewCarrier] = useState('');
   const [newVoyage, setNewVoyage] = useState('');
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
+
+  // 3-Way Order Scope: 'both' (default) | 'sourcing' | 'freight'
+  const [orderScope, setOrderScope] = useState<'both' | 'sourcing' | 'freight'>('both');
+  const [sourcingSupplier, setSourcingSupplier] = useState('Taobao');
+  const [chinaTrackingNo, setChinaTrackingNo] = useState('');
+  const [sourcingItemDetails, setSourcingItemDetails] = useState('');
+  const [sourcingQuantity, setSourcingQuantity] = useState<number>(1);
+  const [sourcingUnitPriceRmb, setSourcingUnitPriceRmb] = useState<number>(0);
+  const [sourcingRmbRateBdt, setSourcingRmbRateBdt] = useState<number>(19.5);
+  const [sourcingShippingMark, setSourcingShippingMark] = useState('');
+  const [sourcingWebsiteOrderNo, setSourcingWebsiteOrderNo] = useState('');
+  const [freightRatePerKgBdt, setFreightRatePerKgBdt] = useState<number>(950);
+  const [bdCourierName, setBdCourierName] = useState('Steadfast');
+  const [bdCourierTrackingNo, setBdCourierTrackingNo] = useState('');
+  const [advancePaidBdt, setAdvancePaidBdt] = useState<number>(0);
+  const [orderRemarks, setOrderRemarks] = useState('');
 
   // Section 4: Dynamic Structured Delivery Address State
   const [recipientContactName, setRecipientContactName] = useState('');
@@ -739,6 +752,40 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       totalDeclaredValue
     };
   }, [orderItems]);
+
+  // Dynamic Finance Totals for Sourcing & Freight
+  const dynamicFinanceTotals = useMemo(() => {
+    const qty = Number(sourcingQuantity) || 1;
+    const unitRmb = Number(sourcingUnitPriceRmb) || 0;
+    const rate = Number(sourcingRmbRateBdt) || 19.5;
+    const totalRmb = Math.round(qty * unitRmb * 100) / 100;
+    const purchaseCostBdt = Math.round(totalRmb * rate);
+
+    const weight = Math.max(0, Number(orderTotals.chargeableWeight) || Number(orderTotals.totalWeight) || 0);
+    const freightRate = Number(freightRatePerKgBdt) || (newMode === 'sea' ? 450 : 950);
+    const intlFreightBdt = Math.round(weight * freightRate);
+
+    let totalBillBdt = 0;
+    if (orderScope === 'both') {
+      totalBillBdt = purchaseCostBdt + intlFreightBdt;
+    } else if (orderScope === 'sourcing') {
+      totalBillBdt = purchaseCostBdt;
+    } else {
+      totalBillBdt = intlFreightBdt;
+    }
+
+    const paidBdt = Number(advancePaidBdt) || 0;
+    const dueBdt = Math.max(0, totalBillBdt - paidBdt);
+
+    let paymentStatus: 'Due' | 'Partial' | 'Paid' = 'Due';
+    if (paidBdt >= totalBillBdt && totalBillBdt > 0) {
+      paymentStatus = 'Paid';
+    } else if (paidBdt > 0) {
+      paymentStatus = 'Partial';
+    }
+
+    return { totalRmb, purchaseCostBdt, intlFreightBdt, totalBillBdt, dueBdt, paymentStatus };
+  }, [orderScope, sourcingQuantity, sourcingUnitPriceRmb, sourcingRmbRateBdt, orderTotals.chargeableWeight, orderTotals.totalWeight, freightRatePerKgBdt, newMode, advancePaidBdt]);
 
   const [submittingConsignment, setSubmittingConsignment] = useState(false);
 
@@ -1198,10 +1245,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     };
     window.addEventListener('switch-dashboard-tab', handleCustomSwitch);
 
-    const handleOpenUnifiedModal = (e: any) => {
-      const tabType = e.detail?.type || (ordersSubView === 'freight' ? 'freight' : 'sourcing');
-      setUnifiedOrderModalTab(tabType);
-      setIsUnifiedOrderModalOpen(true);
+    const handleOpenUnifiedModal = () => {
+      switchTab('new_order');
     };
     window.addEventListener('open-unified-order-modal', handleOpenUnifiedModal);
 
@@ -1463,102 +1508,164 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         finalCustName = 'Valued Customer';
       }
 
-      const invalidItems = orderItems.filter((it) => !it.description.trim() || !(Number(it.weightKg) > 0));
-      if (invalidItems.length > 0) {
-        throw new Error('Please fill in product description and weight (KG) for all cargo items.');
+      // Tracking code: custom or auto-generated
+      const trackingCodeToUse = newCustomTrackingNumber.trim().toUpperCase() || `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      // 1. Validation based on scope
+      if (orderScope === 'both' || orderScope === 'sourcing') {
+        if (!sourcingItemDetails.trim()) {
+          throw new Error('Please enter China product item description/specs in Section 2.');
+        }
       }
 
-      if (!newCustomTrackingNumber.trim()) {
-        throw new Error('Please enter a tracking number manually for this consignment.');
+      if (orderScope === 'both' || orderScope === 'freight') {
+        const invalidItems = orderItems.filter((it) => !it.description.trim() || !(Number(it.weightKg) > 0));
+        if (invalidItems.length > 0 && orderScope === 'freight') {
+          throw new Error('Please fill in product description and weight (KG) for all cargo items.');
+        }
       }
-      const trackingCodeToUse = newCustomTrackingNumber.trim().toUpperCase();
 
-      const finalCustomerEmail =
-        orderCustomerMode === 'new'
-          ? newCustomerEmail.trim().toLowerCase()
-          : currentSelectedCustomer?.email;
-      const finalCustomerPhone =
-        orderCustomerMode === 'new'
-          ? newCustomerPhone.trim()
-          : currentSelectedCustomer?.phone;
+      // 2. POS Ledger record creation (saves to DB and automatically syncs to Google Sheets)
+      const posPayload = {
+        customerName: finalCustName,
+        mobileNo: finalRecipientPhone || (orderCustomerMode === 'new' ? newCustomerPhone : currentSelectedCustomer?.phone) || '',
+        importerClient: currentSelectedCustomer?.companyName || newCustomerCompany || finalCustName,
+        shippingMark: sourcingShippingMark.trim() || `SH-DAC-${Math.floor(10 + Math.random() * 90)}`,
+        websiteOrderNo: sourcingWebsiteOrderNo.trim() || '',
+        itemDetails: orderScope === 'freight' ? (orderItems[0]?.description || 'International Freight Cargo') : sourcingItemDetails.trim(),
+        chinaCourierTracking: chinaTrackingNo.trim() || '',
+        supplierName: orderScope === 'freight' ? 'GoShipping Freight' : sourcingSupplier,
+        quantity: orderScope === 'freight' ? Number(orderTotals.totalPieces) || 1 : Number(sourcingQuantity) || 1,
+        unitPriceRmb: orderScope === 'freight' ? 0 : Number(sourcingUnitPriceRmb) || 0,
+        totalPurchaseRmb: orderScope === 'freight' ? 0 : dynamicFinanceTotals.totalRmb,
+        rmbRateBdt: Number(sourcingRmbRateBdt) || 19.5,
+        purchaseCostBdt: orderScope === 'freight' ? 0 : dynamicFinanceTotals.purchaseCostBdt,
+        purchaseCostPaidBdt: Number(advancePaidBdt) || 0,
+        purchaseCostDueBdt: dynamicFinanceTotals.dueBdt,
+        serviceType: orderScope === 'both' ? 'Sourcing & Shipping' : orderScope === 'sourcing' ? 'Sourcing Only' : 'International Freight Cargo',
+        cnWeightKg: orderScope === 'sourcing' ? 0 : Number(orderTotals.totalWeight) || 0,
+        bdWeightKg: orderScope === 'sourcing' ? 0 : Number(orderTotals.totalWeight) || 0,
+        shippingRatePerKgBdt: orderScope === 'sourcing' ? 0 : Number(freightRatePerKgBdt) || 0,
+        internationalFreightBdt: orderScope === 'sourcing' ? 0 : dynamicFinanceTotals.intlFreightBdt,
+        totalBillBdt: dynamicFinanceTotals.totalBillBdt,
+        paymentStatus: dynamicFinanceTotals.paymentStatus,
+        bdCourierName: bdCourierName,
+        bdTrackingNo: bdCourierTrackingNo.trim() || (orderScope !== 'sourcing' ? trackingCodeToUse : ''),
+        remark: orderRemarks.trim() || deliveryNotes.trim() || '',
+        orderDate: new Date().toISOString().split('T')[0],
+        cnDate: new Date().toISOString().split('T')[0],
+        currentStatus: newInitialStatus === 'delivered' ? 'Delivered' : 'Processing'
+      };
 
-      const res = await fetch('/api/shipments', {
+      const posRes = await fetch('/api/admin/pos-ledger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trackingNumber: trackingCodeToUse,
-          customerId: finalCustomerId || 'usr-customer-01',
-          customerName: finalCustName,
-          customerEmail: finalCustomerEmail,
-          customerPhone: finalCustomerPhone,
-          recipientName: finalRecipientName,
-          recipientPhone: finalRecipientPhone,
-          recipientAddress: finalRecipientAddress,
-          originCountry: newOriginCountry,
-          originCity: newOriginCity,
-          destCountry: newDestCountry,
-          destCity: newDestCity,
-          destAddress: finalRecipientAddress,
-          mode: newMode,
-          serviceLevel: newServiceLevel,
-          carrierName: newCarrier,
-          voyageOrFlightNumber: newVoyage,
-          totalWeightKg: Math.max(0.1, Number(orderTotals.totalWeight) || 10),
-          totalCbm: Math.max(0.01, Number(orderTotals.totalCbm) || 0.1),
-          totalPieces: Math.max(1, Math.round(Number(orderTotals.totalPieces) || 1)),
-          notes: deliveryNotes.trim() || deliveryInstructions.trim(),
-          items: orderItems.map((it, idx) => ({
-            itemCode: `#ITM-${1000 + idx}`,
-            description: it.description.trim() || 'Commercial Cargo Item',
-            packagingType: it.packagingType,
-            quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
-            weightKg: Math.max(0.1, Number(it.weightKg) || 10),
-            cbm: Math.max(0.01, Number(it.cbm) || 0.05),
-            categoryTag: it.categoryTag,
-            declaredValue: Number(it.declaredValue) || undefined,
-            currency: 'BDT'
-          }))
-        })
+        body: JSON.stringify(posPayload)
       });
 
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        let errMsg = errJson.error || 'Failed to create consignment';
-        if (Array.isArray(errJson.details) && errJson.details.length > 0) {
-          const detailMsgs = errJson.details
-            .map((d: any) => `${d.path?.join('.') || 'field'}: ${d.message}`)
-            .join(' | ');
-          errMsg = `${errMsg} [${detailMsgs}]`;
-        }
-        throw new Error(errMsg);
+      if (!posRes.ok) {
+        const errJson = await posRes.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Failed to save order to POS Ledger');
       }
 
-      const data = await res.json();
+      // 3. Consignment tracking creation (if both or freight)
+      if (orderScope === 'both' || orderScope === 'freight') {
+        const finalCustomerEmail =
+          orderCustomerMode === 'new'
+            ? newCustomerEmail.trim().toLowerCase()
+            : currentSelectedCustomer?.email;
+        const finalCustomerPhone =
+          orderCustomerMode === 'new'
+            ? newCustomerPhone.trim()
+            : currentSelectedCustomer?.phone;
 
-      // If initial status is not purchased, advance status immediately
-      if (newInitialStatus && newInitialStatus !== 'purchased') {
-        await fetch(`/api/shipments/${data.shipment.id}/status`, {
-          method: 'PATCH',
+        const cargoItemsPayload = orderItems.length > 0 && orderItems[0].description.trim() ? orderItems.map((it, idx) => ({
+          itemCode: `#ITM-${1000 + idx}`,
+          description: it.description.trim() || sourcingItemDetails.trim() || 'Commercial Cargo Item',
+          packagingType: it.packagingType,
+          quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
+          weightKg: Math.max(0.1, Number(it.weightKg) || 10),
+          cbm: Math.max(0.01, Number(it.cbm) || 0.05),
+          categoryTag: it.categoryTag,
+          declaredValue: Number(it.declaredValue) || undefined,
+          currency: 'BDT'
+        })) : [
+          {
+            itemCode: '#ITM-1001',
+            description: sourcingItemDetails.trim() || 'Commercial Sourcing Cargo',
+            packagingType: 'carton',
+            quantity: Math.max(1, Math.round(Number(sourcingQuantity) || 1)),
+            weightKg: Math.max(0.1, Number(orderTotals.totalWeight) || 10),
+            cbm: Math.max(0.01, Number(orderTotals.totalCbm) || 0.1),
+            categoryTag: 'Commercial' as const,
+            currency: 'BDT'
+          }
+        ];
+
+        const shipmentRes = await fetch('/api/shipments', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newInitialStatus })
+          body: JSON.stringify({
+            trackingNumber: trackingCodeToUse,
+            customerId: finalCustomerId || 'usr-customer-01',
+            customerName: finalCustName,
+            customerEmail: finalCustomerEmail,
+            customerPhone: finalCustomerPhone,
+            recipientName: finalRecipientName,
+            recipientPhone: finalRecipientPhone,
+            recipientAddress: finalRecipientAddress,
+            originCountry: newOriginCountry,
+            originCity: newOriginCity,
+            destCountry: newDestCountry,
+            destCity: newDestCity,
+            destAddress: finalRecipientAddress,
+            mode: newMode,
+            serviceLevel: newServiceLevel,
+            carrierName: newCarrier || (newMode === 'air' ? 'GoShipping Air Priority' : 'GoShipping Ocean Line'),
+            voyageOrFlightNumber: newVoyage || (newMode === 'air' ? 'Flight CX-068' : 'Vessel GOSH-VOYAGE'),
+            totalWeightKg: Math.max(0.1, Number(orderTotals.totalWeight) || 10),
+            totalCbm: Math.max(0.01, Number(orderTotals.totalCbm) || 0.1),
+            totalPieces: Math.max(1, Math.round(Number(orderTotals.totalPieces) || 1)),
+            notes: orderRemarks.trim() || deliveryNotes.trim() || deliveryInstructions.trim(),
+            items: cargoItemsPayload
+          })
         });
+
+        if (shipmentRes.ok) {
+          const sData = await shipmentRes.json();
+          if (newInitialStatus && newInitialStatus !== 'purchased' && sData?.shipment?.id) {
+            await fetch(`/api/shipments/${sData.shipment.id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: newInitialStatus })
+            });
+          }
+        }
       }
 
       setCreatedShipmentResult({
-        trackingNumber: data.shipment.trackingNumber,
+        trackingNumber: trackingCodeToUse,
         customerName: finalCustName,
         route: `${newOriginCity} → ${newDestCity}`,
         mode: newMode.toUpperCase()
       });
 
+      // Clear input fields
       setCustomerSearchQuery('');
       setNewCustomerFullName('');
       setNewCustomerEmail('');
       setNewCustomerPhone('');
       setNewCustomerCompany('');
       setNewCustomerAddress('');
+      setSourcingItemDetails('');
+      setChinaTrackingNo('');
+      setSourcingUnitPriceRmb(0);
+      setAdvancePaidBdt(0);
+      setOrderRemarks('');
+      setNewCustomTrackingNumber('');
       setNewInitialStatus('purchased');
-      showToast(`Order ${data.shipment.trackingNumber} created with ${orderItems.length} products!`, 'success');
+
+      showToast(`Order created successfully (${orderScope === 'both' ? 'Sourcing + Freight' : orderScope === 'sourcing' ? 'Sourcing Only' : 'Freight Only'})!`, 'success');
       loadData(false);
       switchTab('orders');
     } catch (err: any) {
@@ -1568,7 +1675,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
-  // Handler: Quick Status Update with Immediate Feedback & Optimistic UI
+    // Handler: Quick Status Update with Immediate Feedback & Optimistic UI
   const handleQuickStatusUpdate = async (id: string, newStatus: string) => {
     const norm = normalizeStatusCode(newStatus);
     const statusDef = TRACKING_STATUSES[norm];
@@ -2565,18 +2672,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           ) : (
             <button
               type="button"
-              onClick={() => {
-                setUnifiedOrderModalTab(ordersSubView === 'freight' ? 'freight' : 'sourcing');
-                setIsUnifiedOrderModalOpen(true);
-              }}
+              onClick={() => switchTab('new_order')}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
-              title="Create New Order (Sourcing POS or Freight Shipment)"
+              title="Create New Order"
             >
               <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span>+ Create Order</span>
+              <span>Create Order</span>
             </button>
           )}
         </div>
@@ -3138,7 +3242,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* ========================================================= */}
         {/* TAB: CREATE NEW CONSIGNMENT ORDER (DEDICATED FULL PAGE)   */}
         {/* ========================================================= */}
-        {activeTab === 'new_order' && (
+                {activeTab === 'new_order' && (
           <div className="space-y-6 max-w-7xl mx-auto pb-12 font-['Inter',sans-serif]">
             {/* Top Page Header & Breadcrumb */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-xl border border-slate-200/90 shadow-2xs">
@@ -3146,16 +3250,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-[#EA1D2C] border border-red-200">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C] animate-pulse"></span>
-                    Consignment Dispatch Page
+                    Order Creation Desk
                   </span>
                   <span className="text-slate-300">·</span>
-                  <span className="text-[11px] font-mono text-slate-500">Live Order Total Summary</span>
+                  <span className="text-[11px] font-mono text-slate-500">Single-Step Dispatch Workspace</span>
                 </div>
                 <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tracking-tight">
-                  Create Consignment Order
+                  Create New Order
                 </h2>
                 <p className="text-xs text-slate-500">
-                  Assign client, configure international shipping route, add multiple cargo products, and generate live tracking code.
+                  Select order scope, configure supplier purchase and international logistics, and record to master ledger &amp; live tracking.
                 </p>
               </div>
 
@@ -3174,1081 +3278,1054 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
             </div>
 
-            <form onSubmit={handleCreateConsignment} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <form onSubmit={handleCreateConsignment} className="space-y-6">
               
-              {/* LEFT COLUMN: 4 FORM SECTIONS (lg:col-span-8) */}
-              <div className="lg:col-span-8 space-y-6">
-
-                {/* 1. CUSTOMER ACCOUNT & CLIENT ASSIGNMENT */}
-                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                    <div>
-                      <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                        1. Customer Assignment
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        Link order to an existing registered customer or onboard a new client
-                      </p>
-                    </div>
-
-                    {/* Toggle: Existing vs New */}
-                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setOrderCustomerMode('existing')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-none cursor-pointer ${
-                          orderCustomerMode === 'existing'
-                            ? 'bg-white text-slate-900 shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        Existing Client
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setOrderCustomerMode('new')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-none cursor-pointer ${
-                          orderCustomerMode === 'new'
-                            ? 'bg-white text-[#EA1D2C] shadow-2xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        + Register New Client
-                      </button>
-                    </div>
-                  </div>
-
-                  {orderCustomerMode === 'existing' ? (
-                    <div className="space-y-3 pt-1">
-                      <SearchableSelect
-                        label="Customer Account"
-                        required
-                        value={selectedCustomerId}
-                        onChange={(newVal) => {
-                          const found = allCustomerOptions.find((c) => c.id === newVal);
-                          if (found) selectCustomerForOrder(found);
-                        }}
-                        options={customerSelectOptions}
-                        placeholder="Click to select or search customer (e.g. Apex Textiles Ltd)..."
-                        searchPlaceholder="Type customer name, company, email, phone or BIN number..."
-                      />
-
-                      {/* Display auto-filled customer coordinates badge */}
-                      {currentSelectedCustomer && (
-                        <div className="px-3.5 py-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                            <span className="font-bold text-slate-900">
-                              {currentSelectedCustomer.companyName || currentSelectedCustomer.fullName}
-                            </span>
-                            <span className="text-emerald-800 font-mono text-[11px]">
-                              ({currentSelectedCustomer.email} · {currentSelectedCustomer.phone || 'No phone'})
-                            </span>
-                          </div>
-                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
-                            Auto-filled into Delivery Address
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* On-The-Fly New Customer Registration Form */
-                    <div className="space-y-4 pt-1">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Full Name *
-                          </label>
-                          <input
-                            type="text"
-                            value={newCustomerFullName}
-                            onChange={(e) => {
-                              setNewCustomerFullName(e.target.value);
-                              if (!newRecipientName) setNewRecipientName(e.target.value);
-                            }}
-                            placeholder="e.g. Tarek Rahman"
-                            required={orderCustomerMode === 'new'}
-                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Company Name (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={newCustomerCompany}
-                            onChange={(e) => setNewCustomerCompany(e.target.value)}
-                            placeholder="e.g. Prime Apparels BD Ltd"
-                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Email Address (for Live Status Alerts) *
-                          </label>
-                          <input
-                            type="email"
-                            value={newCustomerEmail}
-                            onChange={(e) => setNewCustomerEmail(e.target.value)}
-                            placeholder="client@company.com"
-                            required={orderCustomerMode === 'new'}
-                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Phone / WhatsApp *
-                          </label>
-                          <input
-                            type="tel"
-                            value={newCustomerPhone}
-                            onChange={(e) => {
-                              setNewCustomerPhone(e.target.value);
-                              setNewRecipientPhone(e.target.value);
-                            }}
-                            placeholder="+880 1711-XXXXXX"
-                            required={orderCustomerMode === 'new'}
-                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Default Delivery Address
-                          </label>
-                          <input
-                            type="text"
-                            value={newCustomerAddress}
-                            onChange={(e) => {
-                              setNewCustomerAddress(e.target.value);
-                              setNewRecipientAddress(e.target.value);
-                            }}
-                            placeholder="Plot 12, Sector 3, Uttara, Dhaka"
-                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                            Initial Portal Password
-                          </label>
-                          <input
-                            type="text"
-                            value={newCustomerPassword}
-                            onChange={(e) => setNewCustomerPassword(e.target.value)}
-                            placeholder="password123"
-                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 2. ROUTE & SHIPPING METHOD (Matches Image 1) */}
-                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
-                  <div className="pb-3 border-b border-slate-100">
-                    <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                      2. Route &amp; Shipping Method
+              {/* 3-WAY CIRCULAR RADIO ORDER SCOPE SELECTOR */}
+              <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                <div className="pb-3 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                      Select Order Scope &amp; Service Type
                     </h3>
                     <p className="text-xs text-slate-500">
-                      Specify origin China hub, destination (Bangladesh / Malaysia), carrier, and flight/voyage details
+                      Choose whether this consignment includes China procurement, international cargo freight, or complete end-to-end service.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 self-start sm:self-auto">
+                    Single-Step Dispatch
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  {/* Option 1: Full Sourcing & Freight (Both) - DEFAULT */}
+                  <div
+                    onClick={() => setOrderScope('both')}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-none relative flex flex-col justify-between gap-3 ${
+                      orderScope === 'both'
+                        ? 'border-[#EA1D2C] bg-red-50/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          orderScope === 'both' ? 'border-[#EA1D2C]' : 'border-slate-300'
+                        }`}>
+                          {orderScope === 'both' && <div className="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]" />}
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif]">
+                            Full Sourcing &amp; Freight (Both)
+                          </h4>
+                          <span className="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-red-100 text-[#EA1D2C]">
+                            Recommended · End-to-End
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      China supplier purchase (1688 / Taobao) + International Air/Sea cargo freight + Bangladesh customs clearance &amp; local delivery.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* 1. Origin Hub (China) */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-semibold text-slate-800">
-                          Origin Hub (China)
-                        </label>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {originWarehouseList.length} Active
-                        </span>
-                      </div>
-
-                      {/* Selector for Origin matching reference style */}
-                      <ReferenceSelect
-                        value={newOriginCity}
-                        onChange={(cityVal) => {
-                          setNewOriginCity(cityVal);
-                          setNewOriginCountry('China');
-                        }}
-                        options={originWarehouseList.map((wh) => ({
-                          value: wh.city,
-                          label: wh.city,
-                          badge: wh.code,
-                        }))}
-                        placeholder="Select Origin Hub"
-                      />
-                    </div>
-
-                    {/* 2. Destination Hub (BD / MY) */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-semibold text-slate-800">
-                          Destination Hub
-                        </label>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          BD / MY
-                        </span>
-                      </div>
-
-                      {/* Selector for Destination Hub matching reference style */}
-                      <ReferenceSelect
-                        value={
-                          destinationHubList.find(
-                            (opt) =>
-                              newDestCountry.toLowerCase() === opt.country.toLowerCase() &&
-                              (newDestCity.toLowerCase() === opt.city.toLowerCase() || opt.country.toLowerCase() === 'malaysia')
-                          )?.key || (newDestCountry.toLowerCase() === 'malaysia' ? 'my-selangor' : 'bd-dhaka')
-                        }
-                        onChange={(keyVal) => {
-                          const chosen = destinationHubList.find((opt) => opt.key === keyVal);
-                          if (chosen) {
-                            if (chosen.country !== newDestCountry) {
-                              handleCountryChange(chosen.country);
-                            }
-                            setNewDestCity(chosen.city);
-                            setRecipientCity(chosen.city);
-                          }
-                        }}
-                        options={destinationHubList.map((opt) => ({
-                          value: opt.key,
-                          label: opt.label,
-                          badge: opt.country === 'Malaysia' ? 'MY' : 'BD',
-                        }))}
-                        placeholder="Select Destination Hub"
-                      />
-                    </div>
-
-                    {/* 3. Shipping Method */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-semibold text-slate-800">
-                          Shipping Method
-                        </label>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          3 Modes
-                        </span>
-                      </div>
-
-                      {/* Selector for Shipping Method matching reference style */}
-                      <ReferenceSelect
-                        value={newMode}
-                        onChange={(modeVal) => setNewMode(modeVal as any)}
-                        options={[
-                          { value: 'air', label: 'By Air', badge: 'Air' },
-                          { value: 'sea', label: 'By Ship', badge: 'Sea' },
-                          { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' },
-                        ]}
-                        placeholder="Select Shipping Method"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Carrier Name
-                      </label>
-                      <input
-                        type="text"
-                        value={newCarrier}
-                        onChange={(e) => setNewCarrier(e.target.value)}
-                        placeholder="e.g. Cathay Cargo / GoShipping Air"
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Flight / Ship Number
-                      </label>
-                      <input
-                        type="text"
-                        value={newVoyage}
-                        onChange={(e) => setNewVoyage(e.target.value)}
-                        placeholder="e.g. Flight CX-068"
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. CARGO DETAILS & MULTIPLE PRODUCTS INVENTORY (Matches Image 2 + Multi-product) */}
-                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                          3. Cargo Details &amp; Multi-Product Inventory
-                        </h3>
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-[#EA1D2C] border border-red-200">
-                          {orderItems.length} {orderItems.length === 1 ? 'Product' : 'Products'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        Add every product item in this shipment. A customer can order multiple different products together.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={addOrderItem}
-                      className="px-3.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-none cursor-pointer inline-flex items-center gap-1.5 shadow-2xs shrink-0"
-                    >
-                      <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                      <span>Add Product</span>
-                    </button>
-                  </div>
-
-                  {/* Dynamic Product Cards */}
-                  <div className="space-y-4">
-                    {orderItems.map((item, index) => (
-                      <div
-                        key={item.id}
-                        className="p-4 sm:p-5 rounded-xl border border-slate-200/90 bg-slate-50/40 hover:bg-slate-50/70 transition-none space-y-3.5 shadow-2xs"
-                      >
-                        {/* Item Card Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-md bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center font-mono">
-                              #{index + 1}
-                            </span>
-                            <span className="text-xs font-bold text-slate-800 font-['Manrope',sans-serif]">
-                              {item.description ? item.description.slice(0, 40) : `Product Item ${index + 1}`}
-                            </span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                              {item.categoryTag}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => duplicateOrderItem(item)}
-                              className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-medium transition-none cursor-pointer inline-flex items-center gap-1"
-                              title="Duplicate this item"
-                            >
-                              <svg className="w-3 h-3 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <rect width="13" height="13" x="9" y="9" rx="2" ry="2"/>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                              </svg>
-                              <span className="hidden sm:inline">Duplicate</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => removeOrderItem(item.id)}
-                              disabled={orderItems.length <= 1}
-                              className={`p-1.5 rounded border transition-none cursor-pointer ${
-                                orderItems.length <= 1
-                                  ? 'border-slate-200 bg-slate-100 text-slate-300 cursor-not-allowed'
-                                  : 'border-red-200 bg-red-50 text-red-600 hover:bg-red-100'
-                              }`}
-                              title={orderItems.length <= 1 ? 'Minimum 1 product required' : 'Remove product item'}
-                            >
-                              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                              </svg>
-                            </button>
-                          </div>
+                  {/* Option 2: Sourcing Only */}
+                  <div
+                    onClick={() => setOrderScope('sourcing')}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-none relative flex flex-col justify-between gap-3 ${
+                      orderScope === 'sourcing'
+                        ? 'border-[#EA1D2C] bg-red-50/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          orderScope === 'sourcing' ? 'border-[#EA1D2C]' : 'border-slate-300'
+                        }`}>
+                          {orderScope === 'sourcing' && <div className="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]" />}
                         </div>
-
-                        {/* Product Description */}
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">
-                            Product Description *
-                          </label>
-                          <input
-                            type="text"
-                            value={item.description}
-                            onChange={(e) => updateOrderItem(item.id, 'description', e.target.value)}
-                            placeholder="e.g. Commercial Fabrics, Apparel, Electronics..."
-                            required
-                            className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                          />
-                        </div>
-
-                        {/* Package Type, Category, Quantity (Searchable Selectors with Generous Right Padding) */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div>
-                            <SearchableSelect
-                              label="Package Type"
-                              value={item.packagingType}
-                              onChange={(val) => updateOrderItem(item.id, 'packagingType', val)}
-                              options={PACKAGE_TYPE_OPTIONS}
-                              placeholder="Select package..."
-                              searchPlaceholder="Search package type..."
-                            />
-                          </div>
-
-                          <div>
-                            <SearchableSelect
-                              label="Product Category"
-                              value={item.categoryTag}
-                              onChange={(val) => updateOrderItem(item.id, 'categoryTag', val as any)}
-                              options={CATEGORY_OPTIONS}
-                              placeholder="Select category..."
-                              searchPlaceholder="Search category..."
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Quantity (Pieces / Cartons) *
-                            </label>
-                            <input
-                              type="number"
-                              min="1"
-                              value={item.quantity ?? ''}
-                              onChange={(e) => updateOrderItem(item.id, 'quantity', e.target.value === '' ? '' : parseInt(e.target.value, 10))}
-                              placeholder="e.g. 10"
-                              required
-                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Weight, Volume, Declared Value */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Weight (KG) *
-                            </label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0.1"
-                              value={item.weightKg ?? ''}
-                              onChange={(e) => updateOrderItem(item.id, 'weightKg', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                              placeholder="e.g. 50"
-                              required
-                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Volume (CBM) *
-                            </label>
-                            <input
-                              type="number"
-                              step="any"
-                              min="0.001"
-                              value={item.cbm ?? ''}
-                              onChange={(e) => updateOrderItem(item.id, 'cbm', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                              placeholder="e.g. 0.4"
-                              required
-                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 mb-1">
-                              Declared Value (BDT)
-                            </label>
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.declaredValue ?? ''}
-                              onChange={(e) => updateOrderItem(item.id, 'declaredValue', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                              placeholder="e.g. 50000"
-                              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
-                            />
-                          </div>
+                          <h4 className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif]">
+                            China Sourcing &amp; Purchase
+                          </h4>
+                          <span className="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">
+                            Sourcing Only
+                          </span>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Procurement from 1688, Taobao or factory supplier with RMB conversion, Chinese courier tracking and warehouse receiving.
+                    </p>
                   </div>
 
-                  {/* Add Product Large Action Bar */}
-                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={addOrderItem}
-                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl border-2 border-dashed border-red-300 hover:border-[#EA1D2C] bg-red-50/50 hover:bg-red-50 text-[#EA1D2C] font-bold text-xs transition-none cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                      <span>Add Another Product Item</span>
-                    </button>
-
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <span>Quick presets:</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          addOrderItem();
-                          setTimeout(() => {
-                            setOrderItems((prev) => {
-                              const copy = [...prev];
-                              const target = copy[copy.length - 1];
-                              if (target) {
-                                target.description = 'Cotton Knit Fabrics (Cartons)';
-                                target.packagingType = 'carton';
-                                target.categoryTag = 'Commercial';
-                                target.quantity = 10;
-                                target.weightKg = 150;
-                                target.cbm = 0.8;
-                              }
-                              return copy;
-                            });
-                          }, 0);
-                        }}
-                        className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium cursor-pointer"
-                      >
-                        + Cotton Cartons
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          addOrderItem();
-                          setTimeout(() => {
-                            setOrderItems((prev) => {
-                              const copy = [...prev];
-                              const target = copy[copy.length - 1];
-                              if (target) {
-                                target.description = 'Electronic PCB & Accessories';
-                                target.packagingType = 'carton';
-                                target.categoryTag = 'Electronics';
-                                target.quantity = 5;
-                                target.weightKg = 45;
-                                target.cbm = 0.25;
-                              }
-                              return copy;
-                            });
-                          }, 0);
-                        }}
-                        className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium cursor-pointer"
-                      >
-                        + Electronics
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Live Auto-Calculated Cargo Totals Bar */}
-                  <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-xs space-y-2">
-                    <div className="flex items-center justify-between text-xs border-b border-slate-700 pb-2">
-                      <span className="font-semibold text-slate-300 uppercase tracking-wider text-[10px]">
-                        Order Total Summary
-                      </span>
-                      <span className="text-emerald-400 font-mono text-[11px] font-semibold">
-                        Auto-Summed across {orderTotals.totalItems} products
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Packages</div>
-                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums">
-                          {orderTotals.totalPieces} <span className="text-xs font-normal text-slate-400">pcs</span>
+                  {/* Option 3: Freight Only */}
+                  <div
+                    onClick={() => setOrderScope('freight')}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-none relative flex flex-col justify-between gap-3 ${
+                      orderScope === 'freight'
+                        ? 'border-[#EA1D2C] bg-red-50/20 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          orderScope === 'freight' ? 'border-[#EA1D2C]' : 'border-slate-300'
+                        }`}>
+                          {orderScope === 'freight' && <div className="w-2.5 h-2.5 rounded-full bg-[#EA1D2C]" />}
                         </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Gross Weight</div>
-                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums">
-                          {orderTotals.totalWeight} <span className="text-xs font-normal text-slate-400">KG</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase font-semibold">Total Volume</div>
-                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums">
-                          {orderTotals.totalCbm} <span className="text-xs font-normal text-slate-400">CBM</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="text-[10px] text-amber-400 uppercase font-semibold">Chargeable Weight</div>
-                        <div className="text-lg font-bold font-['Manrope',sans-serif] tabular-nums text-amber-300">
-                          {orderTotals.chargeableWeight} <span className="text-xs font-normal text-slate-400">KG</span>
-                        </div>
-                        <div className="text-[9px] text-slate-400 font-mono">
-                          Max(Gross, {orderTotals.volumetricWeight} Vol)
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif]">
+                            International Freight &amp; Cargo
+                          </h4>
+                          <span className="inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.2 rounded bg-blue-100 text-blue-800">
+                            Freight Only
+                          </span>
                         </div>
                       </div>
                     </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Direct cargo shipping by Air or Sea from China hubs to Bangladesh or Malaysia with live waybill tracking number.
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                {/* 4. DYNAMIC DESTINATION DELIVERY ADDRESS */}
-                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
-                  <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
+              {/* TWO COLUMN WORKSPACE: FORM FIELDS ON LEFT (8 COLS), FINANCIAL REVIEW ON RIGHT (4 COLS) */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                
+                {/* LEFT COLUMN: SECTIONS 1, 2, 3, 4 (lg:col-span-8) */}
+                <div className="lg:col-span-8 space-y-6">
+
+                  {/* 1. CUSTOMER ACCOUNT & CLIENT ASSIGNMENT */}
+                  <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                      <div>
                         <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
-                          4. Delivery Address in {newDestCountry}
+                          1. Customer &amp; Consignment Identity
                         </h3>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                          <span>{currentAddressConfig.flag}</span>
-                          <span>{newDestCountry}</span>
-                        </span>
+                        <p className="text-xs text-slate-500">
+                          Link order to an existing customer or onboard a new client with shipping mark
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Final destination doorstep, consignee contact and localized dispatch coordinates
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-medium text-slate-400 hidden sm:inline">
-                      {newDestCountry === 'Malaysia' ? 'West & East Malaysia' : 'All 8 Divisions'}
-                    </span>
-                  </div>
 
-                  {/* Recipient Name and Phone with Country Code */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Recipient / Consignee Contact Name <span className="text-[#EA1D2C]">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={recipientContactName}
-                        onChange={(e) => {
-                          setRecipientContactName(e.target.value);
-                          setNewRecipientName(e.target.value);
-                        }}
-                        placeholder={newDestCountry === 'Malaysia' ? 'e.g. Lotus Mart Sdn Bhd / David Tan' : 'e.g. Apex Fashion Retail Hub / Farhan Ahmed'}
-                        required
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                      />
+                      {/* Toggle: Existing vs New */}
+                      <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setOrderCustomerMode('existing')}
+                          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-none cursor-pointer ${
+                            orderCustomerMode === 'existing'
+                              ? 'bg-white text-slate-900 shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Existing Client
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setOrderCustomerMode('new')}
+                          className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-none cursor-pointer ${
+                            orderCustomerMode === 'new'
+                              ? 'bg-white text-[#EA1D2C] shadow-2xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Register New Client
+                        </button>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Phone Number with Country Code <span className="text-[#EA1D2C]">*</span>
-                      </label>
-                      <div className="relative flex items-center h-10 w-full rounded-lg border border-slate-300 bg-white focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
-                        {/* Compact Dial Code Selector with Flag & Code only */}
-                        <div className="relative flex items-center shrink-0 pl-3 pr-2.5 border-r border-slate-200">
-                          <select
-                            value={recipientPhoneCode}
-                            onChange={(e) => setRecipientPhoneCode(e.target.value)}
-                            aria-label="Select Country Code"
-                            className="appearance-none bg-transparent pr-4 text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
-                          >
-                            {PHONE_DIAL_CODES.map((dial) => (
-                              <option key={dial.code + dial.country} value={dial.code}>
-                                {dial.flag} {dial.code}
-                              </option>
-                            ))}
-                          </select>
-                          <svg
-                            className="w-3 h-3 text-slate-400 pointer-events-none absolute right-1.5 stroke-[2.5]"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                          >
-                            <polyline points="6 9 12 15 18 9" />
-                          </svg>
+                    {orderCustomerMode === 'existing' ? (
+                      <div className="space-y-3 pt-1">
+                        <SearchableSelect
+                          label="Customer Account"
+                          required
+                          value={selectedCustomerId}
+                          onChange={(newVal) => {
+                            const found = allCustomerOptions.find((c) => c.id === newVal);
+                            if (found) selectCustomerForOrder(found);
+                          }}
+                          options={customerSelectOptions}
+                          placeholder="Click to select or search customer (e.g. Apex Textiles Ltd)..."
+                          searchPlaceholder="Type customer name, company, email, phone or BIN number..."
+                        />
+
+                        {/* Display auto-filled customer coordinates badge */}
+                        {currentSelectedCustomer && (
+                          <div className="px-3.5 py-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                              <span className="font-bold text-slate-900">
+                                {currentSelectedCustomer.companyName || currentSelectedCustomer.fullName}
+                              </span>
+                              <span className="text-emerald-800 font-mono text-[11px]">
+                                ({currentSelectedCustomer.email} · {currentSelectedCustomer.phone || 'No phone'})
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
+                              Auto-filled Client
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* On-The-Fly New Customer Registration Form */
+                      <div className="space-y-4 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                              Full Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={newCustomerFullName}
+                              onChange={(e) => {
+                                setNewCustomerFullName(e.target.value);
+                                if (!newRecipientName) setNewRecipientName(e.target.value);
+                              }}
+                              placeholder="e.g. Tarek Rahman"
+                              required={orderCustomerMode === 'new'}
+                              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                              Company Name (Optional)
+                            </label>
+                            <input
+                              type="text"
+                              value={newCustomerCompany}
+                              onChange={(e) => setNewCustomerCompany(e.target.value)}
+                              placeholder="e.g. Prime Apparels BD Ltd"
+                              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                            />
+                          </div>
                         </div>
 
-                        {/* Phone Number Body Input */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                              Email Address (for Live Status Alerts) *
+                            </label>
+                            <input
+                              type="email"
+                              value={newCustomerEmail}
+                              onChange={(e) => setNewCustomerEmail(e.target.value)}
+                              placeholder="client@company.com"
+                              required={orderCustomerMode === 'new'}
+                              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                              Phone / WhatsApp *
+                            </label>
+                            <input
+                              type="tel"
+                              value={newCustomerPhone}
+                              onChange={(e) => {
+                                setNewCustomerPhone(e.target.value);
+                                setNewRecipientPhone(e.target.value);
+                              }}
+                              placeholder="+880 1711-XXXXXX"
+                              required={orderCustomerMode === 'new'}
+                              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                              Default Delivery Address
+                            </label>
+                            <input
+                              type="text"
+                              value={newCustomerAddress}
+                              onChange={(e) => {
+                                setNewCustomerAddress(e.target.value);
+                                setNewRecipientAddress(e.target.value);
+                              }}
+                              placeholder="Plot 12, Sector 3, Uttara, Dhaka"
+                              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                              Initial Portal Password
+                            </label>
+                            <input
+                              type="text"
+                              value={newCustomerPassword}
+                              onChange={(e) => setNewCustomerPassword(e.target.value)}
+                              placeholder="password123"
+                              className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Shipping Mark & Website Order No */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Shipping Mark / Client Tag
+                        </label>
                         <input
-                          type="tel"
-                          value={recipientPhoneBody}
-                          onChange={(e) => {
-                            setRecipientPhoneBody(e.target.value);
-                            setNewRecipientPhone(`${recipientPhoneCode} ${e.target.value}`);
-                          }}
-                          placeholder={newDestCountry === 'Malaysia' ? '11 1234 5678' : '1601 111994'}
-                          required
-                          className="flex-1 h-full px-3 text-xs text-slate-900 font-mono focus:outline-none bg-transparent placeholder-slate-400"
+                          type="text"
+                          value={sourcingShippingMark}
+                          onChange={(e) => setSourcingShippingMark(e.target.value.toUpperCase())}
+                          placeholder="e.g. SH-DAC-05 or MARK: APEX-BD"
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-slate-900"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Website / Platform Order No (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={sourcingWebsiteOrderNo}
+                          onChange={(e) => setSourcingWebsiteOrderNo(e.target.value)}
+                          placeholder="e.g. 1688-ORD-9910 or WEB-4421"
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Address Line 1 */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                      Address (Street / Building / Plot / Road) <span className="text-[#EA1D2C]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={addressLine1}
-                      onChange={(e) => {
-                        setAddressLine1(e.target.value);
-                        setNewRecipientAddress(e.target.value);
-                      }}
-                      placeholder={newDestCountry === 'Malaysia' ? 'e.g. Lot 2720-B, Jalan Industri 12' : 'e.g. Flat 2/B, 16, 16/1 Basubazar Lane, Dayaganj'}
-                      required
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                    />
-                  </div>
+                  {/* 2. CHINA SOURCING & PROCUREMENT (Rendered if both or sourcing) */}
+                  {(orderScope === 'both' || orderScope === 'sourcing') && (
+                    <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                      <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                              2. China Sourcing &amp; Procurement
+                            </h3>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              China Purchase Desk
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            Supplier platform, Chinese domestic courier tracking, and RMB pricing conversion
+                          </p>
+                        </div>
 
-                  {/* Address Line 2 */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-slate-700">
-                        Address 2 (Suite / Unit / Floor / Industrial Area)
-                      </label>
-                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Optional</span>
-                    </div>
-                    <input
-                      type="text"
-                      value={addressLine2}
-                      onChange={(e) => setAddressLine2(e.target.value)}
-                      placeholder={newDestCountry === 'Malaysia' ? 'e.g. Kampung Baru Sungai Buloh' : 'e.g. Suite 402, 4th Floor, Apex Commercial Hub'}
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                    />
-                  </div>
+                        {/* Live RMB Sourcing Cost Badge */}
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 block font-semibold uppercase">Purchase Total</span>
+                          <span className="font-mono text-xs font-bold text-slate-900">
+                            ¥{dynamicFinanceTotals.totalRmb.toLocaleString()} · ৳{dynamicFinanceTotals.purchaseCostBdt.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
 
-                  {/* 4-Column Selectors: Country, State/Division, City, Postcode */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* Country Selector */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        Country Selector <span className="text-[#EA1D2C]">*</span>
-                      </label>
-                      <ReferenceSelect
-                        value={newDestCountry}
-                        onChange={(val) => handleCountryChange(val)}
-                        options={[
-                          { value: 'Bangladesh', label: 'Bangladesh', badge: 'BD' },
-                          { value: 'Malaysia', label: 'Malaysia', badge: 'MY' }
-                        ]}
-                        placeholder="Select Country"
-                      />
-                    </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Supplier Platform / Factory *
+                          </label>
+                          <select
+                            value={sourcingSupplier}
+                            onChange={(e) => setSourcingSupplier(e.target.value)}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
+                          >
+                            <option value="1688">1688.com (Direct Wholesale)</option>
+                            <option value="Taobao">Taobao Marketplace</option>
+                            <option value="Alibaba">Alibaba International</option>
+                            <option value="Factory Direct">Factory / OEM Direct</option>
+                            <option value="Pinduoduo">Pinduoduo</option>
+                            <option value="Other">Other China Supplier</option>
+                          </select>
+                        </div>
 
-                    {/* State / Division Selector */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        {currentAddressConfig.stateLabel} Selector <span className="text-[#EA1D2C]">*</span>
-                      </label>
-                      <ReferenceSelect
-                        value={recipientState}
-                        onChange={(val) => handleStateChange(val)}
-                        options={currentStates.map((st) => ({
-                          value: st.name,
-                          label: st.name
-                        }))}
-                        placeholder={`Select ${currentAddressConfig.stateLabel}`}
-                        searchable={currentStates.length > 6}
-                      />
-                    </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            China Domestic Waybill / Tracking No (SF / ZTO)
+                          </label>
+                          <input
+                            type="text"
+                            value={chinaTrackingNo}
+                            onChange={(e) => setChinaTrackingNo(e.target.value)}
+                            placeholder="e.g. SF1482930192 or 7774569437"
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                      </div>
 
-                    {/* City Selector */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                        City Selector <span className="text-[#EA1D2C]">*</span>
-                      </label>
-                      <ReferenceSelect
-                        value={recipientCity}
-                        onChange={(val) => {
-                          setRecipientCity(val);
-                          setNewDestCity(val);
-                        }}
-                        options={currentAvailableCities.map((ct) => ({
-                          value: ct,
-                          label: ct
-                        }))}
-                        placeholder="Select City"
-                        searchable={currentAvailableCities.length > 6}
-                      />
-                    </div>
-
-                    {/* Postcode */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-xs font-semibold text-slate-700">
-                          Post Code
+                      {/* Item Details */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Product Specifications &amp; Description *
                         </label>
-                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Optional</span>
+                        <input
+                          type="text"
+                          value={sourcingItemDetails}
+                          onChange={(e) => setSourcingItemDetails(e.target.value)}
+                          placeholder="e.g. Smart Watch Ultra 2 with AMOLED Display, Bluetooth 5.3"
+                          required={orderScope === 'both' || orderScope === 'sourcing'}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                        />
+                      </div>
+
+                      {/* Pricing 3-Column Grid: Quantity, Unit Price RMB, Exchange Rate */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Purchase Quantity (Pcs) *
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={sourcingQuantity}
+                            onChange={(e) => setSourcingQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                            required={orderScope === 'both' || orderScope === 'sourcing'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Unit Price in RMB (¥) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={sourcingUnitPriceRmb}
+                            onChange={(e) => setSourcingUnitPriceRmb(Math.max(0, parseFloat(e.target.value) || 0))}
+                            placeholder="e.g. 45.00"
+                            required={orderScope === 'both' || orderScope === 'sourcing'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            RMB Exchange Rate (BDT) *
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="1"
+                            value={sourcingRmbRateBdt}
+                            onChange={(e) => setSourcingRmbRateBdt(Math.max(1, parseFloat(e.target.value) || 19.5))}
+                            placeholder="19.50"
+                            required={orderScope === 'both' || orderScope === 'sourcing'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. ROUTE & INTERNATIONAL CARGO LOGISTICS (Rendered if both or freight) */}
+                  {(orderScope === 'both' || orderScope === 'freight') && (
+                    <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                      <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                              3. International Route &amp; Cargo Freight
+                            </h3>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                              Transit Logistics
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            Origin China warehouse hub, destination port, transit mode, and freight rate
+                          </p>
+                        </div>
+
+                        {/* Live Freight Billing Badge */}
+                        <div className="text-right">
+                          <span className="text-[10px] text-slate-400 block font-semibold uppercase">Freight Billing</span>
+                          <span className="font-mono text-xs font-bold text-slate-900">
+                            ৳{dynamicFinanceTotals.intlFreightBdt.toLocaleString()} BDT
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Origin Hub (China) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-800 mb-1.5">
+                            Origin Hub (China)
+                          </label>
+                          <ReferenceSelect
+                            value={newOriginCity}
+                            onChange={(cityVal) => {
+                              setNewOriginCity(cityVal);
+                              setNewOriginCountry('China');
+                            }}
+                            options={originWarehouseList.map((wh) => ({
+                              value: wh.city,
+                              label: wh.city,
+                              badge: wh.code,
+                            }))}
+                            placeholder="Select Origin Hub"
+                          />
+                        </div>
+
+                        {/* Destination Hub (BD / MY) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-800 mb-1.5">
+                            Destination Hub
+                          </label>
+                          <ReferenceSelect
+                            value={
+                              destinationHubList.find(
+                                (opt) =>
+                                  newDestCountry.toLowerCase() === opt.country.toLowerCase() &&
+                                  (newDestCity.toLowerCase() === opt.city.toLowerCase() || opt.country.toLowerCase() === 'malaysia')
+                              )?.key || (newDestCountry.toLowerCase() === 'malaysia' ? 'my-selangor' : 'bd-dhaka')
+                            }
+                            onChange={(keyVal) => {
+                              const chosen = destinationHubList.find((opt) => opt.key === keyVal);
+                              if (chosen) {
+                                if (chosen.country !== newDestCountry) {
+                                  handleCountryChange(chosen.country);
+                                }
+                                setNewDestCity(chosen.city);
+                                setRecipientCity(chosen.city);
+                              }
+                            }}
+                            options={destinationHubList.map((opt) => ({
+                              value: opt.key,
+                              label: opt.label,
+                              badge: opt.country === 'Malaysia' ? 'MY' : 'BD',
+                            }))}
+                            placeholder="Select Destination Hub"
+                          />
+                        </div>
+
+                        {/* Shipping Method */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-800 mb-1.5">
+                            Shipping Method
+                          </label>
+                          <ReferenceSelect
+                            value={newMode}
+                            onChange={(modeVal) => {
+                              setNewMode(modeVal as any);
+                              if (modeVal === 'sea') {
+                                setFreightRatePerKgBdt(450);
+                              } else {
+                                setFreightRatePerKgBdt(950);
+                              }
+                            }}
+                            options={[
+                              { value: 'air', label: 'By Air', badge: 'Air' },
+                              { value: 'sea', label: 'By Ship', badge: 'Sea' },
+                              { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' },
+                            ]}
+                            placeholder="Select Shipping Method"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Carrier Name
+                          </label>
+                          <input
+                            type="text"
+                            value={newCarrier}
+                            onChange={(e) => setNewCarrier(e.target.value)}
+                            placeholder={newMode === 'air' ? 'GoShipping Air Priority' : 'GoShipping Ocean Line'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Flight / Vessel Number
+                          </label>
+                          <input
+                            type="text"
+                            value={newVoyage}
+                            onChange={(e) => setNewVoyage(e.target.value)}
+                            placeholder={newMode === 'air' ? 'Flight CX-068' : 'Vessel GOSH-VOYAGE'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Freight Rate per KG (BDT) *
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={freightRatePerKgBdt}
+                            onChange={(e) => setFreightRatePerKgBdt(Math.max(0, parseFloat(e.target.value) || 0))}
+                            placeholder={newMode === 'sea' ? '450' : '950'}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Cargo Details & Dynamic Products List */}
+                      <div className="pt-2 border-t border-slate-100 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-xs font-bold text-slate-900">Cargo Products &amp; Weight</span>
+                            <p className="text-[11px] text-slate-500">Add physical weight and volume for cargo calculation</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={addOrderItem}
+                            className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition-none cursor-pointer inline-flex items-center gap-1.5 shadow-2xs shrink-0"
+                          >
+                            <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <line x1="12" y1="5" x2="12" y2="19" />
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            <span>Add Product</span>
+                          </button>
+                        </div>
+
+                        {orderItems.map((item, index) => (
+                          <div
+                            key={item.id}
+                            className="p-3.5 sm:p-4 rounded-xl border border-slate-200/90 bg-slate-50/40 space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center font-mono">
+                                  #{index + 1}
+                                </span>
+                                <span className="text-xs font-bold text-slate-800">
+                                  {item.description ? item.description.slice(0, 35) : `Item ${index + 1}`}
+                                </span>
+                              </div>
+                              {orderItems.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeOrderItem(item.id)}
+                                  className="text-red-600 hover:text-red-800 text-xs font-semibold cursor-pointer"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                              <div className="sm:col-span-2">
+                                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                                  Cargo Description *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={item.description}
+                                  onChange={(e) => updateOrderItem(item.id, 'description', e.target.value)}
+                                  placeholder="e.g. Commercial Fabrics / Electronics"
+                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs text-slate-900"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                                  Gross Weight (KG) *
+                                </label>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0.1"
+                                  value={item.weightKg ?? ''}
+                                  onChange={(e) => updateOrderItem(item.id, 'weightKg', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                  placeholder="10"
+                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                                  Volume (CBM)
+                                </label>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0.001"
+                                  value={item.cbm ?? ''}
+                                  onChange={(e) => updateOrderItem(item.id, 'cbm', e.target.value === '' ? '' : parseFloat(e.target.value))}
+                                  placeholder="0.05"
+                                  className="w-full h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-xs font-mono text-slate-900"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* Live Sum Bar */}
+                        <div className="p-3 rounded-lg bg-slate-900 text-white flex flex-wrap items-center justify-between text-xs gap-3 font-mono">
+                          <div>
+                            <span className="text-slate-400">Total Items:</span> <span className="font-bold">{orderTotals.totalItems}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Gross Weight:</span> <span className="font-bold text-emerald-400">{orderTotals.totalWeight} KG</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Volume:</span> <span className="font-bold">{orderTotals.totalCbm} CBM</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">Chargeable Weight:</span> <span className="font-bold text-amber-300">{orderTotals.chargeableWeight} KG</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 4. DESTINATION DELIVERY & CONSIGNEE (Rendered if both or freight) */}
+                  {(orderScope === 'both' || orderScope === 'freight') && (
+                    <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
+                      <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-slate-900 font-['Manrope',sans-serif]">
+                              4. Consignee &amp; Bangladesh Delivery Address
+                            </h3>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                              <span>{currentAddressConfig.flag}</span>
+                              <span>{newDestCountry}</span>
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            Doorstep delivery contact, regional division and local courier integration
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Recipient / Consignee Contact Name <span className="text-[#EA1D2C]">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={recipientContactName}
+                            onChange={(e) => {
+                              setRecipientContactName(e.target.value);
+                              setNewRecipientName(e.target.value);
+                            }}
+                            placeholder="e.g. Farhan Ahmed / Apex Retail Facility"
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Phone Number with Country Code <span className="text-[#EA1D2C]">*</span>
+                          </label>
+                          <div className="relative flex items-center h-10 w-full rounded-lg border border-slate-300 bg-white focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                            <div className="relative flex items-center shrink-0 pl-3 pr-2.5 border-r border-slate-200">
+                              <select
+                                value={recipientPhoneCode}
+                                onChange={(e) => setRecipientPhoneCode(e.target.value)}
+                                className="appearance-none bg-transparent pr-4 text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                              >
+                                {PHONE_DIAL_CODES.map((dial) => (
+                                  <option key={dial.code + dial.country} value={dial.code}>
+                                    {dial.flag} {dial.code}
+                                  </option>
+                                ))}
+                              </select>
+                              <svg className="w-3 h-3 text-slate-400 pointer-events-none absolute right-1.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="6 9 12 15 18 9" />
+                              </svg>
+                            </div>
+                            <input
+                              type="tel"
+                              value={recipientPhoneBody}
+                              onChange={(e) => {
+                                setRecipientPhoneBody(e.target.value);
+                                setNewRecipientPhone(`${recipientPhoneCode} ${e.target.value}`);
+                              }}
+                              placeholder="1711 000000"
+                              className="flex-1 h-full px-3 text-xs text-slate-900 font-mono focus:outline-none bg-transparent"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Address Line 1 */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                          Address (Street / Building / Plot / Road) <span className="text-[#EA1D2C]">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={addressLine1}
+                          onChange={(e) => {
+                            setAddressLine1(e.target.value);
+                            setNewRecipientAddress(e.target.value);
+                          }}
+                          placeholder="e.g. Flat 4/A, Plot 14, Sector 7, Uttara"
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        />
+                      </div>
+
+                      {/* 4-Column Selectors */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Country</label>
+                          <ReferenceSelect
+                            value={newDestCountry}
+                            onChange={(val) => handleCountryChange(val)}
+                            options={[
+                              { value: 'Bangladesh', label: 'Bangladesh', badge: 'BD' },
+                              { value: 'Malaysia', label: 'Malaysia', badge: 'MY' }
+                            ]}
+                            placeholder="Select Country"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">{currentAddressConfig.stateLabel}</label>
+                          <ReferenceSelect
+                            value={recipientState}
+                            onChange={(val) => handleStateChange(val)}
+                            options={currentStates.map((st) => ({
+                              value: st.name,
+                              label: st.name
+                            }))}
+                            placeholder="Select Division"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">City</label>
+                          <ReferenceSelect
+                            value={recipientCity}
+                            onChange={(val) => {
+                              setRecipientCity(val);
+                              setNewDestCity(val);
+                            }}
+                            options={currentAvailableCities.map((ct) => ({
+                              value: ct,
+                              label: ct
+                            }))}
+                            placeholder="Select City"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">Post Code</label>
+                          <input
+                            type="text"
+                            value={recipientPostcode}
+                            onChange={(e) => setRecipientPostcode(e.target.value)}
+                            placeholder="1230"
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Local Courier Partner & Local Tracking */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Bangladesh Local Courier Partner
+                          </label>
+                          <select
+                            value={bdCourierName}
+                            onChange={(e) => setBdCourierName(e.target.value)}
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
+                          >
+                            <option value="Steadfast">Steadfast Courier (Recommended)</option>
+                            <option value="Pathao">Pathao Courier</option>
+                            <option value="RedX">RedX Logistics</option>
+                            <option value="Sundarban">Sundarban Courier</option>
+                            <option value="In-House Delivery">In-House Fleet / Gate Pickup</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Local Courier Tracking / Consignment No
+                          </label>
+                          <input
+                            type="text"
+                            value={bdCourierTrackingNo}
+                            onChange={(e) => setBdCourierTrackingNo(e.target.value)}
+                            placeholder="e.g. STF-992019 or leave blank"
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* RIGHT COLUMN: REAL-TIME FINANCIAL SUMMARY & DISPATCH (lg:col-span-4, STICKY) */}
+                <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-4">
+                  <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                      <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
+                        Financial &amp; Dispatch Summary
+                      </h3>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        dynamicFinanceTotals.paymentStatus === 'Paid'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : dynamicFinanceTotals.paymentStatus === 'Partial'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-red-50 text-red-700 border-red-200'
+                      }`}>
+                        {dynamicFinanceTotals.paymentStatus}
+                      </span>
+                    </div>
+
+                    {/* Manual / Auto Tracking Number Box */}
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                          Consignment Tracking Code
+                        </label>
+                        <span className="text-[10px] text-slate-500 font-medium">Auto if blank</span>
                       </div>
                       <input
                         type="text"
-                        value={recipientPostcode}
-                        onChange={(e) => setRecipientPostcode(e.target.value)}
-                        placeholder={newDestCountry === 'Malaysia' ? '47000' : '1204'}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        value={newCustomTrackingNumber}
+                        onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
+                        placeholder="e.g. GOSH-2026-9812 or AWB / BL"
+                        className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      />
+                      <p className="text-[10px] text-slate-400">
+                        Leave blank to automatically generate GOSH-2026-XXXX format.
+                      </p>
+                    </div>
+
+                    {/* Initial Physical Status */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Initial Order Status
+                      </label>
+                      <ReferenceSelect
+                        value={newInitialStatus}
+                        onChange={(val) => setNewInitialStatus(val)}
+                        options={[
+                          { value: 'purchased', label: '1. Purchased (Initial Stage)', badge: 'Step 1' },
+                          { value: 'cn_warehouse_received', label: '2. CN Warehouse Received', badge: 'Step 2' },
+                          { value: 'dispatched_from_china', label: '3. Dispatched from China', badge: 'Step 3' },
+                          { value: 'arrived_dhaka_airport', label: '4. Arrived Dhaka Airport', badge: 'Step 4' },
+                          { value: 'awaiting_customs', label: '5. Awaiting Customs Clearance', badge: 'Step 5' },
+                          { value: 'bd_warehouse_received', label: '6. BD Warehouse Received', badge: 'Step 6' },
+                          { value: 'out_for_delivery', label: '7. Out for Delivery', badge: 'Step 7' },
+                          { value: 'delivered', label: '8. Delivered', badge: 'Done' }
+                        ]}
+                        placeholder="Select Initial Status"
                       />
                     </div>
-                  </div>
 
-                  {/* Delivery Notes & Special Handling */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-slate-700">
-                        Delivery Notes &amp; Special Handling Instructions
-                      </label>
-                      <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Optional</span>
-                    </div>
-                    <textarea
-                      value={deliveryNotes}
-                      onChange={(e) => {
-                        setDeliveryNotes(e.target.value);
-                        setDeliveryInstructions(e.target.value);
-                      }}
-                      rows={2}
-                      placeholder="e.g. Direct door-to-door delivery. Call recipient 2 hours before gate arrival."
-                      className="w-full p-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none bg-white"
-                    />
-                  </div>
-
-                  {/* Live Dispatch Coordinates Preview Box */}
-                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                        <svg className="w-3.5 h-3.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                          <circle cx="12" cy="10" r="3" />
-                        </svg>
-                        <span>Live Dispatch Coordinates</span>
-                      </span>
-                      <span className="text-[11px] font-mono font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">
-                        {compiledPhone}
-                      </span>
-                    </div>
-                    <p className="text-xs font-medium text-slate-800 break-words leading-relaxed">
-                      {compiledAddress || 'No address specified yet'}
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* RIGHT COLUMN: STICKY MANIFEST SUMMARY & DISPATCH (lg:col-span-4) */}
-              <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-4">
-
-                {/* Live Manifest Review Card */}
-                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <h3 className="text-sm font-bold text-slate-900 font-['Manrope',sans-serif]">
-                      Consignment Order Summary
-                    </h3>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      Ready to Dispatch
-                    </span>
-                  </div>
-
-                  {/* Manual Tracking Number Input Box */}
-                  <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
-                        Tracking Number <span className="text-[#EA1D2C]">*</span>
-                      </label>
-                      <span className="text-[10px] text-slate-500 font-medium">Manual Entry</span>
-                    </div>
-                    <input
-                      type="text"
-                      value={newCustomTrackingNumber}
-                      onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
-                      placeholder="e.g. GOSH-2026-9812 or Airway Bill / BL"
-                      required
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-                    />
-                    <p className="text-[10px] text-slate-500">
-                      Enter the carrier airway bill (AWB), ocean B/L or consignment tracking code manually.
-                    </p>
-                  </div>
-
-                  {/* Initial Status Selector */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Initial Physical Stage
-                    </label>
-                    <ReferenceSelect
-                      value={newInitialStatus}
-                      onChange={(val) => setNewInitialStatus(val)}
-                      options={[
-                        { value: 'purchased', label: '1. PURCHASED (Default Initial)', badge: 'Step 1' },
-                        { value: 'cn_warehouse_received', label: '2. CN WAREHOUSE RECEIVED', badge: 'Step 2' },
-                        { value: 'dispatched_from_china', label: '3. DISPATCHED FROM CHINA', badge: 'Step 3' },
-                        { value: 'arrived_dhaka_airport', label: '4. ARRIVED DHAKA AIRPORT', badge: 'Step 4' },
-                        { value: 'awaiting_customs', label: '5. AWAITING CUSTOMS CLEARANCE', badge: 'Step 5' },
-                        { value: 'bd_warehouse_received', label: '6. BD WAREHOUSE RECEIVED', badge: 'Step 6' },
-                        { value: 'out_for_delivery', label: '7. OUT FOR DELIVERY', badge: 'Step 7' },
-                        { value: 'delivered', label: '8. DELIVERED', badge: 'Final' }
-                      ]}
-                      placeholder="Select Initial Physical Stage"
-                    />
-                  </div>
-
-                  {/* Summary Breakdown */}
-                  <div className="divide-y divide-slate-100 text-xs">
-                    <div className="py-2 flex items-center justify-between">
-                      <span className="text-slate-500">Route</span>
-                      <span className="font-semibold text-slate-900">{newOriginCity}, CN → {newDestCity}, {newDestCountry === 'Malaysia' ? 'MY' : 'BD'}</span>
-                    </div>
-
-                    <div className="py-2 flex items-center justify-between">
-                      <span className="text-slate-500">Mode &amp; Carrier</span>
-                      <span className="font-semibold text-slate-900">{(newMode === 'air' ? 'BY AIR' : newMode === 'sea' ? 'BY SHIP' : 'HAND CARRY')} ({newVoyage})</span>
-                    </div>
-
-                    <div className="py-2 flex items-center justify-between">
-                      <span className="text-slate-500">Customer</span>
-                      <span className="font-semibold text-slate-900 truncate max-w-[160px]">
-                        {orderCustomerMode === 'new' ? (newCustomerCompany || newCustomerFullName || 'New Customer') : (currentSelectedCustomer?.companyName || currentSelectedCustomer?.fullName || 'Assigned')}
-                      </span>
-                    </div>
-
-                    <div className="py-2 flex items-start justify-between gap-2">
-                      <span className="text-slate-500 shrink-0">Deliver To</span>
-                      <span className="font-semibold text-slate-900 text-right truncate max-w-[170px]" title={compiledAddress}>
-                        {recipientContactName || 'Consignee'} ({recipientCity}, {newDestCountry === 'Malaysia' ? 'MY' : 'BD'})
-                      </span>
-                    </div>
-
-                    <div className="py-2 flex items-center justify-between">
-                      <span className="text-slate-500">Total Products</span>
-                      <span className="font-semibold text-slate-900">{orderTotals.totalItems} distinct items</span>
-                    </div>
-
-                    <div className="py-2 flex items-center justify-between">
-                      <span className="text-slate-500">Total Packages</span>
-                      <span className="font-semibold text-slate-900">{orderTotals.totalPieces} pcs</span>
-                    </div>
-
-                    <div className="py-2 flex items-center justify-between">
-                      <span className="text-slate-500">Gross Weight</span>
-                      <span className="font-semibold text-slate-900">{orderTotals.totalWeight} KG</span>
-                    </div>
-
-                    <div className="py-2 flex items-center justify-between">
-                      <span className="text-slate-500">Volume</span>
-                      <span className="font-semibold text-slate-900">{orderTotals.totalCbm} CBM</span>
-                    </div>
-
-                    <div className="py-2.5 flex items-center justify-between bg-red-50/60 px-2 rounded-lg mt-1">
-                      <span className="font-bold text-[#EA1D2C]">Chargeable Weight</span>
-                      <span className="font-bold text-base text-[#EA1D2C] tabular-nums">
-                        {orderTotals.chargeableWeight} KG
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Primary Dispatch Button */}
-                  <div className="pt-2 space-y-2">
-                    <button
-                      type="submit"
-                      disabled={submittingConsignment}
-                      className="w-full py-3 px-4 rounded-xl bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-sm cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      {submittingConsignment ? (
-                        <>
-                          <svg className="w-4 h-4 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                          </svg>
-                          <span>Creating Consignment...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Create &amp; Dispatch Order</span>
-                          <span className="font-bold">→</span>
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => switchTab('orders')}
-                      className="w-full py-2.5 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs transition-none cursor-pointer text-center"
-                    >
-                      Cancel &amp; Return to Orders
-                    </button>
-                  </div>
-
-                  {/* NBR & Customs Compliance Note */}
-                  <div className="pt-2 text-[10px] text-slate-400 text-center leading-relaxed">
-                    National Board of Revenue (NBR) Mushak 6.3 compliant manifest generation. Real-time telemetry initialized.
-                  </div>
-                </div>
-
-                {/* Hub & Warehouse Coordinates Card */}
-                <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-sm space-y-3.5">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-4 h-4 text-slate-500 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-                        <circle cx="12" cy="10" r="3" />
-                      </svg>
-                      <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-['Manrope',sans-serif]">
-                        Hub &amp; Warehouse Coordinates
-                      </h3>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 font-mono">
-                      {selectedOriginWarehouse?.code || 'CN'} → {selectedDestWarehouse?.code || 'DEST'}
-                    </span>
-                  </div>
-
-                  {/* Origin Warehouse Address */}
-                  {selectedOriginWarehouse && (
-                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-                      <div className="flex items-center justify-between text-slate-500 mb-0.5">
-                        <span className="font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-800">
-                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-800">CN</span> Origin Hub ({selectedOriginWarehouse.city})
-                        </span>
-                        <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
-                          {selectedOriginWarehouse.code}
-                        </span>
-                      </div>
-                      <p className="text-slate-700 font-medium leading-relaxed">
-                        {selectedOriginWarehouse.address}
-                      </p>
-                      {selectedOriginWarehouse.phone && (
-                        <div className="pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
-                          <span>Intake Contact:</span>
-                          <span className="font-mono font-medium text-slate-800">{selectedOriginWarehouse.phone}</span>
+                    {/* Financial Cost Breakdown */}
+                    <div className="divide-y divide-slate-100 text-xs">
+                      {(orderScope === 'both' || orderScope === 'sourcing') && (
+                        <div className="py-2 flex items-center justify-between">
+                          <span className="text-slate-500">China Purchase (RMB)</span>
+                          <span className="font-semibold text-slate-900 font-mono">
+                            ¥{dynamicFinanceTotals.totalRmb.toLocaleString()}
+                          </span>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {/* Destination Warehouse Address */}
-                  {selectedDestWarehouse && (
-                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-                      <div className="flex items-center justify-between text-slate-500 mb-0.5">
-                        <span className="font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 text-slate-800">
-                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-800">{newDestCountry === 'Malaysia' ? 'MY' : 'BD'}</span> Destination Hub ({selectedDestWarehouse.city})
-                        </span>
-                        <span className="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold text-slate-700">
-                          {selectedDestWarehouse.code}
-                        </span>
-                      </div>
-                      <p className="text-slate-700 font-medium leading-relaxed">
-                        {selectedDestWarehouse.address}
-                      </p>
-                      {selectedDestWarehouse.phone && (
-                        <div className="pt-1.5 border-t border-slate-200/60 text-[11px] text-slate-500 flex items-center justify-between">
-                          <span>Dispatch Hub:</span>
-                          <span className="font-mono font-medium text-slate-800">{selectedDestWarehouse.phone}</span>
+                      {(orderScope === 'both' || orderScope === 'sourcing') && (
+                        <div className="py-2 flex items-center justify-between">
+                          <span className="text-slate-500">Purchase Cost (BDT)</span>
+                          <span className="font-semibold text-slate-900 font-mono">
+                            ৳{dynamicFinanceTotals.purchaseCostBdt.toLocaleString()}
+                          </span>
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {/* Transit SLA */}
-                  <div className="p-3 rounded-lg bg-red-50/60 border border-red-100 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <svg className="w-3.5 h-3.5 text-[#EA1D2C] stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                      </svg>
-                      <span className="font-semibold text-slate-800 text-[11px]">
-                        {newMode === 'air' ? 'Air Cargo' : newMode === 'sea' ? 'Ocean Freight' : 'Hand Carry'} SLA
-                      </span>
+                      {(orderScope === 'both' || orderScope === 'freight') && (
+                        <div className="py-2 flex items-center justify-between">
+                          <span className="text-slate-500">Int'l Freight Charge</span>
+                          <span className="font-semibold text-slate-900 font-mono">
+                            ৳{dynamicFinanceTotals.intlFreightBdt.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="py-2.5 flex items-center justify-between bg-slate-50 px-2 rounded-lg mt-1">
+                        <span className="font-bold text-slate-900">Total Billed</span>
+                        <span className="font-bold text-base text-slate-900 font-mono">
+                          ৳{dynamicFinanceTotals.totalBillBdt.toLocaleString()}
+                        </span>
+                      </div>
+
+                      {/* Advance Payment Input */}
+                      <div className="py-3 space-y-1.5">
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                          Advance Paid (BDT)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={advancePaidBdt}
+                          onChange={(e) => setAdvancePaidBdt(Math.max(0, parseFloat(e.target.value) || 0))}
+                          placeholder="0"
+                          className="w-full h-9 px-3 rounded-lg border border-slate-300 font-mono font-bold text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        />
+                      </div>
+
+                      <div className="py-2 flex items-center justify-between bg-red-50/60 px-2 rounded-lg">
+                        <span className="font-bold text-[#EA1D2C]">Balance Due</span>
+                        <span className="font-bold text-base text-[#EA1D2C] font-mono">
+                          ৳{dynamicFinanceTotals.dueBdt.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <span className="font-mono text-[11px] font-bold text-[#EA1D2C]">
-                      {newMode === 'air' ? '7–14 Days' : newMode === 'sea' ? '30–45 Days' : '24–48 Hours'}
-                    </span>
+
+                    {/* Order Remarks */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                        Internal Remarks / Notes
+                      </label>
+                      <textarea
+                        value={orderRemarks}
+                        onChange={(e) => setOrderRemarks(e.target.value)}
+                        rows={2}
+                        placeholder="e.g. Urgent air cargo, special clearance instructions..."
+                        className="w-full p-2.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none bg-white"
+                      />
+                    </div>
+
+                    {/* Primary Submit Button */}
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={submittingConsignment}
+                        className="w-full py-3 px-4 rounded-xl bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-sm cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {submittingConsignment ? (
+                          <>
+                            <svg className="w-4 h-4 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                            </svg>
+                            <span>Recording &amp; Syncing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <line x1="12" y1="5" x2="12" y2="19" />
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            <span>Dispatch &amp; Create Order</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
                   </div>
                 </div>
 
@@ -4257,453 +4334,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             </form>
           </div>
         )}
+
         {/* ========================================================= */}
         {/* TAB: UNIFIED ORDERS & SOURCING POS LEDGER DESK            */}
         {/* ========================================================= */}
         {(activeTab === 'shipments' || activeTab === 'tracking' || activeTab === 'orders' || activeTab === 'pos_ledger' || activeTab === 'ledger') && (
           <div className="space-y-6">
-            {/* Top Level Sub-view Segmented Switcher & Quick Actions */}
-            <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => switchOrdersView('sourcing')}
-                  className={`h-9 px-4 rounded-lg text-xs font-bold flex items-center gap-2 transition-none cursor-pointer ${
-                    ordersSubView === 'sourcing'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
-                  }`}
-                  title="Operations ledger with RMB costs, freight charges, and Google Sheet sync"
-                >
-                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <rect width="18" height="18" x="3" y="3" rx="2" />
-                    <path d="M3 9h18" />
-                    <path d="M9 21V9" />
-                    <path d="m14 13 2 2 4-4" />
-                  </svg>
-                  <span>Ledger View (POS &amp; Sourcing)</span>
-                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                    ordersSubView === 'sourcing' ? 'bg-[#EA1D2C] text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    POS
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => switchOrdersView('freight')}
-                  className={`h-9 px-4 rounded-lg text-xs font-bold flex items-center gap-2 transition-none cursor-pointer ${
-                    ordersSubView === 'freight'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
-                  }`}
-                  title="Summary view of active international cargo shipments and tracking status"
-                >
-                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="m7.5 4.27 9 5.15" />
-                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                    <path d="m3.3 7 8.7 5 8.7-5" />
-                    <path d="M12 22V12" />
-                  </svg>
-                  <span>Summary View (Freight Shipments)</span>
-                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                    ordersSubView === 'freight' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
-                  }`}>
-                    {shipments.length}
-                  </span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUnifiedOrderModalTab(ordersSubView === 'freight' ? 'freight' : 'sourcing');
-                    setIsUnifiedOrderModalOpen(true);
-                  }}
-                  className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-none cursor-pointer"
-                  title="Create New Order or Consignment"
-                >
-                  <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  <span>+ Create Order</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Sub-view 1: Sourcing POS Ledger Terminal */}
-            {ordersSubView === 'sourcing' && (
-              <PosLedgerTerminal showToast={showToast} />
-            )}
-
-            {/* Sub-view 2: Freight Shipments Desk */}
-            {ordersSubView === 'freight' && (
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200/90 space-y-5 shadow-xs">
-                {/* Header: Breadcrumb Pill, Executive Title, Sync & New Consignment Action */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Freight Desk
-                      </span>
-                      <span className="text-slate-300">·</span>
-                      <span className="text-[11px] font-mono font-medium text-slate-500">
-                        {shipments.length} Active Shipments
-                      </span>
-                    </div>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 font-['Manrope',sans-serif] tracking-tight">
-                      All Freight Shipments &amp; Consignments
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Track live shipments, update delivery progress, and manage customs clearance.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewCustomTrackingNumber('');
-                        switchTab('new_order');
-                      }}
-                      className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-none cursor-pointer"
-                      title="Create New Consignment Order"
-                    >
-                      <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                      </svg>
-                      <span>New Order</span>
-                    </button>
-                  </div>
-                </div>
-
-            {/* Quick KPI Overview Strip */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-lg border border-slate-200/80 bg-slate-50/50">
-                <div className="text-[11px] font-semibold text-slate-500">Total Weight</div>
-                <div className="text-lg font-bold font-mono text-slate-900 mt-1">
-                  {shipments.reduce((acc, s) => acc + (s.totalWeightKg || 0), 0).toLocaleString()} <span className="text-xs text-slate-400 font-sans">KG</span>
-                </div>
-                <div className="text-[10px] text-slate-400 mt-0.5">{shipments.length} Active Shipments</div>
-              </div>
-
-              <div className="p-3.5 rounded-lg border border-blue-100 bg-blue-50/40">
-                <div className="text-[11px] font-semibold text-blue-700">In Transit</div>
-                <div className="text-lg font-bold font-mono text-blue-900 mt-1">
-                  {shipments.filter(s => ['dispatched_from_china', 'arrived_dhaka_airport', 'in_transit'].includes(s.status)).length}
-                </div>
-                <div className="text-[10px] text-blue-600 mt-0.5">Air &amp; Sea Shipments</div>
-              </div>
-
-              <div className="p-3.5 rounded-lg border border-amber-100 bg-amber-50/40">
-                <div className="text-[11px] font-semibold text-amber-700">In Customs</div>
-                <div className="text-lg font-bold font-mono text-amber-900 mt-1">
-                  {shipments.filter(s => ['awaiting_customs', 'customs_clearance'].includes(s.status)).length}
-                </div>
-                <div className="text-[10px] text-amber-600 mt-0.5">Dhaka &amp; Chittagong Customs</div>
-              </div>
-
-              <div className="p-3.5 rounded-lg border border-emerald-100 bg-emerald-50/40">
-                <div className="text-[11px] font-semibold text-emerald-700">Delivered</div>
-                <div className="text-lg font-bold font-mono text-emerald-900 mt-1">
-                  {shipments.filter(s => ['out_for_delivery', 'delivered'].includes(s.status)).length}
-                </div>
-                <div className="text-[10px] text-emerald-600 mt-0.5">Delivered to Customer</div>
-              </div>
-            </div>
-
-            {/* Filter and Search Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2 rounded-lg bg-slate-50 border border-slate-200/80">
-              <div className="relative flex-1 min-w-[200px]">
-                <svg className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <input
-                  type="text"
-                  value={shipmentSearch}
-                  onChange={(e) => setShipmentSearch(e.target.value)}
-                  placeholder="Search by name, company, email, phone, or tracking #..."
-                  className="w-full h-9 pl-8 pr-8 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-300"
-                />
-                {shipmentSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setShipmentSearch('')}
-                    className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-sm font-bold cursor-pointer transition-none"
-                    title="Clear search"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <ReferenceSelect
-                  value={shipmentModeFilter}
-                  onChange={(val) => setShipmentModeFilter(val)}
-                  size="sm"
-                  className="w-44 shrink-0"
-                  options={[
-                    { value: 'all', label: 'All Shipping Modes' },
-                    { value: 'air', label: 'By Air', badge: 'Air' },
-                    { value: 'sea', label: 'By Ship', badge: 'Sea' },
-                    { value: 'hand_carry', label: 'Hand Carry', badge: 'Express' }
-                  ]}
-                />
-
-                <ReferenceSelect
-                  value={shipmentStatusFilter}
-                  onChange={(val) => setShipmentStatusFilter(val)}
-                  size="sm"
-                  className="w-48 shrink-0"
-                  options={[
-                    { value: 'all', label: 'All Statuses' },
-                    { value: 'purchased', label: 'PURCHASED' },
-                    { value: 'cn_warehouse_received', label: 'CN WAREHOUSE RECEIVED' },
-                    { value: 'dispatched_from_china', label: 'DISPATCHED FROM CHINA' },
-                    { value: 'arrived_dhaka_airport', label: 'ARRIVED DHAKA AIRPORT' },
-                    { value: 'awaiting_customs', label: 'AWAITING CUSTOMS' },
-                    { value: 'bd_warehouse_received', label: 'BD WAREHOUSE RECEIVED' },
-                    { value: 'payment_received', label: 'PAYMENT RECEIVED' },
-                    { value: 'out_for_delivery', label: 'OUT FOR DELIVERY' },
-                    { value: 'delivered', label: 'DELIVERED' }
-                  ]}
-                  searchable={true}
-                />
-
-                <span className="text-[11px] font-mono font-medium text-slate-500 whitespace-nowrap px-1">
-                  {filteredShipments.length} {filteredShipments.length === 1 ? 'order' : 'orders'}
-                </span>
-              </div>
-            </div>
-
-            {/* Redesigned Consignments Table with Proportional Widths and Zero Cutoff */}
-            <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-2xs">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-slate-50 text-slate-600 font-semibold text-[11px] border-b border-slate-200 tracking-wider">
-                  <tr>
-                    <th className="py-2.5 px-3 w-[150px]">Tracking Number</th>
-                    <th className="py-2.5 px-3 w-[170px]">Customer &amp; Destination</th>
-                    <th className="py-2.5 px-3 w-[150px]">Route &amp; Mode</th>
-                    <th className="py-2.5 px-3 w-[135px]">Cargo Details</th>
-                    <th className="py-2.5 px-3 w-[170px]">Current Location</th>
-                    <th className="py-2.5 px-3 w-[160px]">Status</th>
-                    <th className="py-2.5 px-3 w-[95px] text-right pr-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {filteredShipments.map((s, idx) => {
-                    const linkedCust = allCustomerOptions.find((c) => {
-                      const matchId = c.id && s.customerId && c.id.toLowerCase() === s.customerId.toLowerCase();
-                      const matchName = c.fullName && s.customerName && c.fullName.toLowerCase() === s.customerName.toLowerCase();
-                      const matchComp = c.companyName && s.customerName && c.companyName.toLowerCase() === s.customerName.toLowerCase();
-                      const matchEmail = c.email && s.customerEmail && c.email.toLowerCase() === s.customerEmail.toLowerCase();
-                      return matchId || matchName || matchComp || matchEmail;
-                    });
-                    const customerCompany = linkedCust?.companyName;
-                    const customerEmail = s.customerEmail || linkedCust?.email;
-                    const customerPhone = s.customerPhone || linkedCust?.phone;
-
-                    return (
-                      <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
-                        {/* 1. Tracking & Waybill */}
-                        <td className="py-2.5 px-3 font-mono">
-                          <div className="flex items-center gap-1">
-                            <span className="font-bold text-slate-900 text-xs tracking-tight">
-                              {s.trackingNumber}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(s.trackingNumber);
-                                setCopiedTracking(s.trackingNumber);
-                                setTimeout(() => setCopiedTracking(null), 2000);
-                              }}
-                              title="Copy tracking number"
-                              className="p-0.5 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-none cursor-pointer"
-                            >
-                              {copiedTracking === s.trackingNumber ? (
-                                <span className="text-[9px] text-emerald-600 font-bold font-sans">Copied!</span>
-                              ) : (
-                                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                                </svg>
-                              )}
-                            </button>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <a
-                              href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[10px] font-semibold font-sans text-[#EA1D2C] bg-red-50 hover:bg-red-100 border border-red-200 transition-none"
-                            >
-                              <span>Track</span>
-                              <span>↗</span>
-                            </a>
-                            <span className="text-[10px] text-slate-400 font-mono truncate max-w-[80px]">
-                              {s.lastUpdatedBst?.split(',')[0] || 'Recent'}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* 2. Client & Destination */}
-                        <td className="py-2.5 px-3">
-                          <div className="font-bold text-slate-900 text-xs truncate max-w-[165px]">
-                            {s.customerName}
-                          </div>
-                          {customerCompany && (
-                            <div className="text-[11px] font-medium text-slate-700 truncate max-w-[165px]">
-                              {customerCompany}
-                            </div>
-                          )}
-                          {(customerEmail || customerPhone) && (
-                            <div className="text-[10px] text-slate-500 truncate max-w-[165px] font-mono">
-                              {customerPhone || customerEmail}
-                            </div>
-                          )}
-                          <div className="text-[10px] text-slate-400 truncate max-w-[165px] mt-0.5">
-                            {s.recipientAddress}
-                          </div>
-                        </td>
-
-                      {/* 3. Corridor & Mode */}
-                      <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1 font-bold text-slate-900 text-xs">
-                          <span>{s.originCity}</span>
-                          <span className="text-slate-400 font-normal">→</span>
-                          <span>{s.destCity}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase border ${
-                            s.mode === 'air'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : s.mode === 'sea'
-                              ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}>
-                            {s.mode === 'air' ? 'BY AIR' : s.mode === 'sea' ? 'BY SHIP' : s.mode === 'hand_carry' ? 'HAND CARRY' : s.mode.toUpperCase()}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-500 truncate max-w-[100px]">
-                            {s.voyageOrFlightNumber}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 4. Cargo Specifications */}
-                      <td className="py-2.5 px-3">
-                        <div className="font-bold font-mono text-slate-900 text-xs">
-                          {s.totalWeightKg.toLocaleString()} KG
-                          <span className="text-slate-400 font-normal"> · </span>
-                          <span className="text-slate-600 font-mono">{s.totalCbm}m³</span>
-                        </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">
-                          {s.totalPieces || s.items.length} units ({s.items[0]?.packagingType?.replace('_', ' ') || 'carton'})
-                        </div>
-                      </td>
-
-                      {/* 5. Current Waypoint & Progress */}
-                      <td className="py-2.5 px-3">
-                        <div className="font-medium text-slate-800 text-[11px] truncate max-w-[160px]">
-                          {s.currentLocation}
-                        </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <div className="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden shrink-0">
-                            <div
-                              className="h-full bg-emerald-500 rounded-full transition-none"
-                              style={{ width: `${s.physicalProgress?.percentage || 0}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] font-mono font-bold text-slate-600">
-                            {s.physicalProgress?.percentage || 0}%
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 6. Operational Status (Sleek Interactive Dropdown) */}
-                      <td className="py-2.5 px-3">
-                        <StatusQuickDropdown
-                          shipmentId={s.id}
-                          currentStatus={s.status}
-                          onUpdate={handleQuickStatusUpdate}
-                          openUpward={idx >= Math.max(0, filteredShipments.length - 3)}
-                        />
-                      </td>
-
-                      {/* 7. Actions Desk */}
-                      <td className="py-2.5 px-3 text-right pr-3">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <a
-                            href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="h-7 px-2 inline-flex items-center gap-1 rounded-md text-xs font-semibold text-slate-700 bg-white hover:text-[#EA1D2C] hover:bg-red-50/50 border border-slate-200 hover:border-red-200 shadow-2xs hover:shadow-xs transition-colors cursor-pointer group shrink-0"
-                            title="Open Live Multi-Modal Tracker"
-                          >
-                            <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#EA1D2C] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <circle cx="12" cy="12" r="10" />
-                              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.2" />
-                            </svg>
-                            <span className="hidden sm:inline">Track</span>
-                            <svg className="w-3 h-3 text-slate-400 group-hover:text-[#EA1D2C] -ml-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                              <path d="M7 17l9.2-9.2M17 17V8H8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </a>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpenGenerateInvoice(s)}
-                            className="h-7 px-2.5 inline-flex items-center gap-1 rounded-md bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition-colors cursor-pointer"
-                            title="Generate invoice & select arrived products for payment collection"
-                          >
-                            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                              <polyline points="14 2 14 8 20 8" />
-                              <line x1="16" y1="13" x2="8" y2="13" />
-                              <line x1="16" y1="17" x2="8" y2="17" />
-                            </svg>
-                            <span>Invoice</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteShipment(s.id, s.trackingNumber)}
-                            className="h-7 w-7 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition-colors cursor-pointer"
-                            title="Delete Order"
-                            aria-label="Delete Order"
-                          >
-                            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path d="M3 6h18"/>
-                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                  {filteredShipments.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
-                        <div className="space-y-1">
-                          <div className="font-semibold text-slate-600 text-sm">No orders found</div>
-                          <div className="text-xs text-slate-400">Try adjusting your search query or mode/status filters.</div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-              </div>
-            )}
+            <PosLedgerTerminal showToast={showToast} />
           </div>
         )}
 
@@ -5844,14 +5481,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <line x1="12" y1="5" x2="12" y2="19" />
                       <line x1="5" y1="12" x2="19" y2="12" />
                     </svg>
-                    <span>+ Add Warehouse</span>
+                    <span>Add Warehouse</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => switchTab('new_order')}
                     className="px-3.5 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-none cursor-pointer"
                   >
-                    + Create Order
+                    Create Order
                   </button>
                 </div>
               </div>
@@ -6061,7 +5698,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   onClick={openAddWarehouseModal}
                   className="px-4 py-2 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-95 cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
                 >
-                  + Add New Warehouse
+                  Add New Warehouse
                 </button>
               </div>
             )}
@@ -7876,7 +7513,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <div className="flex items-center justify-between border-b border-slate-200 pb-3">
               <div>
                 <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
-                  + Add Warehouse Facility
+                  Add Warehouse Facility
                 </h3>
                 <p className="text-xs text-slate-500">
                   Register a new receiving, bonded CFS, or fulfillment hub.
@@ -8058,7 +7695,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   disabled={submittingWarehouse}
                   className="px-5 py-2 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold transition-none shadow-2xs cursor-pointer disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  {submittingWarehouse ? 'Registering...' : '+ Create Warehouse Hub'}
+                  {submittingWarehouse ? 'Registering...' : 'Create Warehouse Hub'}
                 </button>
               </div>
             </form>
@@ -8326,17 +7963,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         </div>
       )}
 
-      {/* Unified Create Order Modal */}
-      <UnifiedCreateOrderModal
-        isOpen={isUnifiedOrderModalOpen}
-        initialTab={unifiedOrderModalTab}
-        onClose={() => setIsUnifiedOrderModalOpen(false)}
-        onOrderCreated={(orderType) => {
-          loadData();
-        }}
-        showToast={showToast}
-        customers={customers}
-      />
+
 
       {/* Global Toast Notification */}
       {toastNotification && (

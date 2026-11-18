@@ -1,4 +1,5 @@
 import { ShipmentService } from './shipment.service';
+import { PosLedgerService } from './posLedger.service';
 
 export interface QuoteRevision {
   id: string;
@@ -381,6 +382,40 @@ export class QuoteService {
     quote.status = 'converted_to_shipment';
     quote.convertedShipmentId = newShipment.id;
     quote.updatedAt = new Date().toISOString();
+
+    // Auto-create corresponding entry in master POS Sourcing & Freight Ledger
+    try {
+      const agreedAmount =
+        overrides?.negotiatedPrice !== undefined && overrides.negotiatedPrice > 0
+          ? Number(overrides.negotiatedPrice)
+          : (quote.revisions[0]?.totalAmount || 0);
+
+      const freightRateCalc = totalWeightKg > 0 && agreedAmount > 0 ? Math.round(agreedAmount / totalWeightKg) : 950;
+
+      await PosLedgerService.createRecord({
+        customerName: quote.guestName || 'Valued Customer',
+        mobileNo: quote.guestPhone || '',
+        importerClient: quote.guestName || '',
+        shippingMark: quote.quoteNumber,
+        itemDetails: productName || cargoDescription || 'Commercial Freight Cargo',
+        supplierName: 'GoShipping Logistics Direct',
+        serviceType: 'International Freight Cargo',
+        cnWeightKg: totalWeightKg,
+        bdWeightKg: totalWeightKg,
+        shippingRatePerKgBdt: freightRateCalc,
+        internationalFreightBdt: agreedAmount,
+        totalBillBdt: agreedAmount,
+        paymentStatus: 'Due',
+        currentStatus: 'Processing',
+        orderDate: new Date().toISOString().split('T')[0],
+        cnDate: new Date().toISOString().split('T')[0],
+        bdCourierName: 'Steadfast',
+        bdTrackingNo: newShipment.trackingNumber,
+        remark: `Converted from Quote #${quote.quoteNumber} (Consignment: ${newShipment.trackingNumber})`
+      });
+    } catch (ledgerErr) {
+      console.error('[QuoteService] Failed to auto-create POS ledger for converted quote:', ledgerErr);
+    }
 
     return { quote, shipmentId: newShipment.id, shipment: newShipment };
   }

@@ -147,7 +147,7 @@ export default function GlobalSearchIsland({ portalType = 'customer' }: Props) {
     {
       id: 'act-new-booking',
       category: 'action',
-      title: '+ New Freight Booking',
+      title: 'New Freight Booking',
       subtitle: 'Request quotation & assign China warehouse mark',
       badge: 'ACTION',
       tabKey: 'request-quote',
