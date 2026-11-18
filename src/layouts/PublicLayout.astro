@@ -15,7 +15,7 @@ interface Props {
 }
 
 const {
-  title = "Go Shipping | China to Bangladesh Shipping & Logistics",
+  title = "Go Shipping",
   description = "Reliable China to Bangladesh air and sea shipment services with door-to-door delivery, secure cargo handling and logistics support.",
   keywords = "China to Bangladesh shipping, China to Bangladesh logistics, China to Bangladesh air shipment, China to Bangladesh sea shipment, door-to-door delivery Bangladesh, China cargo forwarding, Guangzhou to Dhaka freight, Shenzhen to Chittagong shipping, customs clearance Bangladesh, DDP shipping Bangladesh, China warehouse support, e-commerce shipping Bangladesh, Go Shipping, goshipping.com.bd",
   currentPath = '/',
@@ -36,8 +36,11 @@ const user = Astro.locals?.user;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
-    <link rel="alternate icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
-    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/brand/favicon-192.png" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/brand/favicon-64.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/apple-touch-icon.png" />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="keywords" content={keywords} />
@@ -45,6 +48,10 @@ const user = Astro.locals?.user;
     <link rel="canonical" href={canonicalUrl} />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#EA1D2C" />
+
+    <!-- Google Search Site Name & Mobile Web App Identity -->
+    <meta name="application-name" content="Go Shipping" />
+    <meta name="apple-mobile-web-app-title" content="Go Shipping" />
 
     <!-- Open Graph / Facebook / WhatsApp / LinkedIn Preview (1200x630 High Res) -->
     <meta property="og:type" content="website" />
@@ -84,88 +91,102 @@ const user = Astro.locals?.user;
     <!-- Multi-Platform Tracking & DataLayer (GTM, Meta Pixel, TikTok, GA4, LinkedIn) -->
     <TrackingHead config={trackingConfig} siteOrigin={siteOrigin} />
 
-    <!-- Structured Data: Organization & LogisticsService (JSON-LD with Dynamic Domain) -->
+    <!-- 1. Google Search Official Site Name Structured Data (JSON-LD WebSite) -->
     <script type="application/ld+json" set:html={JSON.stringify({
       "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "LogisticsService",
-          "@id": `${siteOrigin}/#organization`,
-          "name": "Go Shipping",
-          "alternateName": ["GoShipping", "Go Shipping Bangladesh"],
-          "url": siteOrigin,
-          "logo": `${siteOrigin}/brand/logo-light.svg`,
-          "image": `${siteOrigin}/brand/logo-light.svg`,
-          "description": "Reliable China to Bangladesh air and sea shipment services with door-to-door delivery, secure cargo handling and logistics support.",
-          "telephone": "+8801797252627",
-          "email": "hello@goshipping.com.bd",
-          "priceRange": "$$",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "Dhaka",
-            "addressCountry": "BD"
-          },
-          "areaServed": [
-            { "@type": "Country", "name": "Bangladesh" },
-            { "@type": "Country", "name": "China" }
-          ],
-          "sameAs": [
-            "https://wa.me/8801797252627"
-          ],
-          "hasOfferCatalog": {
-            "@type": "OfferCatalog",
-            "name": "China to Bangladesh Shipping Services",
-            "itemListElement": [
-              {
-                "@type": "Offer",
-                "itemOffered": {
-                  "@type": "Service",
-                  "name": "China to Bangladesh Air Shipment",
-                  "description": "Fast air cargo service with 3-5 days delivery from Guangzhou/Shenzhen to Dhaka."
-                }
-              },
-              {
-                "@type": "Offer",
-                "itemOffered": {
-                  "@type": "Service",
-                  "name": "China to Bangladesh Sea Shipment",
-                  "description": "Cost-effective FCL and LCL container maritime shipping from Guangzhou and Shenzhen to Chittagong Port."
-                }
-              },
-              {
-                "@type": "Offer",
-                "itemOffered": {
-                  "@type": "Service",
-                  "name": "Door-to-Door Delivery Bangladesh",
-                  "description": "All-inclusive DDP freight forwarding with customs clearance and doorstep delivery across Bangladesh."
-                }
-              },
-              {
-                "@type": "Offer",
-                "itemOffered": {
-                  "@type": "Service",
-                  "name": "China Warehouse Support",
-                  "description": "Consolidation warehouses in Guangzhou, Yiwu, and Shenzhen for online sellers and commercial importers."
-                }
-              }
-            ]
-          }
+      "@type": "WebSite",
+      "@id": "https://goshipping.com.bd/#website",
+      "name": "Go Shipping",
+      "alternateName": [
+        "GoShipping",
+        "Go Shipping Bangladesh",
+        "GoShipping BD",
+        "goshipping.com.bd",
+        "www.goshipping.com.bd"
+      ],
+      "url": "https://goshipping.com.bd/",
+      "inLanguage": "en-US",
+      "publisher": {
+        "@type": "Organization",
+        "name": "Go Shipping",
+        "url": "https://goshipping.com.bd/",
+        "logo": `${siteOrigin}/brand/logo-light.svg`
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": `${siteOrigin}/tracking?code={search_term_string}`
         },
-        {
-          "@type": "WebSite",
-          "@id": `${siteOrigin}/#website`,
-          "url": siteOrigin,
-          "name": "Go Shipping",
-          "publisher": {
-            "@id": `${siteOrigin}/#organization`
+        "query-input": "required name=search_term_string"
+      }
+    })} />
+
+    <!-- 2. Organization & LogisticsService Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LogisticsService",
+      "@id": "https://goshipping.com.bd/#organization",
+      "name": "Go Shipping",
+      "legalName": "Go Shipping",
+      "alternateName": ["GoShipping", "Go Shipping Bangladesh", "GoShipping BD", "goshipping.com.bd"],
+      "url": "https://goshipping.com.bd/",
+      "logo": `${siteOrigin}/brand/logo-light.svg`,
+      "image": `${siteOrigin}/brand/logo-light.svg`,
+      "description": "Reliable China to Bangladesh air and sea shipment services with door-to-door delivery, secure cargo handling and logistics support.",
+      "telephone": "+8801797252627",
+      "email": "hello@goshipping.com.bd",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Dhaka",
+        "addressCountry": "BD"
+      },
+      "areaServed": [
+        { "@type": "Country", "name": "Bangladesh" },
+        { "@type": "Country", "name": "China" }
+      ],
+      "sameAs": [
+        "https://wa.me/8801797252627"
+      ],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "China to Bangladesh Shipping Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "China to Bangladesh Air Shipment",
+              "description": "Fast air cargo service with 3-5 days delivery from Guangzhou/Shenzhen to Dhaka."
+            }
           },
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": `${siteOrigin}/tracking?code={search_term_string}`,
-            "query-input": "required name=search_term_string"
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "China to Bangladesh Sea Shipment",
+              "description": "Cost-effective FCL and LCL container maritime shipping from Guangzhou and Shenzhen to Chittagong Port."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Door-to-Door Delivery Bangladesh",
+              "description": "All-inclusive DDP freight forwarding with customs clearance and doorstep delivery across Bangladesh."
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "China Warehouse Support",
+              "description": "Consolidation warehouses in Guangzhou, Yiwu, and Shenzhen for online sellers and commercial importers."
+            }
           }
-        }
-      ]
+        ]
+      }
     })} />
     
     <!-- Page-Specific Head & Schema Injection Slot -->
