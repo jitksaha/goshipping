@@ -1,15 +1,27 @@
 ---
 import { destroySession } from '../server/auth/session';
 
+const rawHost = Astro.request.headers.get('host') || Astro.url.hostname;
+const hostname = rawHost.split(':')[0].toLowerCase();
+const isAdminHost = hostname.startsWith('admin.') || hostname.startsWith('superadmin.') || hostname.includes('admin.goshipping');
+const portalParam = Astro.url.searchParams.get('portal');
+const isAdmin = isAdminHost || portalParam === 'admin';
+
 // Extract session cookie
 const sessionCookie = Astro.cookies.get('goshipping_session')?.value;
 if (sessionCookie) {
   await destroySession(sessionCookie);
 }
 
-// Invalidate cookie
+// Invalidate cookie across both host-only and domain-wide scopes
 Astro.cookies.delete('goshipping_session', { path: '/' });
+if (hostname.includes('goshipping.com.bd')) {
+  Astro.cookies.delete('goshipping_session', { path: '/', domain: '.goshipping.com.bd' });
+}
 
-// Redirect to login page
+// Redirect to appropriate login gateway
+if (isAdmin) {
+  return Astro.redirect('/admin/login?message=logged_out');
+}
 return Astro.redirect('/login?message=logged_out');
 ---

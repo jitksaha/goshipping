@@ -1,0 +1,214 @@
+---
+import '../../styles/global.css';
+import { getSiteOrigin } from '../../server/utils/domain';
+
+const message = Astro.url.searchParams.get('message') || '';
+const siteOrigin = getSiteOrigin(Astro.request);
+const rawHost = Astro.request.headers.get('host') || Astro.url.hostname;
+const hostname = rawHost.split(':')[0].toLowerCase();
+const isLiveDomain = hostname.includes('goshipping.com.bd');
+const publicCustomerPortalUrl = isLiveDomain ? 'https://goshipping.com.bd/login' : '/login';
+---
+
+<!doctype html>
+<html lang="en" class="overflow-x-clip bg-[#0B0F13]">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+    <link rel="alternate icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <title>Super Admin Gateway | GoShipping Enterprise Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[#0B0F13] text-slate-100 min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-10 font-['Inter',sans-serif] overflow-x-clip">
+    
+    <main class="w-full max-w-[480px] bg-[#11181E] rounded-xl border border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6">
+      
+      <!-- Top Gateway Security Badge & Brand Header -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <a href="/" class="inline-flex items-center" aria-label="GoShipping Home">
+            <img
+              src="/brand/logo-dark.svg"
+              alt="GoShipping"
+              class="h-8 w-auto object-contain brightness-110"
+              onerror="this.onerror=null; this.src='/brand/logo-light.svg';"
+            />
+          </a>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-950/70 border border-red-700/60 text-red-300 font-mono text-[10px] uppercase tracking-wider font-semibold">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+            Super Admin
+          </span>
+        </div>
+
+        <div class="pt-2">
+          <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white font-['Manrope',sans-serif]">
+            Enterprise Command Center
+          </h1>
+          <p class="text-xs text-slate-400 mt-1">
+            Restricted Super Administrator Gateway. All access attempts are cryptographically audited.
+          </p>
+        </div>
+      </div>
+
+      <!-- Security Notice Banner -->
+      <div class="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300 space-y-1">
+        <div class="flex items-center gap-1.5 font-semibold text-amber-400">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <span>Restricted Operational Surface</span>
+        </div>
+        <p class="text-slate-400 text-[11px] leading-relaxed">
+          This portal is reserved strictly for designated Super Administrators. Client and general staff accounts must authenticate via the standard portal.
+        </p>
+      </div>
+
+      <!-- Logout / Status Messages -->
+      {message === 'logged_out' && (
+        <div class="p-3 rounded-md bg-emerald-950/60 border border-emerald-800/60 text-xs text-emerald-300 font-medium flex items-center gap-2">
+          <svg class="w-4 h-4 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Admin session terminated safely.</span>
+        </div>
+      )}
+
+      <!-- Error Box -->
+      <div id="admin-error-box" class="hidden p-3 rounded-md bg-red-950/60 border border-red-800/80 text-xs text-red-300 font-medium leading-relaxed"></div>
+
+      <!-- Super Admin Login Form -->
+      <form id="admin-login-form" class="space-y-4 text-xs">
+        <div>
+          <label for="admin-email" class="block font-semibold text-slate-300 mb-1.5">
+            Super Administrator Email
+          </label>
+          <div class="relative">
+            <input
+              id="admin-email"
+              type="email"
+              required
+              autocomplete="email"
+              placeholder="superadmin@goshipping.com"
+              class="w-full h-11 px-3.5 rounded-md bg-[#18222C] border border-slate-700 hover:border-slate-600 focus:bg-[#1E2B38] focus:border-[#EA1D2C] focus:ring-2 focus:ring-[#EA1D2C]/25 text-sm text-white placeholder-slate-500 font-mono transition-colors outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1.5">
+            <label for="admin-password" class="block font-semibold text-slate-300">
+              Master Password
+            </label>
+          </div>
+          <input
+            id="admin-password"
+            type="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••••••"
+            class="w-full h-11 px-3.5 rounded-md bg-[#18222C] border border-slate-700 hover:border-slate-600 focus:bg-[#1E2B38] focus:border-[#EA1D2C] focus:ring-2 focus:ring-[#EA1D2C]/25 text-sm text-white placeholder-slate-500 font-mono transition-colors outline-none"
+          />
+        </div>
+
+        <button
+          type="submit"
+          id="admin-submit-btn"
+          class="w-full h-11 rounded-md bg-[#EA1D2C] text-white font-semibold text-sm hover:bg-[#D41523] active:bg-[#B7101C] transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>Authenticate & Access Dashboard →</span>
+        </button>
+      </form>
+
+      <!-- System Telemetry & Encryption Status -->
+      <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+        <div class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>TLS 1.3 / AES-256</span>
+        </div>
+        <span>Host: {hostname}</span>
+      </div>
+
+      <!-- Navigation Link to Standard Portal -->
+      <div class="text-center pt-1">
+        <a
+          href={publicCustomerPortalUrl}
+          class="text-xs text-slate-400 hover:text-white transition-colors inline-flex items-center gap-1.5"
+        >
+          <span>← Return to Public Customer Portal</span>
+        </a>
+      </div>
+    </main>
+
+    <script>
+      const form = document.getElementById('admin-login-form');
+      const errorBox = document.getElementById('admin-error-box');
+      const submitBtn = document.getElementById('admin-submit-btn');
+
+      async function executeAdminLogin(email, password) {
+        if (!errorBox || !submitBtn) return;
+        errorBox.classList.add('hidden');
+        submitBtn.setAttribute('disabled', 'true');
+        submitBtn.innerHTML = `
+          <svg class="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
+            <path d="M12 2a10 10 0 0 1 10 10"/>
+          </svg>
+          <span>Verifying Credentials...</span>
+        `;
+
+        try {
+          const res = await fetch('/api/auth/admin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || 'Super Admin authentication failed');
+          }
+
+          submitBtn.innerHTML = '<span>Authentication Verified. Opening Console...</span>';
+
+          // Successfully authenticated, navigate to admin operations
+          setTimeout(() => {
+            window.location.replace('/admin');
+          }, 300);
+        } catch (err) {
+          errorBox.textContent = err.message || 'Login failed';
+          errorBox.classList.remove('hidden');
+          submitBtn.removeAttribute('disabled');
+          submitBtn.innerHTML = `
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>Authenticate & Access Dashboard →</span>
+          `;
+        }
+      }
+
+      form?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const emailInput = document.getElementById('admin-email');
+        const passInput = document.getElementById('admin-password');
+        const email = emailInput ? emailInput.value.trim() : '';
+        const password = passInput ? passInput.value : '';
+        if (email && password) {
+          executeAdminLogin(email, password);
+        }
+      });
+    </script>
+  </body>
+</html>

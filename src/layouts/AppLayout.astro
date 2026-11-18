@@ -511,7 +511,7 @@ const user = Astro.locals.user as AuthUser;
       <!-- Bottom Utilities -->
       <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 shrink-0">
         <a
-          href="/logout"
+          href={portalType === 'admin' ? '/logout?portal=admin' : '/logout'}
           class="flex items-center gap-2 text-slate-600 hover:text-red-600 font-medium transition-none cursor-pointer"
           title="Sign out of your session"
         >

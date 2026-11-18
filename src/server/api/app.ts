@@ -116,6 +116,15 @@ app.post('/auth/login', async (c) => {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
     }
 
+    // STRICT SECURITY ISOLATION: Super Admin accounts must NOT log in via standard portal
+    if (account.role === 'super_admin') {
+      return c.json({
+        error: 'নিরাপত্তার স্বার্থে সুপার অ্যাডমিন অ্যাকাউন্ট সাধারণ লগইন পোর্টালে প্রবেশ করতে পারবে না। অনুগ্রহ করে ডেডিকেটেড অ্যাডমিন গেটওয়ে (admin.goshipping.com.bd অথবা /admin/login) ব্যবহার করুন।',
+        code: 'SUPERADMIN_PORTAL_REQUIRED',
+        adminLoginUrl: '/admin/login'
+      }, 403);
+    }
+
     const { sessionId, expiresAt } = await createSession(
       account,
       c.req.header('user-agent'),
@@ -132,7 +141,9 @@ app.post('/auth/login', async (c) => {
     });
 
     const isSecure = isRequestSecure(c);
-    const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}`;
+    const host = c.req.header('host') || '';
+    const domainAttr = host.includes('goshipping.com.bd') ? '; Domain=.goshipping.com.bd' : '';
+    const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
 
     c.header('Set-Cookie', cookieString);
     return c.json({
@@ -142,6 +153,71 @@ app.post('/auth/login', async (c) => {
     });
   } catch (err: any) {
     return c.json({ error: err.message || 'Login failed' }, 500);
+  }
+});
+
+// 02-Admin. Auth: Dedicated Super Admin Login Gateway
+app.post('/auth/admin-login', async (c) => {
+  try {
+    const body = await c.req.json();
+    const parsed = LoginSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'Invalid login payload', details: parsed.error.issues }, 400);
+    }
+
+    const { email, password } = parsed.data;
+    const account = await findAccountByEmail(email);
+
+    if (!account) {
+      return c.json({ error: 'Invalid credentials or user not found' }, 401);
+    }
+
+    // STRICT ROLE GATE: Only super_admin accounts may authenticate through the Admin Gateway
+    if (account.role !== 'super_admin') {
+      return c.json({
+        error: 'অননুমোদিত অ্যাক্সেস। এই গেটওয়েটি শুধুমাত্র সুপার অ্যাডমিনিস্ট্রেটরদের জন্য সংরক্ষিত। সাধারণ গ্রাহকগণ মূল লগইন পোর্টাল (/login) ব্যবহার করুন।',
+        code: 'SUPERADMIN_ROLE_REQUIRED'
+      }, 403);
+    }
+
+    const isValidPassword = verifyAccountPassword(email, password);
+    if (!isValidPassword) {
+      return c.json({ error: 'Incorrect password. Please try again.' }, 401);
+    }
+
+    const { sessionId, expiresAt } = await createSession(
+      account,
+      c.req.header('user-agent'),
+      c.req.header('x-forwarded-for') || '127.0.0.1'
+    );
+
+    await AuditService.logAction({
+      userId: account.id,
+      userName: account.fullName,
+      action: 'SUPERADMIN_GATEWAY_LOGIN',
+      entityType: 'user',
+      entityId: account.id,
+      ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+      details: {
+        host: c.req.header('host'),
+        userAgent: c.req.header('user-agent')
+      }
+    });
+
+    const isSecure = isRequestSecure(c);
+    const host = c.req.header('host') || '';
+    const domainAttr = host.includes('goshipping.com.bd') ? '; Domain=.goshipping.com.bd' : '';
+    const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
+
+    c.header('Set-Cookie', cookieString);
+    return c.json({
+      success: true,
+      user: account,
+      redirectUrl: '/admin',
+      message: 'Super Admin authenticated successfully'
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Super Admin authentication failed' }, 500);
   }
 });
 
