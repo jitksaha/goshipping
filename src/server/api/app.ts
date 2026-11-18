@@ -89,6 +89,34 @@ app.get('/health', async (c) => {
   });
 });
 
+// In-memory sliding window rate limiter
+const rateLimitMap: Map<string, { count: number; resetAt: number }> =
+  globalThis.__goshipping_rate_limit || new Map<string, { count: number; resetAt: number }>();
+globalThis.__goshipping_rate_limit = rateLimitMap;
+
+function checkRateLimit(
+  key: string,
+  maxAttempts = 5,
+  windowMs = 15 * 60 * 1000
+): { allowed: boolean; remaining: number; retryAfterSeconds: number } {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true, remaining: maxAttempts - 1, retryAfterSeconds: 0 };
+  }
+  if (entry.count >= maxAttempts) {
+    const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
+    return { allowed: false, remaining: 0, retryAfterSeconds };
+  }
+  entry.count += 1;
+  return { allowed: true, remaining: maxAttempts - entry.count, retryAfterSeconds: 0 };
+}
+
+function clearRateLimit(key: string): void {
+  rateLimitMap.delete(key);
+}
+
 // 02. Auth: Login
 const LoginSchema = z.object({
   email: z.string().email(),
@@ -104,6 +132,19 @@ app.post('/auth/login', async (c) => {
     }
 
     const { email, password } = parsed.data;
+    const clientIp = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    const rateLimitKey = `auth_fail_${clientIp}_${email.toLowerCase().trim()}`;
+
+    // Rate Limiting Gate (5 attempts per 15 min)
+    const rateCheck = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
+    if (!rateCheck.allowed) {
+      c.header('Retry-After', String(rateCheck.retryAfterSeconds));
+      return c.json({
+        error: `Too many failed login attempts. Account temporarily locked for security. Please try again in ${Math.ceil(rateCheck.retryAfterSeconds / 60)} minutes.`,
+        code: 'RATE_LIMIT_EXCEEDED'
+      }, 429);
+    }
+
     // Look up account in database / memory
     const account = await findAccountByEmail(email);
 
@@ -115,6 +156,9 @@ app.post('/auth/login', async (c) => {
     if (!isValidPassword) {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
     }
+
+    // Clear rate limit on successful authentication
+    clearRateLimit(rateLimitKey);
 
     // STRICT SECURITY ISOLATION: Super Admin accounts must NOT log in via standard portal
     if (account.role === 'super_admin') {
@@ -165,6 +209,19 @@ app.post('/auth/admin-login', async (c) => {
     }
 
     const { email, password } = parsed.data;
+    const clientIp = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    const rateLimitKey = `admin_auth_fail_${clientIp}_${email.toLowerCase().trim()}`;
+
+    // Rate Limiting Gate (5 attempts per 15 min for admin gateway)
+    const rateCheck = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
+    if (!rateCheck.allowed) {
+      c.header('Retry-After', String(rateCheck.retryAfterSeconds));
+      return c.json({
+        error: `Too many administrative authorization failures. Terminal locked. Please wait ${Math.ceil(rateCheck.retryAfterSeconds / 60)} minutes before re-authenticating.`,
+        code: 'RATE_LIMIT_EXCEEDED'
+      }, 429);
+    }
+
     const account = await findAccountByEmail(email);
 
     if (!account) {
@@ -183,6 +240,9 @@ app.post('/auth/admin-login', async (c) => {
     if (!isValidPassword) {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
     }
+
+    // Clear rate limit counter upon successful root authentication
+    clearRateLimit(rateLimitKey);
 
     const { sessionId, expiresAt } = await createSession(
       account,
@@ -207,6 +267,18 @@ app.post('/auth/admin-login', async (c) => {
     const host = c.req.header('host') || '';
     const domainAttr = host.includes('goshipping.com.bd') ? '; Domain=.goshipping.com.bd' : '';
     const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
+
+    c.header('Set-Cookie', cookieString);
+    return c.json({
+      success: true,
+      user: account,
+      redirectUrl: '/admin',
+      message: 'Super Admin authenticated successfully'
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Super Admin authentication failed' }, 500);
+  }
+});
 
     c.header('Set-Cookie', cookieString);
     return c.json({
@@ -298,6 +370,16 @@ app.post('/auth/forgot-password', async (c) => {
     }
 
     const { email } = parsed.data;
+    const clientIp = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    const otpRateKey = `otp_req_${clientIp}_${email.toLowerCase().trim()}`;
+    const otpRateCheck = checkRateLimit(otpRateKey, 3, 15 * 60 * 1000);
+    if (!otpRateCheck.allowed) {
+      return c.json({
+        error: 'Too many verification code requests. Please wait 15 minutes before requesting a new code.',
+        code: 'RATE_LIMIT_EXCEEDED'
+      }, 429);
+    }
+
     const account = await findAccountByEmail(email);
     if (!account) {
       return c.json({
@@ -353,6 +435,16 @@ app.post('/auth/reset-password', async (c) => {
     }
 
     const { email, code, newPassword } = parsed.data;
+    const clientIp = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+    const resetRateKey = `otp_verify_${clientIp}_${email.toLowerCase().trim()}`;
+    const resetRateCheck = checkRateLimit(resetRateKey, 5, 15 * 60 * 1000);
+    if (!resetRateCheck.allowed) {
+      return c.json({
+        error: 'Too many incorrect verification attempts. Account locked. Please request a new verification code.',
+        code: 'RATE_LIMIT_EXCEEDED'
+      }, 429);
+    }
+
     const account = await findAccountByEmail(email);
     if (!account) {
       return c.json({ error: 'Account not found.' }, 404);
@@ -2027,6 +2119,9 @@ app.post('/admin/pos-ledger/sync-sheet', async (c) => {
 
     if (body.action === 'save_webhook' && body.webhookUrl) {
       const { webhookUrl } = body;
+      if (typeof webhookUrl !== 'string' || !webhookUrl.startsWith('https://script.google.com/')) {
+        return c.json({ error: 'Please enter a valid Google Apps Script Webhook URL (must start with https://script.google.com/)' }, 400);
+      }
       setGoogleSheetWebhookUrl(webhookUrl);
       updateEnvFileWebhookUrl(webhookUrl);
       return c.json({ success: true, message: 'Webhook URL updated', webhookUrl });

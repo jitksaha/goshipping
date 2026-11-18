@@ -1,0 +1,46 @@
+PassengerAppRoot "/home/u398667964/domains/goshipping.com.bd/public_html"
+PassengerBaseURI "/"
+PassengerNodejs "/opt/alt/alt-nodejs22/root/usr/bin/node"
+PassengerAppType node
+PassengerStartupFile server.js
+
+# ==============================================================================
+# GOSHIPPING ENTERPRISE HARDENED DEFENSE SHIELD & ACCESS CONTROL
+# ==============================================================================
+
+# 1. Disable directory browsing
+Options -Indexes
+
+# 2. Block access to all hidden dotfiles (.env, .git, .auth_store.json, etc.)
+RewriteEngine On
+
+RewriteRule ^(\.|\.env|\.git|\.auth_store|\.pos_ledger_store|\.testimonials_store) - [F,L,NC]
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 3. Block direct HTTP access to source code, node_modules, build configs, and server logs
+RewriteRule ^(src|node_modules|server\.js|package\.json|package-lock\.json|tsconfig\.json|astro\.config\.mjs|stderr\.log|DEPLOY_INSTRUCTIONS\.md|ecosystem\.config\.cjs) - [F,L,NC]
+
+# 4. Block sensitive file extensions from direct static serving
+<FilesMatch "\.(ts|tsx|log|md|sql|sh|lock|json|env|bak|config)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# 5. Safe exception for public web manifests, icons, and robots
+<FilesMatch "(manifest\.json|robots\.txt|sitemap\.xml)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# 6. Global Enterprise Security Response Headers
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=()"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+</IfModule>

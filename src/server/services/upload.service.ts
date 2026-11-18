@@ -27,27 +27,42 @@ export class UploadService {
       throw new Error('Image size exceeds 15MB limit.');
     }
 
+    const safeSubfolder = subfolder.replace(/[^a-zA-Z0-9_-]/g, '') || 'banners';
+
     let ext = path.extname(originalName).toLowerCase();
     if (!ext || !ALLOWED_EXTENSIONS.has(ext)) {
       ext = '.jpg';
     }
 
+    // SVG Stored-XSS Protection: Reject SVGs containing script tags or event handlers
+    if (ext === '.svg') {
+      const content = buffer.toString('utf-8').toLowerCase();
+      if (
+        content.includes('<script') ||
+        content.includes('javascript:') ||
+        content.includes('<foreignobject') ||
+        /on\w+\s*=/i.test(content)
+      ) {
+        throw new Error('SVG image contains disallowed embedded scripts or active content.');
+      }
+    }
+
     const filename = `banner_${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`;
     
-    // Primary upload destination
-    const targetDir = path.join(process.cwd(), 'public', 'uploads', subfolder);
+    // Primary upload destination (strictly path traversal safe)
+    const targetDir = path.join(process.cwd(), 'public', 'uploads', safeSubfolder);
     this.ensureDir(targetDir);
     const primaryPath = path.join(targetDir, filename);
     fs.writeFileSync(primaryPath, buffer);
 
     // Sync to dist/client if running production build
-    const distTargetDir = path.join(process.cwd(), 'dist', 'client', 'uploads', subfolder);
+    const distTargetDir = path.join(process.cwd(), 'dist', 'client', 'uploads', safeSubfolder);
     if (fs.existsSync(path.join(process.cwd(), 'dist', 'client'))) {
       this.ensureDir(distTargetDir);
       fs.writeFileSync(path.join(distTargetDir, filename), buffer);
     }
 
-    return `/uploads/${subfolder}/${filename}`;
+    return `/uploads/${safeSubfolder}/${filename}`;
   }
 
   /**

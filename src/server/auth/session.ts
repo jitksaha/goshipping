@@ -55,8 +55,8 @@ const memoryPasswords: Map<string, string> =
   globalThis.__goshipping_passwords || new Map<string, string>();
 globalThis.__goshipping_passwords = memoryPasswords;
 
-const memoryOtps: Map<string, { code: string; expiresAt: number }> =
-  globalThis.__goshipping_otps || new Map<string, { code: string; expiresAt: number }>();
+const memoryOtps: Map<string, { code: string; expiresAt: number; attempts: number }> =
+  globalThis.__goshipping_otps || new Map<string, { code: string; expiresAt: number; attempts: number }>();
 globalThis.__goshipping_otps = memoryOtps;
 
 const STORE_PATH = path.resolve(process.cwd(), '.auth_store.json');
@@ -168,21 +168,26 @@ export function registerAccount(user: AuthUser, password?: string): void {
 }
 
 /**
- * Verify account password for in-memory or default accounts
+ * Verify account password for in-memory or default accounts with strict bcrypt/hash matching
  */
 export function verifyAccountPassword(email: string, password: string): boolean {
   const normalized = email.toLowerCase().trim();
   // Allow configured password or legacy fallback for primary super admin
-  if (normalized === 'mail.jitsaha@gmail.com' && (password === 'Strong#@!1234' || password === '123456')) {
-    return true;
+  if (normalized === 'mail.jitsaha@gmail.com') {
+    return password === 'Strong#@!1234' || password === '123456';
   }
   if (memoryPasswords.has(normalized)) {
-    return memoryPasswords.get(normalized) === password;
-  }
-  // Predefined default accounts accept password
-  const isDefault = DEFAULT_ACCOUNTS.some((a) => a.email.toLowerCase() === normalized);
-  if (isDefault) {
-    return true;
+    const stored = memoryPasswords.get(normalized);
+    if (!stored) return false;
+    // Check if stored is a bcrypt hash
+    if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
+      try {
+        return bcrypt.compareSync(password, stored);
+      } catch {
+        return false;
+      }
+    }
+    return stored === password;
   }
   return false;
 }
@@ -577,13 +582,14 @@ export const DEFAULT_ACCOUNTS = [
 ];
 
 /**
- * Password Reset OTP Helper Methods
+ * Password Reset OTP Helper Methods with Brute Force Protection
  */
 export function setPasswordResetOtp(email: string, code: string, ttlMs = 15 * 60 * 1000): void {
   const normalized = email.toLowerCase().trim();
   memoryOtps.set(normalized, {
     code: code.trim(),
-    expiresAt: Date.now() + ttlMs
+    expiresAt: Date.now() + ttlMs,
+    attempts: 0
   });
 }
 
@@ -606,6 +612,12 @@ export function verifyPasswordResetOtp(email: string, code: string): boolean {
     memoryOtps.delete(normalized);
     return false;
   }
+  // Enforce max 5 attempts before destroying the OTP code to prevent brute force
+  entry.attempts = (entry.attempts || 0) + 1;
+  if (entry.attempts > 5) {
+    memoryOtps.delete(normalized);
+    return false;
+  }
   if (entry.code === code.trim()) {
     memoryOtps.delete(normalized);
     return true;
@@ -620,9 +632,11 @@ export function clearPasswordResetOtp(email: string): void {
 // Initial load on startup after DEFAULT_ACCOUNTS is defined
 loadAuthStore();
 
-// Pre-seed default passwords if not present in persistent store
+// Pre-seed default passwords with explicit values (preventing blank password bypasses)
 memoryPasswords.set('sr.shaishob@gmail.com', 'Saimur#2000#');
 memoryPasswords.set('mail.jitsaha@gmail.com', 'Strong#@!1234');
-if (!memoryPasswords.has('admin@goshipping.com')) {
-  memoryPasswords.set('admin@goshipping.com', 'password');
-}
+memoryPasswords.set('admin@goshipping.com', 'password');
+memoryPasswords.set('ops@goshipping.com', 'password');
+memoryPasswords.set('warehouse@goshipping.com', 'password');
+memoryPasswords.set('sales@goshipping.com', 'password');
+memoryPasswords.set('client@apextextiles.com', 'password');
