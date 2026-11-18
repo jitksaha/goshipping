@@ -42,7 +42,7 @@ export const GOOGLE_SHEET_HEADERS_29 = [
 ] as const;
 
 const DEFAULT_WEBHOOK_URL =
-  'https://script.google.com/macros/s/AKfycbx5tQavZn3PMkb0Ds-OqQoh2ykjL1Z0d3LyMx5ZRB4LJW0NzevuYOgSAx7rufm6sC0o/exec';
+  'https://script.google.com/macros/s/AKfycbyqiEhXqcfnApjc2Eptzu9jVRujk8ZmoQjvOBtqnVibPvnlUy5iBYEDE5x2g6xOIpXo/exec';
 
 let dynamicWebhookUrl: string | null = null;
 
