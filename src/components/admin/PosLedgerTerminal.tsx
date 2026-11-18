@@ -850,14 +850,15 @@ function doPost(e) {
 
           <button
             type="button"
-            onClick={openNewOrderDrawer}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-unified-order-modal', { detail: { type: 'sourcing' } }))}
             className="px-4 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-none"
+            title="Create New Order"
           >
             <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span>+ Quick POS Order</span>
+            <span>+ Create Order</span>
           </button>
         </div>
       </div>

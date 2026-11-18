@@ -133,40 +133,6 @@ const user = Astro.locals.user as AuthUser;
                 {/* Submenu tree under Orders with vertical branch line */}
                 <div class="pl-6 pr-2 py-0.5 space-y-0.5 border-l-2 border-slate-200 ml-5 my-0.5">
                   <a
-                    href="/admin?tab=orders&view=sourcing"
-                    data-tab="orders"
-                    data-view="sourcing"
-                    class="dashboard-nav-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-none"
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0 dot-indicator"></span>
-                    <span class="truncate">Order Ledger</span>
-                  </a>
-
-                  <a
-                    href="/admin?tab=orders&view=sourcing&action=new_pos"
-                    data-tab="orders"
-                    data-view="sourcing"
-                    data-action="new_pos"
-                    class="dashboard-nav-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-none"
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0 dot-indicator"></span>
-                    <span class="truncate">Add to Ledger</span>
-                  </a>
-
-                  <a
-                    href="/admin?tab=new_order"
-                    data-tab="new_order"
-                    class={`dashboard-nav-link flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-none ${
-                      activeTab === 'new_order'
-                        ? 'bg-red-50 text-[#EA1D2C] font-bold'
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full bg-slate-300 shrink-0 dot-indicator"></span>
-                    <span class="truncate">Create Order</span>
-                  </a>
-
-                  <a
                     href="/admin?tab=orders&view=freight"
                     data-tab="orders"
                     data-view="freight"

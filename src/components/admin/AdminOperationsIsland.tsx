@@ -3,6 +3,7 @@ import { ReferenceSelect } from "./ReferenceSelect";
 import BannersManager from './BannersManager';
 import TestimonialsManager from './TestimonialsManager';
 import PosLedgerTerminal from './PosLedgerTerminal';
+import UnifiedCreateOrderModal from './UnifiedCreateOrderModal';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
@@ -477,6 +478,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     if (initialTab === 'pos_ledger' || initialTab === 'ledger') return 'sourcing';
     return 'sourcing';
   });
+
+  // Unified Create Order Modal State
+  const [isUnifiedOrderModalOpen, setIsUnifiedOrderModalOpen] = useState(false);
+  const [unifiedOrderModalTab, setUnifiedOrderModalTab] = useState<'sourcing' | 'freight'>('sourcing');
   const [shipments, setShipments] = useState<ShipmentRecord[]>([]);
   const [quotes, setQuotes] = useState<QuoteRecord[]>([]);
   const [warehouses, setWarehouses] = useState<WarehouseRecord[]>([]);
@@ -1193,9 +1198,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     };
     window.addEventListener('switch-dashboard-tab', handleCustomSwitch);
 
+    const handleOpenUnifiedModal = (e: any) => {
+      const tabType = e.detail?.type || (ordersSubView === 'freight' ? 'freight' : 'sourcing');
+      setUnifiedOrderModalTab(tabType);
+      setIsUnifiedOrderModalOpen(true);
+    };
+    window.addEventListener('open-unified-order-modal', handleOpenUnifiedModal);
+
     return () => {
       window.removeEventListener('popstate', handleUrlChange);
       window.removeEventListener('switch-dashboard-tab', handleCustomSwitch);
+      window.removeEventListener('open-unified-order-modal', handleOpenUnifiedModal);
     };
   }, [activeTab]);
 
@@ -2535,7 +2548,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
 
 
-          {/* 3. + New Order Button / Back to Orders Button */}
+          {/* 3. Unified + Create Order Button */}
           {activeTab === 'new_order' ? (
             <button
               type="button"
@@ -2553,17 +2566,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <button
               type="button"
               onClick={() => {
-                setNewCustomTrackingNumber('');
-                switchTab('new_order');
+                setUnifiedOrderModalTab(ordersSubView === 'freight' ? 'freight' : 'sourcing');
+                setIsUnifiedOrderModalOpen(true);
               }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
-              title="Create New Consignment Order"
+              title="Create New Order (Sourcing POS or Freight Shipment)"
             >
               <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span>New Order</span>
+              <span>+ Create Order</span>
             </button>
           )}
         </div>
@@ -4260,6 +4273,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       ? 'bg-slate-900 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
                   }`}
+                  title="Operations ledger with RMB costs, freight charges, and Google Sheet sync"
                 >
                   <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <rect width="18" height="18" x="3" y="3" rx="2" />
@@ -4267,7 +4281,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <path d="M9 21V9" />
                     <path d="m14 13 2 2 4-4" />
                   </svg>
-                  <span>Sourcing POS Ledger</span>
+                  <span>Ledger View (POS &amp; Sourcing)</span>
                   <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
                     ordersSubView === 'sourcing' ? 'bg-[#EA1D2C] text-white' : 'bg-slate-200 text-slate-700'
                   }`}>
@@ -4283,6 +4297,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       ? 'bg-slate-900 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
                   }`}
+                  title="Summary view of active international cargo shipments and tracking status"
                 >
                   <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="m7.5 4.27 9 5.15" />
@@ -4290,7 +4305,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <path d="m3.3 7 8.7 5 8.7-5" />
                     <path d="M12 22V12" />
                   </svg>
-                  <span>Freight Shipments</span>
+                  <span>Summary View (Freight Shipments)</span>
                   <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
                     ordersSubView === 'freight' ? 'bg-slate-700 text-white' : 'bg-slate-200 text-slate-700'
                   }`}>
@@ -4303,17 +4318,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <button
                   type="button"
                   onClick={() => {
-                    setNewCustomTrackingNumber('');
-                    switchTab('new_order');
+                    setUnifiedOrderModalTab(ordersSubView === 'freight' ? 'freight' : 'sourcing');
+                    setIsUnifiedOrderModalOpen(true);
                   }}
-                  className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-none cursor-pointer"
-                  title="Create New Consignment Order"
+                  className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-none cursor-pointer"
+                  title="Create New Order or Consignment"
                 >
                   <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
-                  <span>+ New Freight Order</span>
+                  <span>+ Create Order</span>
                 </button>
               </div>
             </div>
@@ -8310,6 +8325,18 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           </div>
         </div>
       )}
+
+      {/* Unified Create Order Modal */}
+      <UnifiedCreateOrderModal
+        isOpen={isUnifiedOrderModalOpen}
+        initialTab={unifiedOrderModalTab}
+        onClose={() => setIsUnifiedOrderModalOpen(false)}
+        onOrderCreated={(orderType) => {
+          loadData();
+        }}
+        showToast={showToast}
+        customers={customers}
+      />
 
       {/* Global Toast Notification */}
       {toastNotification && (
