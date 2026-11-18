@@ -50,8 +50,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-  // 2. Development & Localhost Graceful Session Persistence
-  const isLocalHost = url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '0.0.0.0';
+  // 2. Development-Only Graceful Session Persistence
+  // Strictly disabled in production or whenever accessing via goshipping.com.bd domains
+  const isProduction = process.env.NODE_ENV === 'production' || hostname.includes('goshipping.com.bd');
+  const isLocalHost = !isProduction && (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0');
   if (!currentUser && isLocalHost) {
     if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
       const defaultAdmin = DEFAULT_ACCOUNTS[0]; // Super Admin
