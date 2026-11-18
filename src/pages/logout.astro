@@ -1,7 +1,10 @@
 ---
 import { destroySession } from '../server/auth/session';
 
-const rawHost = Astro.request.headers.get('host') || Astro.url.hostname;
+const rawHost =
+  Astro.request.headers.get('x-forwarded-host') ||
+  Astro.request.headers.get('host') ||
+  Astro.url.hostname;
 const hostname = rawHost.split(':')[0].toLowerCase();
 const isAdminHost = hostname.startsWith('admin.') || hostname.startsWith('superadmin.') || hostname.includes('admin.goshipping');
 const portalParam = Astro.url.searchParams.get('portal');

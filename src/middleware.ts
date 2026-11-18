@@ -12,7 +12,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isSecure = url.protocol === 'https:';
 
   // Extract hostname to identify subdomain routing (admin.goshipping.com.bd)
-  const rawHost = context.request.headers.get('host') || url.hostname;
+  const rawHost =
+    context.request.headers.get('x-forwarded-host') ||
+    context.request.headers.get('x-original-host') ||
+    context.request.headers.get('host') ||
+    url.hostname;
   const hostname = rawHost.split(':')[0].toLowerCase();
   const isAdminHost =
     hostname.startsWith('admin.') ||
@@ -118,7 +122,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   } else {
     // 4. Standard Domain Routing (goshipping.com.bd)
-    // Protect admin operations routes
+    // Enforce dedicated subdomain for admin operations in production
+    if (isGoshippingDomain && (pathname === '/admin/login' || pathname.startsWith('/admin'))) {
+      return context.redirect(`https://admin.goshipping.com.bd${pathname}`);
+    }
+
+    // Protect admin operations routes (for localhost / non-goshipping environments)
     if (pathname === '/admin/login') {
       if (currentUser?.role === 'super_admin') {
         return context.redirect('/admin');

@@ -184,7 +184,7 @@ app.post('/auth/login', async (c) => {
     });
 
     const isSecure = isRequestSecure(c);
-    const host = c.req.header('host') || '';
+    const host = c.req.header('x-forwarded-host') || c.req.header('host') || '';
     const domainAttr = host.includes('goshipping.com.bd') ? '; Domain=.goshipping.com.bd' : '';
     const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
 
@@ -264,7 +264,7 @@ app.post('/auth/admin-login', async (c) => {
     });
 
     const isSecure = isRequestSecure(c);
-    const host = c.req.header('host') || '';
+    const host = c.req.header('x-forwarded-host') || c.req.header('host') || '';
     const domainAttr = host.includes('goshipping.com.bd') ? '; Domain=.goshipping.com.bd' : '';
     const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
 
