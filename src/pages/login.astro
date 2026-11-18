@@ -516,28 +516,6 @@ const trackingConfig = getTrackingConfig();
 
           const data = await res.json();
           if (!res.ok) {
-            if (data.code === 'SUPERADMIN_PORTAL_REQUIRED') {
-              errorBox.innerHTML = `
-                <div class="space-y-2.5">
-                  <div class="font-bold flex items-center gap-1.5 text-red-900">
-                    <svg class="w-4 h-4 shrink-0 text-[#EA1D2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    <span>🔒 Super Admin Gateway Required</span>
-                  </div>
-                  <p class="text-xs text-red-800 leading-relaxed">${data.error}</p>
-                  <a href="/admin/login" class="inline-flex items-center justify-center gap-2 w-full py-2.5 px-3 rounded-md bg-[#11181E] text-white font-semibold text-xs hover:bg-[#1A2530] transition-colors shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                    <span>Proceed to Super Admin Gateway →</span>
-                  </a>
-                </div>
-              `;
-              errorBox.classList.remove('hidden');
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Sign In to Portal →';
-              return;
-            }
             throw new Error(data.error || 'Authentication failed');
           }
 

@@ -119,9 +119,8 @@ app.post('/auth/login', async (c) => {
     // STRICT SECURITY ISOLATION: Super Admin accounts must NOT log in via standard portal
     if (account.role === 'super_admin') {
       return c.json({
-        error: 'নিরাপত্তার স্বার্থে সুপার অ্যাডমিন অ্যাকাউন্ট সাধারণ লগইন পোর্টালে প্রবেশ করতে পারবে না। অনুগ্রহ করে ডেডিকেটেড অ্যাডমিন গেটওয়ে (admin.goshipping.com.bd অথবা /admin/login) ব্যবহার করুন।',
-        code: 'SUPERADMIN_PORTAL_REQUIRED',
-        adminLoginUrl: '/admin/login'
+        error: 'Access restricted. This administrative account cannot sign in through the customer portal.',
+        code: 'SUPERADMIN_PORTAL_REQUIRED'
       }, 403);
     }
 
@@ -175,7 +174,7 @@ app.post('/auth/admin-login', async (c) => {
     // STRICT ROLE GATE: Only super_admin accounts may authenticate through the Admin Gateway
     if (account.role !== 'super_admin') {
       return c.json({
-        error: 'অননুমোদিত অ্যাক্সেস। এই গেটওয়েটি শুধুমাত্র সুপার অ্যাডমিনিস্ট্রেটরদের জন্য সংরক্ষিত। সাধারণ গ্রাহকগণ মূল লগইন পোর্টাল (/login) ব্যবহার করুন।',
+        error: 'Access denied. This terminal is strictly restricted to authorized Super Administrators.',
         code: 'SUPERADMIN_ROLE_REQUIRED'
       }, 403);
     }
