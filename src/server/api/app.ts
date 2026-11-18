@@ -280,18 +280,6 @@ app.post('/auth/admin-login', async (c) => {
   }
 });
 
-    c.header('Set-Cookie', cookieString);
-    return c.json({
-      success: true,
-      user: account,
-      redirectUrl: '/admin',
-      message: 'Super Admin authenticated successfully'
-    });
-  } catch (err: any) {
-    return c.json({ error: err.message || 'Super Admin authentication failed' }, 500);
-  }
-});
-
 // 02b. Auth: Customer Registration
 const RegisterSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
