@@ -3759,48 +3759,23 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         )}
 
         {activeTab === 'new_order' && (
-          <div className="space-y-4 max-w-7xl mx-auto pb-12 font-['Inter',sans-serif]">
-            {/* 1. Compact Header Bar (Clean Breadcrumb & Single Back Button - NO GIANT HEADER) */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#EA1D2C] animate-pulse"></span>
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold">Orders /</span>
-                <h2 className="text-sm sm:text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                  Create New Order
-                </h2>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 ml-1">
-                  Single-Step Dispatch
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => switchTab('orders')}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-2xs self-start sm:self-auto transition-none"
-              >
-                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <line x1="19" y1="12" x2="5" y2="12" />
-                  <polyline points="12 19 5 12 12 5" />
-                </svg>
-                <span>Back to Orders</span>
-              </button>
-            </div>
-
-            {/* 2. Compact 3-Way Order Scope Selector Cards (Full Width, Sleek & Compact) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-2.5 max-w-7xl mx-auto pb-8 font-['Inter',sans-serif]">
+            {/* 1. Ultra-Compact 3-Way Order Scope Selector Cards (Full Width, Sleek & Minimal) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               {/* Option 1: Full Sourcing & Freight (Both) */}
               <div
                 onClick={() => setOrderScope('both')}
-                className={`p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition-none flex items-center justify-between gap-2.5 ${
+                className={`py-1.5 px-3 rounded-lg border cursor-pointer transition-none flex items-center justify-between gap-2 ${
                   orderScope === 'both'
-                    ? 'border-[#EA1D2C] bg-red-50/20 shadow-xs'
+                    ? 'border-[#EA1D2C] bg-red-50/20 shadow-2xs ring-1 ring-[#EA1D2C]'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
                     orderScope === 'both' ? 'border-[#EA1D2C]' : 'border-slate-300'
                   }`}>
-                    {orderScope === 'both' && <div className="w-2 h-2 rounded-full bg-[#EA1D2C]" />}
+                    {orderScope === 'both' && <div className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]" />}
                   </div>
                   <div className="truncate">
                     <h4 className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif] truncate">
@@ -3817,17 +3792,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               {/* Option 2: Sourcing Only */}
               <div
                 onClick={() => setOrderScope('sourcing')}
-                className={`p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition-none flex items-center justify-between gap-2.5 ${
+                className={`py-1.5 px-3 rounded-lg border cursor-pointer transition-none flex items-center justify-between gap-2 ${
                   orderScope === 'sourcing'
-                    ? 'border-[#EA1D2C] bg-red-50/20 shadow-xs'
+                    ? 'border-[#EA1D2C] bg-red-50/20 shadow-2xs ring-1 ring-[#EA1D2C]'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
                     orderScope === 'sourcing' ? 'border-[#EA1D2C]' : 'border-slate-300'
                   }`}>
-                    {orderScope === 'sourcing' && <div className="w-2 h-2 rounded-full bg-[#EA1D2C]" />}
+                    {orderScope === 'sourcing' && <div className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]" />}
                   </div>
                   <div className="truncate">
                     <h4 className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif] truncate">
@@ -3844,17 +3819,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               {/* Option 3: Freight Only */}
               <div
                 onClick={() => setOrderScope('freight')}
-                className={`p-3 sm:p-3.5 rounded-xl border-2 cursor-pointer transition-none flex items-center justify-between gap-2.5 ${
+                className={`py-1.5 px-3 rounded-lg border cursor-pointer transition-none flex items-center justify-between gap-2 ${
                   orderScope === 'freight'
-                    ? 'border-[#EA1D2C] bg-red-50/20 shadow-xs'
+                    ? 'border-[#EA1D2C] bg-red-50/20 shadow-2xs ring-1 ring-[#EA1D2C]'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
                     orderScope === 'freight' ? 'border-[#EA1D2C]' : 'border-slate-300'
                   }`}>
-                    {orderScope === 'freight' && <div className="w-2 h-2 rounded-full bg-[#EA1D2C]" />}
+                    {orderScope === 'freight' && <div className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]" />}
                   </div>
                   <div className="truncate">
                     <h4 className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif] truncate">
@@ -3869,26 +3844,26 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
             </div>
 
-            {/* 3. TWO-COLUMN WORKSPACE: LEFT = ONE COHESIVE CARD, RIGHT = STICKY FINANCIAL SUMMARY */}
-            <form onSubmit={handleCreateConsignment} className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            {/* 2. TWO-COLUMN WORKSPACE: LEFT = COMPACT MASTER FORM, RIGHT = COMPACT FINANCIAL SUMMARY */}
+            <form onSubmit={handleCreateConsignment} className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
               
-              {/* LEFT COLUMN: ONE COHESIVE MASTER FORM CARD (lg:col-span-8) */}
-              <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-6">
+              {/* LEFT COLUMN: COMPACT MASTER FORM (lg:col-span-8) */}
+              <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200/90 p-3 sm:p-4 shadow-2xs space-y-2.5">
                 
                 {/* PART A: Customer & Importer Identity */}
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif] flex items-center gap-2">
+                <div className="space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-0.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif] flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]"></span>
                       Customer &amp; Importer Identity
                     </h3>
                     
                     {/* Toggle: Existing vs New Client */}
-                    <div className="inline-flex rounded-lg border border-slate-200 bg-slate-100 p-0.5 self-start sm:self-auto">
+                    <div className="inline-flex rounded-md border border-slate-200 bg-slate-100 p-0.5 self-start sm:self-auto">
                       <button
                         type="button"
                         onClick={() => setOrderCustomerMode('existing')}
-                        className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-none ${
+                        className={`px-2.5 py-0.5 rounded text-[11px] font-semibold cursor-pointer transition-none ${
                           orderCustomerMode === 'existing'
                             ? 'bg-white text-slate-900 shadow-2xs'
                             : 'text-slate-600 hover:text-slate-900'
@@ -3899,7 +3874,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <button
                         type="button"
                         onClick={() => setOrderCustomerMode('new')}
-                        className={`px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-none ${
+                        className={`px-2.5 py-0.5 rounded text-[11px] font-semibold cursor-pointer transition-none ${
                           orderCustomerMode === 'new'
                             ? 'bg-white text-[#EA1D2C] shadow-2xs'
                             : 'text-slate-600 hover:text-slate-900'
@@ -3911,8 +3886,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   {orderCustomerMode === 'existing' ? (
-                    <div className="space-y-3">
+                    <div className="space-y-1.5">
                       <SearchableSelect
+                        compact={true}
                         label="Customer Account"
                         required
                         value={selectedCustomerId}
@@ -3926,17 +3902,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       />
 
                       {currentSelectedCustomer && (
-                        <div className="px-3.5 py-2 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                            <span className="font-bold text-slate-900">
+                        <div className="px-2.5 py-1 rounded-md bg-emerald-50/80 border border-emerald-200 text-xs flex flex-wrap items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span className="font-bold text-slate-900 text-xs">
                               {currentSelectedCustomer.companyName || currentSelectedCustomer.fullName}
                             </span>
                             <span className="text-emerald-800 font-mono text-[11px]">
                               ({currentSelectedCustomer.email} · {currentSelectedCustomer.phone || 'No phone'})
                             </span>
                           </div>
-                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
+                          <span className="text-[9px] font-semibold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.2 rounded">
                             Client Auto-Assigned
                           </span>
                         </div>
@@ -3944,9 +3920,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
                   ) : (
                     /* On-The-Fly New Customer Form */
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Full Name *
                         </label>
                         <input
@@ -3959,12 +3935,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           }}
                           placeholder="e.g. Tarek Rahman"
                           required={orderCustomerMode === 'new'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Company / Importer Name (Optional)
                         </label>
                         <input
@@ -3975,12 +3951,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             setImporterClientInput(e.target.value);
                           }}
                           placeholder="e.g. Prime Apparels BD Ltd"
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Email Address *
                         </label>
                         <input
@@ -3989,12 +3965,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           onChange={(e) => setNewCustomerEmail(e.target.value)}
                           placeholder="client@company.com"
                           required={orderCustomerMode === 'new'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Phone / WhatsApp *
                         </label>
                         <input
@@ -4006,12 +3982,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           }}
                           placeholder="+880 1711-XXXXXX"
                           required={orderCustomerMode === 'new'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Delivery Address
                         </label>
                         <input
@@ -4022,12 +3998,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             setNewRecipientAddress(e.target.value);
                           }}
                           placeholder="Plot 12, Sector 3, Uttara, Dhaka"
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Initial Password
                         </label>
                         <input
@@ -4035,16 +4011,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           value={newCustomerPassword}
                           onChange={(e) => setNewCustomerPassword(e.target.value)}
                           placeholder="password123"
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
                     </div>
                   )}
 
                   {/* Importer Name, Shipping Mark & Platform Order No (Google Sheet Cols H, I, J) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-2 border-t border-slate-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         Importer / Client (Col H)
                       </label>
                       <input
@@ -4052,12 +4028,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         value={importerClientInput}
                         onChange={(e) => setImporterClientInput(e.target.value)}
                         placeholder="e.g. Dhaka Gadget Hub Ltd."
-                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         Shipping Mark / Tag (Col I)
                       </label>
                       <input
@@ -4065,12 +4041,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         value={sourcingShippingMark}
                         onChange={(e) => setSourcingShippingMark(e.target.value.toUpperCase())}
                         placeholder="e.g. DGH-BD-DAC-05"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         Website Order No (Col J)
                       </label>
                       <input
@@ -4078,25 +4054,25 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         value={sourcingWebsiteOrderNo}
                         onChange={(e) => setSourcingWebsiteOrderNo(e.target.value)}
                         placeholder="e.g. 1688-ORD-9910"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* PART B: Ledger Reference & Operational Dates (Google Sheet Cols A, B, C, U) */}
-                <div className="space-y-3 pt-3 border-t border-slate-100">
-                  <div className="flex items-center justify-between pb-1">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif] flex items-center gap-2">
+                <div className="space-y-1.5 pt-2 border-t border-slate-100/70">
+                  <div className="flex items-center justify-between pb-0.5">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif] flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                       Ledger Dates &amp; Order ID
                     </h3>
                     <span className="text-[10px] text-slate-400 font-mono">Google Sheet Sync Cols A-C</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         Order ID (Col A)
                       </label>
                       <input
@@ -4104,43 +4080,43 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         value={customOrderId}
                         onChange={(e) => setCustomOrderId(e.target.value.toUpperCase())}
                         placeholder="Auto: e.g. GOS-00023"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         Order Date (Col B) *
                       </label>
                       <input
                         type="date"
                         value={orderDateInput}
                         onChange={(e) => setOrderDateInput(e.target.value)}
-                        className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         CN Date (Col C) *
                       </label>
                       <input
                         type="date"
                         value={cnDateInput}
                         onChange={(e) => setCnDateInput(e.target.value)}
-                        className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         BD Date (Col U)
                       </label>
                       <input
                         type="date"
                         value={bdDateInput}
                         onChange={(e) => setBdDateInput(e.target.value)}
-                        className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2 rounded-md border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
                   </div>
@@ -4148,31 +4124,31 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                 {/* PART C: China Sourcing & Procurement (Visible when Both or Sourcing) */}
                 {(orderScope === 'both' || orderScope === 'sourcing') && (
-                  <div className="space-y-3.5 pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between pb-1">
-                      <div className="flex items-center gap-2">
+                  <div className="space-y-2 pt-2 border-t border-slate-100/70">
+                    <div className="flex items-center justify-between pb-0.5">
+                      <div className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif]">
                           China Sourcing &amp; Procurement
                         </h3>
-                        <span className="text-[10px] font-bold px-2 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200">
                           Cols D, K-Q
                         </span>
                       </div>
-                      <span className="text-xs font-mono font-bold text-amber-800 bg-amber-50/80 px-2 py-0.5 rounded border border-amber-200">
+                      <span className="text-[11px] font-mono font-bold text-amber-800 bg-amber-50/80 px-2 py-0.5 rounded border border-amber-200">
                         Total: ¥{dynamicFinanceTotals.totalRmb.toLocaleString()} · ৳{dynamicFinanceTotals.purchaseCostBdt.toLocaleString()}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Supplier / Platform (Col L) *
                         </label>
                         <select
                           value={sourcingSupplier}
                           onChange={(e) => setSourcingSupplier(e.target.value)}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
                         >
                           <option value="1688">1688.com (Direct Wholesale)</option>
                           <option value="Taobao">Taobao Marketplace</option>
@@ -4184,7 +4160,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           China Domestic Tracking (SF/ZTO) (Col D)
                         </label>
                         <input
@@ -4192,13 +4168,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           value={chinaTrackingNo}
                           onChange={(e) => setChinaTrackingNo(e.target.value)}
                           placeholder="e.g. SF1482930192 or 7774569437"
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         Product Specifications &amp; Details (Col K) *
                       </label>
                       <input
@@ -4207,14 +4183,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         onChange={(e) => setSourcingItemDetails(e.target.value)}
                         placeholder="e.g. Smart Watch Ultra 2 with AMOLED Display, Bluetooth 5.3"
                         required={orderScope === 'both' || orderScope === 'sourcing'}
-                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     {/* Quantity, Unit Price RMB, Exchange Rate */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Quantity (Pcs) (Col M) *
                         </label>
                         <input
@@ -4223,12 +4199,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           value={sourcingQuantity}
                           onChange={(e) => setSourcingQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
                           required={orderScope === 'both' || orderScope === 'sourcing'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Unit Price (RMB ¥) (Col N) *
                         </label>
                         <input
@@ -4239,12 +4215,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           onChange={(e) => setSourcingUnitPriceRmb(Math.max(0, parseFloat(e.target.value) || 0))}
                           placeholder="e.g. 45.00"
                           required={orderScope === 'both' || orderScope === 'sourcing'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           RMB Rate (BDT) (Col P) *
                         </label>
                         <input
@@ -4255,7 +4231,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           onChange={(e) => setSourcingRmbRateBdt(Math.max(1, parseFloat(e.target.value) || 19.5))}
                           placeholder="19.50"
                           required={orderScope === 'both' || orderScope === 'sourcing'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
                     </div>
@@ -4264,26 +4240,27 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                 {/* PART D: Logistics, Freight & Delivery (Visible when Both or Freight) */}
                 {(orderScope === 'both' || orderScope === 'freight') && (
-                  <div className="space-y-3.5 pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between pb-1">
-                      <div className="flex items-center gap-2">
+                  <div className="space-y-2 pt-2 border-t border-slate-100/70">
+                    <div className="flex items-center justify-between pb-0.5">
+                      <div className="flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
                         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif]">
                           Cargo Freight &amp; Bangladesh Delivery
                         </h3>
-                        <span className="text-[10px] font-bold px-2 py-0.2 rounded bg-sky-50 text-sky-800 border border-sky-200">
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-50 text-sky-800 border border-sky-200">
                           Cols V-X, AA
                         </span>
                       </div>
-                      <span className="text-xs font-mono font-bold text-sky-800 bg-sky-50/80 px-2 py-0.5 rounded border border-sky-200">
+                      <span className="text-[11px] font-mono font-bold text-sky-800 bg-sky-50/80 px-2 py-0.5 rounded border border-sky-200">
                         Freight: ৳{dynamicFinanceTotals.intlFreightBdt.toLocaleString()}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Origin Hub (China)</label>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Origin Hub (China)</label>
                         <ReferenceSelect
+                          size="sm"
                           value={newOriginCity}
                           onChange={(cityVal) => {
                             setNewOriginCity(cityVal);
@@ -4299,8 +4276,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Destination Hub</label>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Destination Hub</label>
                         <ReferenceSelect
+                          size="sm"
                           value={
                             destinationHubList.find(
                               (opt) =>
@@ -4328,8 +4306,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Shipping Method</label>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Shipping Method</label>
                         <ReferenceSelect
+                          size="sm"
                           value={newMode}
                           onChange={(modeVal) => {
                             setNewMode(modeVal as any);
@@ -4350,9 +4329,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </div>
 
                     {/* Weight (Col V) and Shipping Rate (Col W) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Gross Cargo Weight (KG) (Col V) *
                         </label>
                         <input
@@ -4369,12 +4348,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           }}
                           placeholder="10"
                           required={orderScope === 'both' || orderScope === 'freight'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Freight Rate / KG (BDT) (Col W) *
                         </label>
                         <input
@@ -4384,12 +4363,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           onChange={(e) => setFreightRatePerKgBdt(Math.max(0, parseFloat(e.target.value) || 0))}
                           placeholder={newMode === 'sea' ? '450' : '950'}
                           required={orderScope === 'both' || orderScope === 'freight'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Carrier Line / Flight No
                         </label>
                         <input
@@ -4397,15 +4376,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           value={newCarrier}
                           onChange={(e) => setNewCarrier(e.target.value)}
                           placeholder={newMode === 'air' ? 'GoShipping Air Priority' : 'GoShipping Ocean Line'}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
                     </div>
 
                     {/* Consignee Contact & Address */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Consignee / Recipient Name *
                         </label>
                         <input
@@ -4416,20 +4395,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             setNewRecipientName(e.target.value);
                           }}
                           placeholder="e.g. Farhan Ahmed / Apex Retail Facility"
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Phone Number with Country Code *
                         </label>
-                        <div className="relative flex items-center h-9 w-full rounded-lg border border-slate-300 bg-white focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
-                          <div className="relative flex items-center shrink-0 pl-2.5 pr-2 border-r border-slate-200">
+                        <div className="relative flex items-center h-8 w-full rounded-md border border-slate-300 bg-white focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
+                          <div className="relative flex items-center shrink-0 pl-2 pr-1.5 border-r border-slate-200">
                             <select
                               value={recipientPhoneCode}
                               onChange={(e) => setRecipientPhoneCode(e.target.value)}
-                              className="appearance-none bg-transparent pr-4 text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                              className="appearance-none bg-transparent pr-3.5 text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
                             >
                               {PHONE_DIAL_CODES.map((dial) => (
                                 <option key={dial.code + dial.country} value={dial.code}>
@@ -4437,7 +4416,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                 </option>
                               ))}
                             </select>
-                            <svg className="w-3 h-3 text-slate-400 pointer-events-none absolute right-1 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <svg className="w-2.5 h-2.5 text-slate-400 pointer-events-none absolute right-1 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <polyline points="6 9 12 15 18 9" />
                             </svg>
                           </div>
@@ -4449,14 +4428,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                               setNewRecipientPhone(`${recipientPhoneCode} ${e.target.value}`);
                             }}
                             placeholder="1711 000000"
-                            className="flex-1 h-full px-2.5 text-xs text-slate-900 font-mono focus:outline-none bg-transparent"
+                            className="flex-1 h-full px-2 text-xs text-slate-900 font-mono focus:outline-none bg-transparent"
                           />
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                         Delivery Street Address *
                       </label>
                       <input
@@ -4467,20 +4446,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           setNewRecipientAddress(e.target.value);
                         }}
                         placeholder="e.g. Flat 4/A, Plot 14, Sector 7, Uttara, Dhaka"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
                     {/* Local Courier & Tracking (Col AA) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Bangladesh Local Courier Partner
                         </label>
                         <select
                           value={bdCourierName}
                           onChange={(e) => setBdCourierName(e.target.value)}
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
                         >
                           <option value="Steadfast">Steadfast Courier (Recommended)</option>
                           <option value="Pathao">Pathao Courier</option>
@@ -4491,7 +4470,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                           Local Courier Tracking No (Col AA)
                         </label>
                         <input
@@ -4499,7 +4478,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           value={bdCourierTrackingNo}
                           onChange={(e) => setBdCourierTrackingNo(e.target.value)}
                           placeholder="e.g. STF-992019 or leave blank"
-                          className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
                     </div>
@@ -4509,9 +4488,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
 
               {/* RIGHT COLUMN: REAL-TIME FINANCIAL SUMMARY & DISPATCH (lg:col-span-4, STICKY) */}
-              <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-4">
-                <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="lg:col-span-4 space-y-2.5 lg:sticky lg:top-4">
+                <div className="bg-white rounded-xl border border-slate-200/90 p-3 sm:p-3.5 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-100/70">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif]">
                       Financial &amp; Settlement Summary
                     </h3>
@@ -4527,9 +4506,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   {/* Consignment Live Tracking Code (AWB) */}
-                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-200/80 space-y-0.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-bold text-slate-800 uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                         Consignment Tracking Code
                       </label>
                       <span className="text-[10px] text-slate-400 font-medium">Auto if blank</span>
@@ -4538,20 +4517,18 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       type="text"
                       value={newCustomTrackingNumber}
                       onChange={(e) => setNewCustomTrackingNumber(e.target.value.toUpperCase())}
-                      placeholder="e.g. GOSH-2026-9812"
-                      className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      placeholder="Auto: GOSH-2026-XXXX"
+                      className="w-full h-8 px-2.5 rounded-md border border-slate-300 bg-white font-mono text-xs font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
                     />
-                    <p className="text-[10px] text-slate-400">
-                      Leave blank to auto-generate official GOSH-2026-XXXX.
-                    </p>
                   </div>
 
                   {/* Initial Order Status (Col F) */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                       Current Status (Col F)
                     </label>
                     <ReferenceSelect
+                      size="sm"
                       value={newInitialStatus}
                       onChange={(val) => setNewInitialStatus(val)}
                       options={[
@@ -4569,9 +4546,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
 
                   {/* Financial Cost Breakdown */}
-                  <div className="divide-y divide-slate-100 text-xs">
+                  <div className="space-y-1 text-xs pt-1">
                     {(orderScope === 'both' || orderScope === 'sourcing') && (
-                      <div className="py-2 flex items-center justify-between">
+                      <div className="py-0.5 flex items-center justify-between">
                         <span className="text-slate-500">China Purchase (RMB)</span>
                         <span className="font-semibold text-slate-900 font-mono">
                           ¥{dynamicFinanceTotals.totalRmb.toLocaleString()}
@@ -4580,7 +4557,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     )}
 
                     {(orderScope === 'both' || orderScope === 'sourcing') && (
-                      <div className="py-2 flex items-center justify-between">
+                      <div className="py-0.5 flex items-center justify-between">
                         <span className="text-slate-500">Purchase Cost (BDT)</span>
                         <span className="font-semibold text-slate-900 font-mono">
                           ৳{dynamicFinanceTotals.purchaseCostBdt.toLocaleString()}
@@ -4589,7 +4566,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     )}
 
                     {(orderScope === 'both' || orderScope === 'freight') && (
-                      <div className="py-2 flex items-center justify-between">
+                      <div className="py-0.5 flex items-center justify-between">
                         <span className="text-slate-500">Int'l Freight Charge</span>
                         <span className="font-semibold text-slate-900 font-mono">
                           ৳{dynamicFinanceTotals.intlFreightBdt.toLocaleString()}
@@ -4597,16 +4574,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </div>
                     )}
 
-                    <div className="py-2.5 flex items-center justify-between bg-slate-50 px-2.5 rounded-lg mt-1 border border-slate-200">
-                      <span className="font-bold text-slate-900">Total Billed</span>
-                      <span className="font-bold text-base text-slate-900 font-mono">
+                    <div className="py-1 px-2 flex items-center justify-between bg-slate-50 rounded-md border border-slate-200 my-0.5">
+                      <span className="font-bold text-slate-900 text-xs">Total Billed</span>
+                      <span className="font-bold text-sm text-slate-900 font-mono">
                         ৳{dynamicFinanceTotals.totalBillBdt.toLocaleString()}
                       </span>
                     </div>
 
                     {/* Advance Payment Input (Col R) */}
-                    <div className="py-3 space-y-1">
-                      <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    <div className="py-0.5 space-y-0.5">
+                      <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                         Advance Paid [ Customer ] (Col R)
                       </label>
                       <input
@@ -4615,18 +4592,18 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         value={advancePaidBdt}
                         onChange={(e) => setAdvancePaidBdt(Math.max(0, parseFloat(e.target.value) || 0))}
                         placeholder="0"
-                        className="w-full h-9 px-3 rounded-lg border border-slate-300 font-mono font-bold text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 font-mono font-bold text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>
 
-                    <div className="py-2 flex items-center justify-between bg-red-50/70 px-2.5 rounded-lg border border-red-200">
-                      <span className="font-bold text-[#EA1D2C]">Balance Due</span>
-                      <span className="font-bold text-base text-[#EA1D2C] font-mono">
+                    <div className="py-1 px-2 flex items-center justify-between bg-red-50/70 rounded-md border border-red-200 my-0.5">
+                      <span className="font-bold text-xs text-[#EA1D2C]">Balance Due</span>
+                      <span className="font-bold text-sm text-[#EA1D2C] font-mono">
                         ৳{dynamicFinanceTotals.dueBdt.toLocaleString()}
                       </span>
                     </div>
 
-                    <div className="py-2 flex items-center justify-between text-[11px]">
+                    <div className="py-0.5 flex items-center justify-between text-[10px]">
                       <span className="text-slate-500">Est. Profit Margin</span>
                       <span className="font-bold text-emerald-700 font-mono">
                         +৳{dynamicFinanceTotals.profitEstimateBdt.toLocaleString()} (~15%)
@@ -4636,7 +4613,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                   {/* Remark / Notes (Col AB) */}
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">
                       Remark / Customer Notes (Col AB)
                     </label>
                     <textarea
@@ -4644,27 +4621,27 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       onChange={(e) => setOrderRemarks(e.target.value)}
                       rows={2}
                       placeholder="e.g. Urgent air cargo, special clearance instructions..."
-                      className="w-full p-2 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none bg-white"
+                      className="w-full p-1.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 resize-none bg-white"
                     />
                   </div>
 
                   {/* Primary Submit Button */}
-                  <div className="pt-1">
+                  <div className="pt-0.5">
                     <button
                       type="submit"
                       disabled={submittingConsignment}
-                      className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-sm cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="w-full py-2 px-3 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-95 text-white font-bold text-xs uppercase tracking-wider transition-none shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >
                       {submittingConsignment ? (
                         <>
-                          <svg className="w-4 h-4 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <svg className="w-3.5 h-3.5 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                           </svg>
                           <span>Recording &amp; Syncing...</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <line x1="12" y1="5" x2="12" y2="19" />
                             <line x1="5" y1="12" x2="19" y2="12" />
                           </svg>
@@ -4679,6 +4656,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
             </form>
           </div>
+
         )}{/* ========================================================= */}
         {/* TAB: UNIFIED ORDERS & SOURCING POS LEDGER DESK            */}
         {/* ========================================================= */}

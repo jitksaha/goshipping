@@ -18,6 +18,7 @@ export interface SearchableSelectProps {
   className?: string;
   disabled?: boolean;
   id?: string;
+  compact?: boolean;
 }
 
 export function SearchableSelect({
@@ -30,7 +31,8 @@ export function SearchableSelect({
   required,
   className = '',
   disabled = false,
-  id
+  id,
+  compact = false
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -87,7 +89,7 @@ export function SearchableSelect({
   return (
     <div ref={containerRef} className={`relative font-sans ${className}`}>
       {label && (
-        <label className="block text-xs font-semibold text-slate-700 mb-1">
+        <label className={`block font-semibold text-slate-700 ${compact ? 'text-[11px] mb-0.5' : 'text-xs mb-1'}`}>
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -101,7 +103,7 @@ export function SearchableSelect({
           setIsOpen(!isOpen);
           setSearch('');
         }}
-        className={`relative w-full h-9 pl-3 pr-8 rounded-lg border text-xs text-left bg-white flex items-center justify-between transition-none cursor-pointer focus:outline-none ${
+        className={`relative w-full ${compact ? 'h-8 pl-2.5 pr-7 rounded-md' : 'h-9 pl-3 pr-8 rounded-lg'} border text-xs text-left bg-white flex items-center justify-between transition-none cursor-pointer focus:outline-none ${
           isOpen
             ? 'border-slate-900 ring-1 ring-slate-900'
             : 'border-slate-300 hover:border-slate-400'
