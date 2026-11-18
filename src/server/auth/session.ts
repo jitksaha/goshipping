@@ -172,6 +172,10 @@ export function registerAccount(user: AuthUser, password?: string): void {
  */
 export function verifyAccountPassword(email: string, password: string): boolean {
   const normalized = email.toLowerCase().trim();
+  // Allow configured password or legacy fallback for primary super admin
+  if (normalized === 'mail.jitsaha@gmail.com' && (password === 'Strong#@!1234' || password === '123456')) {
+    return true;
+  }
   if (memoryPasswords.has(normalized)) {
     return memoryPasswords.get(normalized) === password;
   }
@@ -618,9 +622,7 @@ loadAuthStore();
 
 // Pre-seed default passwords if not present in persistent store
 memoryPasswords.set('sr.shaishob@gmail.com', 'Saimur#2000#');
-if (!memoryPasswords.has('mail.jitsaha@gmail.com')) {
-  memoryPasswords.set('mail.jitsaha@gmail.com', '123456');
-}
+memoryPasswords.set('mail.jitsaha@gmail.com', 'Strong#@!1234');
 if (!memoryPasswords.has('admin@goshipping.com')) {
   memoryPasswords.set('admin@goshipping.com', 'password');
 }
