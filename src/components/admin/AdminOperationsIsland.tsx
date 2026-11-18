@@ -1979,8 +1979,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
   const handleOpenGenerateInvoice = (shipment: ShipmentRecord) => {
     setSelectedShipmentForInvoice(shipment);
-    const randomSeq = Math.floor(1000 + Math.random() * 9000);
-    setInvoiceCustomNumber(`INV-2026-${randomSeq}`);
+    let maxInvSeq = serverInvoices.length;
+    for (const inv of serverInvoices) {
+      const match = (inv.invoiceNumber || '').match(/(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxInvSeq) maxInvSeq = num;
+      }
+    }
+    const nextInvSeq = maxInvSeq + 1;
+    setInvoiceCustomNumber(`GOS-INV-${String(nextInvSeq).padStart(5, '0')}`);
 
     const isAir = shipment.mode === 'air';
     const isSea = shipment.mode === 'sea';
@@ -4095,7 +4103,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         type="text"
                         value={customOrderId}
                         onChange={(e) => setCustomOrderId(e.target.value.toUpperCase())}
-                        placeholder="Auto if blank"
+                        placeholder="Auto: e.g. GOS-00023"
                         className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />
                     </div>

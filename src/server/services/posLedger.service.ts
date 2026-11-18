@@ -104,7 +104,7 @@ function getInitialRecords(): PosLedgerRecord[] {
   const today = new Date().toISOString().split('T')[0];
   const items: Array<Omit<PosLedgerRecord, 'id' | 'totalPurchaseRmb' | 'purchaseCostBdt' | 'purchaseCostDueBdt' | 'internationalFreightBdt' | 'totalBillBdt' | 'paymentStatus' | 'profitEstimateBdt' | 'createdAt' | 'updatedAt'>> = [
     {
-      orderId: 'POS-2026-001',
+      orderId: 'GOS-00001',
       orderDate: today,
       cnDate: today,
       bdDate: '',
@@ -130,7 +130,7 @@ function getInitialRecords(): PosLedgerRecord[] {
       remark: 'Initial sample from spreadsheet'
     },
     {
-      orderId: 'POS-2026-002',
+      orderId: 'GOS-00002',
       orderDate: today,
       cnDate: today,
       bdDate: '',
@@ -156,7 +156,7 @@ function getInitialRecords(): PosLedgerRecord[] {
       remark: 'Urgent restocking air shipment'
     },
     {
-      orderId: 'POS-2026-003',
+      orderId: 'GOS-00003',
       orderDate: today,
       cnDate: today,
       bdDate: '',
@@ -195,16 +195,51 @@ function getInitialRecords(): PosLedgerRecord[] {
   });
 }
 
+/**
+ * Normalizes legacy POS-XXXX-XXXX IDs to clean brand sequential format: GOS-XXXXX (e.g. GOS-00001, GOS-00023)
+ */
+function normalizeOrderId(orderId: string | undefined, fallbackSeq: number): string {
+  if (!orderId || !orderId.trim()) {
+    return `GOS-${String(fallbackSeq).padStart(5, '0')}`;
+  }
+  const clean = orderId.trim();
+  // Already in GOS-XXXXX format
+  if (/^GOS-\d{4,6}$/i.test(clean)) {
+    return clean.toUpperCase();
+  }
+  // If old POS-2026-001 or POS-2026-0005, extract the trailing number
+  const match = clean.match(/(?:POS-.*?)?(\d+)$/i);
+  if (match) {
+    const num = parseInt(match[1], 10);
+    if (!isNaN(num) && num > 0) {
+      return `GOS-${String(num).padStart(5, '0')}`;
+    }
+  }
+  return clean;
+}
+
 function loadFromFile(): PosLedgerRecord[] {
   try {
     if (fs.existsSync(STORE_PATH)) {
       const content = fs.readFileSync(STORE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((item) => ({
-          ...item,
-          sheetSyncStatus: item.sheetSyncStatus || 'synced'
-        }));
+        let hasMigrations = false;
+        const normalized = parsed.map((item, idx) => {
+          const cleanOrderId = normalizeOrderId(item.orderId, idx + 1);
+          if (cleanOrderId !== item.orderId) {
+            hasMigrations = true;
+          }
+          return {
+            ...item,
+            orderId: cleanOrderId,
+            sheetSyncStatus: item.sheetSyncStatus || 'synced'
+          };
+        });
+        if (hasMigrations) {
+          saveToFile(normalized);
+        }
+        return normalized;
       }
     }
   } catch (err) {
@@ -330,9 +365,32 @@ export class PosLedgerService {
   /**
    * Create POS Order Record with Auto Calculations
    */
+  /**
+   * Generate next sequential Order ID in GOS-XXXXX brand format (e.g. GOS-00001, GOS-00023)
+   * Strictly maintains serial numbering: 1 -> GOS-00001, 2 -> GOS-00002, 23 -> GOS-00023
+   */
+  static generateNextOrderId(): string {
+    let maxSeq = 0;
+    for (const record of memoryLedger) {
+      if (!record.orderId) continue;
+      const match = record.orderId.match(/(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    }
+    const nextSeq = maxSeq + 1;
+    return `GOS-${String(nextSeq).padStart(5, '0')}`;
+  }
+
+  /**
+   * Create POS Order Record with Auto Calculations
+   */
   static async createRecord(payload: Partial<PosLedgerRecord>): Promise<PosLedgerRecord> {
     const id = `pos-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
-    const orderId = payload.orderId?.trim() || `POS-${new Date().getFullYear()}-${String(memoryLedger.length + 1).padStart(4, '0')}`;
+    const orderId = payload.orderId?.trim() ? payload.orderId.trim().toUpperCase() : PosLedgerService.generateNextOrderId();
     const today = new Date().toISOString().split('T')[0];
 
     const calc = autoCalculatePosFields(payload);

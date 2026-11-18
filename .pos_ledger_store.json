@@ -1,7 +1,7 @@
 [
   {
     "id": "pos-1794059035954-52d3a8",
-    "orderId": "POS-2026-0005",
+    "orderId": "GOS-00005",
     "orderDate": "2026-11-07",
     "cnDate": "2026-11-07",
     "bdDate": "",
@@ -39,7 +39,7 @@
   },
   {
     "id": "pos-1793963216769-0f7982",
-    "orderId": "POS-2026-0004",
+    "orderId": "GOS-00004",
     "orderDate": "2026-11-06",
     "cnDate": "2026-11-06",
     "bdDate": "",
@@ -75,7 +75,7 @@
     "sheetSyncStatus": "synced"
   },
   {
-    "orderId": "POS-2026-001",
+    "orderId": "GOS-00001",
     "orderDate": "2026-11-06",
     "cnDate": "2026-11-06",
     "bdDate": "",
@@ -112,7 +112,7 @@
     "sheetSyncStatus": "synced"
   },
   {
-    "orderId": "POS-2026-002",
+    "orderId": "GOS-00002",
     "orderDate": "2026-11-06",
     "cnDate": "2026-11-06",
     "bdDate": "",
@@ -149,7 +149,7 @@
     "sheetSyncStatus": "synced"
   },
   {
-    "orderId": "POS-2026-003",
+    "orderId": "GOS-00003",
     "orderDate": "2026-11-06",
     "cnDate": "2026-11-06",
     "bdDate": "",

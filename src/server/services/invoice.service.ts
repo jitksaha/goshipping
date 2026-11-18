@@ -51,7 +51,7 @@ export interface InvoiceRecord {
 let initialInvoices: InvoiceRecord[] = [
   {
     id: 'inv-1080',
-    invoiceNumber: 'INV-2026-1080',
+    invoiceNumber: 'GOS-INV-00001',
     shipmentId: 'shp-9812-dac',
     trackingNumber: 'GOSH-2026-9812',
     customerId: 'usr-customer-01',
@@ -110,7 +110,7 @@ let initialInvoices: InvoiceRecord[] = [
   },
   {
     id: 'inv-1081',
-    invoiceNumber: 'INV-2026-1081',
+    invoiceNumber: 'GOS-INV-00002',
     shipmentId: 'shp-4411-ctg',
     trackingNumber: 'GOSH-2026-4411',
     customerId: 'usr-customer-02',
@@ -196,6 +196,25 @@ export class InvoiceService {
     return inv || null;
   }
 
+  /**
+   * Helper to generate next sequential Invoice number in GOS-INV-XXXXX brand format (e.g. GOS-INV-00001, GOS-INV-00023)
+   */
+  static generateNextInvoiceNumber(): string {
+    let maxSeq = 0;
+    for (const inv of initialInvoices) {
+      if (!inv.invoiceNumber) continue;
+      const match = inv.invoiceNumber.match(/(\d+)$/);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    }
+    const nextSeq = maxSeq + 1;
+    return `GOS-INV-${String(nextSeq).padStart(5, '0')}`;
+  }
+
   static async createInvoice(data: {
     shipmentId: string;
     invoiceNumber?: string;
@@ -227,8 +246,7 @@ export class InvoiceService {
     if (!shipment) return null;
 
     const id = `inv-${Date.now().toString(36)}`;
-    const randomSeq = Math.floor(1000 + Math.random() * 9000);
-    const invoiceNumber = data.invoiceNumber?.trim() || `INV-2026-${randomSeq}`;
+    const invoiceNumber = data.invoiceNumber?.trim() ? data.invoiceNumber.trim().toUpperCase() : InvoiceService.generateNextInvoiceNumber();
     const now = new Date();
     const issueDate = data.issueDate || now.toLocaleDateString('en-GB');
     const dueDate = data.dueDate || new Date(now.getTime() + 7 * 86400000).toLocaleDateString('en-GB');

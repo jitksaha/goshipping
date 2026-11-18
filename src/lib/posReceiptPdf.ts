@@ -72,7 +72,7 @@ export function downloadPosReceiptPDF(order: PosLedgerRecord): void {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(...brandRed);
-  doc.text(`POS ORDER: ${safeAscii(order.orderId, 'POS-ORD')}`, margin + 2.5, y + 4.5);
+  doc.text(`ORDER: ${safeAscii(order.orderId, 'GOS-00001')}`, margin + 2.5, y + 4.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
