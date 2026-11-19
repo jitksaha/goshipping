@@ -1301,7 +1301,6 @@ app.post('/invoices', async (c) => {
     // Mark orders as invoiced in POS ledger if orderIds provided
     if (Array.isArray(body.orderIds) && body.orderIds.length > 0) {
       try {
-        const { PosLedgerService } = await import('./services/posLedger.service');
         const posOrders = await PosLedgerService.getAllRecords();
         for (const r of posOrders) {
           if (body.orderIds.includes(r.id) || body.orderIds.includes(r.orderId)) {
