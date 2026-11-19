@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 import { db } from '../db/client';
 import { posLedger } from '../db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, or } from 'drizzle-orm';
 import { syncOrderToGoogleSheet, setSyncStatusListener } from './googleSheetSync.service';
 
 export interface PosLedgerRecord {
@@ -474,22 +474,56 @@ export class PosLedgerService {
       });
     } catch {}
 
-    // Non-blocking background sync to Google Sheet
-    syncOrderToGoogleSheet(record).catch((err) => {
-      console.error('[GoogleSheetSync] Background sync failed:', err);
-    });
+    // Synchronous or background sync to Google Sheet
+    try {
+      const syncRes = await syncOrderToGoogleSheet(record);
+      if (syncRes.success) {
+        record.sheetSyncStatus = 'synced';
+        record.sheetSyncedAt = new Date().toISOString();
+        saveToFile(memoryLedger);
+        try {
+          await db.update(posLedger).set({
+            sheetSyncStatus: 'synced',
+            sheetSyncedAt: record.sheetSyncedAt
+          }).where(eq(posLedger.id, record.id));
+        } catch {}
+      }
+    } catch (err) {
+      console.error('[GoogleSheetSync] Initial create sync error:', err);
+    }
 
     return record;
   }
 
   /**
-   * Update POS Record with Auto Recalculations
+   * Update POS Record with Auto Recalculations & Synchronous Google Sheet Sync
    */
   static async updateRecord(id: string, updates: Partial<PosLedgerRecord>): Promise<PosLedgerRecord | null> {
-    const idx = memoryLedger.findIndex((r) => r.id === id);
+    const cleanId = String(id).trim();
+    let idx = memoryLedger.findIndex(
+      (r) => r.id === cleanId || r.orderId.toUpperCase() === cleanId.toUpperCase()
+    );
+    if (idx === -1 && updates.orderId) {
+      const targetOrder = updates.orderId.trim().toUpperCase();
+      idx = memoryLedger.findIndex((r) => r.orderId.toUpperCase() === targetOrder);
+    }
+    if (idx === -1) {
+      try {
+        const rows = await db.select().from(posLedger).where(
+          or(eq(posLedger.id, cleanId), eq(posLedger.orderId, cleanId))
+        );
+        if (rows.length > 0) {
+          const rec = rows[0] as unknown as PosLedgerRecord;
+          memoryLedger.push(rec);
+          idx = memoryLedger.length - 1;
+        }
+      } catch {}
+    }
     if (idx === -1) return null;
 
     const existing = memoryLedger[idx];
+    const oldOrderId = existing.orderId;
+    const targetOrderId = updates.orderId ? updates.orderId.trim().toUpperCase() : existing.orderId;
     const merged = { ...existing, ...updates };
     const calc = autoCalculatePosFields(merged);
 
@@ -497,7 +531,7 @@ export class PosLedgerService {
       ...merged,
       ...calc,
       id: existing.id,
-      orderId: updates.orderId ? updates.orderId.trim() : existing.orderId,
+      orderId: targetOrderId,
       sheetSyncStatus: 'pending',
       updatedAt: new Date().toISOString()
     };
@@ -539,13 +573,37 @@ export class PosLedgerService {
         bdTrackingNo: updated.bdTrackingNo,
         remark: updated.remark,
         profitEstimateBdt: String(updated.profitEstimateBdt)
-      }).where(eq(posLedger.id, id));
+      }).where(eq(posLedger.id, existing.id));
     } catch {}
 
-    // Non-blocking background sync to Google Sheet
-    syncOrderToGoogleSheet(updated).catch((err) => {
-      console.error('[GoogleSheetSync] Background sync failed:', err);
-    });
+    // Await synchronous Google Sheet Sync so the caller receives the updated sync state
+    try {
+      const syncPayload = {
+        ...updated,
+        ...(oldOrderId !== targetOrderId ? { oldOrderId } : {})
+      };
+      const syncRes = await syncOrderToGoogleSheet(syncPayload as any);
+      if (syncRes.success) {
+        updated.sheetSyncStatus = 'synced';
+        updated.sheetSyncedAt = new Date().toISOString();
+        updated.sheetSyncError = undefined;
+      } else {
+        updated.sheetSyncStatus = 'failed';
+        updated.sheetSyncError = syncRes.error;
+      }
+      memoryLedger[idx] = updated;
+      saveToFile(memoryLedger);
+
+      try {
+        await db.update(posLedger).set({
+          sheetSyncStatus: updated.sheetSyncStatus,
+          sheetSyncedAt: updated.sheetSyncedAt,
+          sheetSyncError: updated.sheetSyncError || null
+        }).where(eq(posLedger.id, existing.id));
+      } catch {}
+    } catch (syncErr: any) {
+      console.error('[GoogleSheetSync] Edit sync failed:', syncErr);
+    }
 
     return updated;
   }

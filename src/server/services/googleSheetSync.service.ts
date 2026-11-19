@@ -111,7 +111,7 @@ function formatPhoneForSheet(phone: string | null | undefined): string {
  * Format a PosLedgerRecord into the complete 29-column payload matching
  * the official GoShipping Google Spreadsheet (Sheet1, Columns A to AC).
  */
-export function formatRecordForSheet(record: PosLedgerRecord) {
+export function formatRecordForSheet(record: PosLedgerRecord & { oldOrderId?: string; previousOrderId?: string }) {
   const mobile = formatPhoneForSheet(record.mobileNo);
 
   const rowValues = [
@@ -179,6 +179,8 @@ export function formatRecordForSheet(record: PosLedgerRecord) {
     profitEstimateBdt: Number(record.profitEstimateBdt || 0),
     // Pre-aligned 29 values for Columns A to AC
     rowValues,
+    oldOrderId: (record as any).oldOrderId || undefined,
+    previousOrderId: (record as any).previousOrderId || (record as any).oldOrderId || undefined,
     sheetUrl: TARGET_GOOGLE_SHEET_URL,
     sheetTab: TARGET_SHEET_TAB_NAME
   };

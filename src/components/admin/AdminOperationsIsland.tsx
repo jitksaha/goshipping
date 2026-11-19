@@ -1566,7 +1566,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         orderDate: orderDateInput || '',
         cnDate: cnDateInput || '',
         bdDate: bdDateInput || '',
-        currentStatus: newInitialStatus === 'delivered' ? 'Delivered' : 'Processing'
+        currentStatus: TRACKING_STATUSES[newInitialStatus as TrackingStatusCode]?.label || (newInitialStatus === 'delivered' ? 'Delivered' : 'Processing')
       };
 
       const posRes = await fetch('/api/admin/pos-ledger', {
@@ -3570,6 +3570,24 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                 </svg>
                                 <span>Invoice</span>
                               </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (typeof window !== 'undefined') {
+                                    sessionStorage.setItem('goshipping_edit_order_id', s.trackingNumber);
+                                  }
+                                  switchTab('orders');
+                                }}
+                                className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-md bg-slate-900 hover:bg-black text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition-colors cursor-pointer shrink-0"
+                                title="Edit order in POS Ledger and sync"
+                              >
+                                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                                <span>Edit</span>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -3621,6 +3639,18 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             className="px-2.5 py-1 rounded bg-[#EA1D2C] text-white text-[11px] font-bold hover:bg-[#D41523]"
                           >
                             Invoice
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (typeof window !== 'undefined') {
+                                sessionStorage.setItem('goshipping_edit_order_id', s.trackingNumber);
+                              }
+                              switchTab('orders');
+                            }}
+                            className="px-2.5 py-1 rounded bg-slate-900 hover:bg-black text-white text-[11px] font-bold"
+                          >
+                            Edit
                           </button>
                         </div>
                       </div>

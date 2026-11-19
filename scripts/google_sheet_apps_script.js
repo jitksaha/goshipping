@@ -118,6 +118,7 @@ function doPost(e) {
     }
 
     var orderId = data.orderId;
+    var lookupId = data.oldOrderId || data.previousOrderId || orderId;
     if (!orderId) {
       return ContentService.createTextOutput(JSON.stringify({ success: false, error: "Missing orderId" }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -130,7 +131,8 @@ function doPost(e) {
     if (lastRow > 1) {
       var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
       for (var i = 0; i < ids.length; i++) {
-        if (String(ids[i][0]).trim() === String(orderId).trim()) {
+        var cellVal = String(ids[i][0]).trim();
+        if (cellVal === String(lookupId).trim() || cellVal === String(orderId).trim()) {
           targetRow = i + 2;
           break;
         }

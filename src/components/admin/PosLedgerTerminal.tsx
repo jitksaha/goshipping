@@ -197,6 +197,24 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
     return () => clearTimeout(timer);
   }, [searchQuery, serviceFilter, paymentFilter, supplierFilter]);
 
+  // Handle direct navigation to edit order from external tabs
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const targetEditId = sessionStorage.getItem('goshipping_edit_order_id');
+    if (targetEditId && records.length > 0) {
+      sessionStorage.removeItem('goshipping_edit_order_id');
+      const target = records.find(
+        (r) =>
+          r.orderId.toUpperCase() === targetEditId.toUpperCase() ||
+          r.id === targetEditId ||
+          (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === targetEditId.toUpperCase())
+      );
+      if (target) {
+        openEditDrawer(target);
+      }
+    }
+  }, [records]);
+
   const resetForm = () => {
     setFormData({
       orderId: '',
@@ -235,24 +253,24 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const openEditDrawer = (rec: PosLedgerRecord) => {
     setEditingRecord(rec);
     setFormData({
-      orderId: rec.orderId,
-      orderDate: rec.orderDate,
-      cnDate: rec.cnDate,
+      orderId: rec.orderId || '',
+      orderDate: rec.orderDate || '',
+      cnDate: rec.cnDate || '',
       bdDate: rec.bdDate || '',
-      customerName: rec.customerName,
+      customerName: rec.customerName || '',
       mobileNo: rec.mobileNo || '',
       importerClient: rec.importerClient || '',
       shippingMark: rec.shippingMark || '',
       websiteOrderNo: rec.websiteOrderNo || '',
-      itemDetails: rec.itemDetails,
+      itemDetails: rec.itemDetails || '',
       chinaCourierTracking: rec.chinaCourierTracking || '',
-      currentStatus: rec.currentStatus,
+      currentStatus: rec.currentStatus || 'PURCHASED',
       supplierName: rec.supplierName || 'Taobao',
       quantity: rec.quantity,
       unitPriceRmb: rec.unitPriceRmb,
       rmbRateBdt: rec.rmbRateBdt,
       purchaseCostPaidBdt: rec.purchaseCostPaidBdt,
-      serviceType: rec.serviceType,
+      serviceType: rec.serviceType || 'Sourcing & Shipping',
       cnWeightKg: rec.cnWeightKg,
       bdWeightKg: rec.bdWeightKg,
       shippingRatePerKgBdt: rec.shippingRatePerKgBdt,
@@ -291,7 +309,8 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update order');
-        showToast(`Order ${data.record.orderId} updated successfully!`, 'success');
+        const syncBadge = data.record?.sheetSyncStatus === 'synced' ? ' & synced to Google Sheet!' : '!';
+        showToast(`Order ${data.record.orderId} updated successfully${syncBadge}`, 'success');
       } else {
         // Create
         const res = await fetch('/api/admin/pos-ledger', {
@@ -301,11 +320,12 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to create order');
-        showToast(`Order ${data.record.orderId} created in POS Ledger!`, 'success');
+        const syncBadge = data.record?.sheetSyncStatus === 'synced' ? ' & synced to Google Sheet!' : '!';
+        showToast(`Order ${data.record.orderId} created in POS Ledger${syncBadge}`, 'success');
       }
       setShowPosDrawer(false);
       resetForm();
-      loadLedger();
+      await loadLedger();
     } catch (err: any) {
       showToast(err.message || 'Error saving POS order', 'error');
     } finally {
@@ -1209,7 +1229,14 @@ function doPost(e) {
                   <tr key={r.id || idx} className="hover:bg-slate-50/90 transition-colors">
                     {/* Column 1: Order ID & Date (Sticky Left) */}
                     <td className="py-3 px-4 sticky left-0 bg-white hover:bg-slate-50 z-10 border-r border-slate-200 font-mono font-bold text-slate-900 shadow-[1px_0_3px_rgba(0,0,0,0.03)]">
-                      <div className="text-xs">{r.orderId}</div>
+                      <button
+                        type="button"
+                        onClick={() => openEditDrawer(r)}
+                        className="text-xs font-mono font-bold text-slate-900 hover:text-[#EA1D2C] hover:underline cursor-pointer text-left block"
+                        title="Click to edit order"
+                      >
+                        {r.orderId}
+                      </button>
                       <div className="text-[10px] text-slate-400 font-normal mt-0.5">{r.orderDate}</div>
                       <span className="inline-block mt-1 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                         {r.serviceType}
@@ -1680,12 +1707,19 @@ function doPost(e) {
             <form onSubmit={handleSaveOrder} className="space-y-5 pt-4 text-xs">
               {/* Section 1: Customer & Logistics Identification */}
               <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
-                <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 block">
-                  01 · Customer &amp; Order Identification
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-500 block">
+                    01 · Customer &amp; Order Identification
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Google Sheet Sync Cols A–K
+                  </span>
+                </div>
+
+                {/* Row 1: Customer Name, Phone, Importer Client */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="font-bold text-slate-700">Customer Full Name *</label>
+                    <label className="font-bold text-slate-700">Customer Full Name (Col E) *</label>
                     <input
                       type="text"
                       required
@@ -1696,7 +1730,7 @@ function doPost(e) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Mobile / WhatsApp No</label>
+                    <label className="font-bold text-slate-700">Mobile / WhatsApp (Col G)</label>
                     <input
                       type="text"
                       value={formData.mobileNo}
@@ -1706,7 +1740,7 @@ function doPost(e) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Importer Code / Mark</label>
+                    <label className="font-bold text-slate-700">Importer / Client (Col H)</label>
                     <input
                       type="text"
                       value={formData.importerClient}
@@ -1717,9 +1751,54 @@ function doPost(e) {
                   </div>
                 </div>
 
+                {/* Row 2: Order ID, Order Date, CN Date, BD Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 flex items-center justify-between">
+                      <span>Order ID (Col A)</span>
+                      {!editingRecord && <span className="text-[10px] text-slate-400 font-normal">Auto if blank</span>}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.orderId}
+                      onChange={(e) => setFormData({ ...formData, orderId: e.target.value.toUpperCase() })}
+                      className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold uppercase"
+                      placeholder={editingRecord ? 'e.g. GOS-00025' : 'Auto: e.g. GOS-00025'}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">Order Date (Col B)</label>
+                    <input
+                      type="date"
+                      value={formData.orderDate}
+                      onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
+                      className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">CN Date (Col C)</label>
+                    <input
+                      type="date"
+                      value={formData.cnDate}
+                      onChange={(e) => setFormData({ ...formData, cnDate: e.target.value })}
+                      className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700">BD Date (Col U)</label>
+                    <input
+                      type="date"
+                      value={formData.bdDate}
+                      onChange={(e) => setFormData({ ...formData, bdDate: e.target.value })}
+                      className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Shipping Mark, Website Order Ref, China Domestic Tracking */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Shipping Mark</label>
+                    <label className="font-bold text-slate-700">Shipping Mark (Col I)</label>
                     <input
                       type="text"
                       value={formData.shippingMark}
@@ -1729,7 +1808,7 @@ function doPost(e) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Website Order Ref (Optional)</label>
+                    <label className="font-bold text-slate-700">Website Order Ref (Col J)</label>
                     <input
                       type="text"
                       value={formData.websiteOrderNo}
@@ -1739,12 +1818,13 @@ function doPost(e) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Order Date</label>
+                    <label className="font-bold text-slate-700">China Courier Tracking (Col D)</label>
                     <input
-                      type="date"
-                      value={formData.orderDate}
-                      onChange={(e) => setFormData({ ...formData, orderDate: e.target.value })}
-                      className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                      type="text"
+                      value={formData.chinaCourierTracking}
+                      onChange={(e) => setFormData({ ...formData, chinaCourierTracking: e.target.value })}
+                      className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono"
+                      placeholder="SF14092847192"
                     />
                   </div>
                 </div>
@@ -1757,7 +1837,7 @@ function doPost(e) {
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                   <div className="sm:col-span-2 space-y-1">
-                    <label className="font-bold text-slate-700">Product / Item Details *</label>
+                    <label className="font-bold text-slate-700">Product / Item Details (Col K) *</label>
                     <input
                       type="text"
                       required
@@ -1768,7 +1848,7 @@ function doPost(e) {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Supplier / Platform</label>
+                    <label className="font-bold text-slate-700">Supplier / Platform (Col L)</label>
                     <select
                       value={formData.supplierName}
                       onChange={(e) => setFormData({ ...formData, supplierName: e.target.value })}
@@ -1783,7 +1863,7 @@ function doPost(e) {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Service Mode</label>
+                    <label className="font-bold text-slate-700">Service Mode (Col T)</label>
                     <select
                       value={formData.serviceType}
                       onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
@@ -1798,32 +1878,25 @@ function doPost(e) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">China Courier Tracking (SF/ZTO/YTO)</label>
-                    <input
-                      type="text"
-                      value={formData.chinaCourierTracking}
-                      onChange={(e) => setFormData({ ...formData, chinaCourierTracking: e.target.value })}
-                      className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono"
-                      placeholder="SF14092847192"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Current Status</label>
-                    <select
-                      value={formData.currentStatus}
-                      onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value })}
-                      className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-semibold"
-                    >
-                      <option value="Processing">Processing / Order Placed</option>
-                      <option value="Received in CN Hub">Received in China Hub (Guangzhou/Yiwu)</option>
-                      <option value="Dispatched Flight/Ship">Dispatched (Air / Ocean Corridor)</option>
-                      <option value="Customs Clearance DAC">Customs Clearance (DAC Airport / CGP)</option>
-                      <option value="Ready for Delivery">Ready for Delivery / Warehouse Arrived</option>
-                      <option value="Delivered">Delivered &amp; Completed</option>
-                    </select>
-                  </div>
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Current Status (Col F)</label>
+                  <select
+                    value={formData.currentStatus}
+                    onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value })}
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-semibold"
+                  >
+                    <option value="PURCHASED">1. PURCHASED (Initial Stage / Order Placed)</option>
+                    <option value="CN WAREHOUSE RECEIVED">2. CN WAREHOUSE RECEIVED (Guangzhou / Yiwu)</option>
+                    <option value="DISPATCHED FROM CHINA">3. DISPATCHED FROM CHINA (Air Linehaul)</option>
+                    <option value="ARRIVED DHAKA AIRPORT">4. ARRIVED DHAKA AIRPORT (HSIA Cargo)</option>
+                    <option value="AWAITING CUSTOMS CLEARANCE">5. AWAITING CUSTOMS CLEARANCE (DAC / NBR)</option>
+                    <option value="BD WAREHOUSE RECEIVED">6. BD WAREHOUSE RECEIVED (Dhaka Hub)</option>
+                    <option value="OUT FOR DELIVERY">7. OUT FOR DELIVERY (Last-Mile Dispatch)</option>
+                    <option value="DELIVERED">8. DELIVERED (Completed)</option>
+                    {!['PURCHASED','CN WAREHOUSE RECEIVED','DISPATCHED FROM CHINA','ARRIVED DHAKA AIRPORT','AWAITING CUSTOMS CLEARANCE','BD WAREHOUSE RECEIVED','OUT FOR DELIVERY','DELIVERED'].includes(formData.currentStatus.toUpperCase()) && (
+                      <option value={formData.currentStatus}>{formData.currentStatus}</option>
+                    )}
+                  </select>
                 </div>
               </div>
 
@@ -2039,9 +2112,16 @@ function doPost(e) {
                 <button
                   type="submit"
                   disabled={savingRecord}
-                  className="px-6 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold shadow-xs disabled:opacity-50 cursor-pointer"
+                  className="px-6 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold shadow-xs disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                 >
-                  {savingRecord ? 'Saving...' : editingRecord ? 'Update POS Record' : 'Save to POS Ledger →'}
+                  {savingRecord ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      <span>{editingRecord ? 'Updating & Syncing to Sheet...' : 'Saving & Syncing to Sheet...'}</span>
+                    </>
+                  ) : (
+                    <span>{editingRecord ? 'Update Order & Sync to Sheet →' : 'Save to POS Ledger →'}</span>
+                  )}
                 </button>
               </div>
             </form>
