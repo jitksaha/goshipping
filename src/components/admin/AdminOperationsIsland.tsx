@@ -1422,7 +1422,236 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
+  // Reset all fields of the Create Order form and remove any persisted localStorage draft
+  const resetCreateOrderForm = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('goshipping_create_order_draft');
+      }
+    } catch {}
 
+    // 1. Customer selection & inline registration
+    setSelectedCustomerId('');
+    setOrderCustomerMode('existing');
+    setCustomerSearchQuery('');
+    setIsCustomerDropdownOpen(false);
+    setNewCustomerFullName('');
+    setNewCustomerEmail('');
+    setNewCustomerPhone('');
+    setNewCustomerCompany('');
+    setNewCustomerAddress('');
+    setNewCustomerPassword('');
+    setNewCustName('');
+    setNewRecipientName('');
+    setNewRecipientPhone('');
+    setNewRecipientAddress('');
+
+    // 2. Sourcing, platform, IDs & dates
+    setCustomOrderId('');
+    setOrderDateInput('');
+    setCnDateInput('');
+    setBdDateInput('');
+    setImporterClientInput('');
+    setSourcingShippingMark('');
+    setSourcingWebsiteOrderNo('');
+    setSourcingSupplier('Taobao');
+    setChinaTrackingNo('');
+    setSourcingItemDetails('');
+    setSourcingQuantity(1);
+    setSourcingUnitPriceRmb('');
+    setSourcingRmbRateBdt('19.5');
+    setGrossWeightKgInput(10);
+    setFreightRatePerKgBdt(950);
+    setAdvancePaidBdt('');
+    setOrderRemarks('');
+    setNewCustomTrackingNumber('');
+    setNewInitialStatus('purchased');
+    setOrderScope('both');
+
+    // 3. Structured Delivery Address
+    setRecipientContactName('');
+    setAddressLine1('');
+    setAddressLine2('');
+    setRecipientState('Dhaka Division');
+    setRecipientCity('Dhaka');
+    setRecipientPostcode('');
+    setRecipientPhoneCode('+880');
+    setRecipientPhoneBody('');
+    setDeliveryNotes('');
+    setDeliveryInstructions('');
+    setBdCourierName('Steadfast');
+    setBdCourierTrackingNo('');
+
+    // 4. Cargo Items Table
+    setOrderItems([
+      {
+        id: 'item-1',
+        description: '',
+        packagingType: 'carton',
+        categoryTag: 'Commercial',
+        quantity: '' as any,
+        weightKg: '' as any,
+        cbm: '' as any,
+        declaredValue: '' as any
+      }
+    ]);
+  };
+
+  // Restore saved in-progress draft from localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const savedRaw = localStorage.getItem('goshipping_create_order_draft');
+      if (savedRaw) {
+        const d = JSON.parse(savedRaw);
+        if (d && typeof d === 'object') {
+          if (d.selectedCustomerId) setSelectedCustomerId(d.selectedCustomerId);
+          if (d.orderCustomerMode) setOrderCustomerMode(d.orderCustomerMode);
+          if (d.newCustomerFullName) setNewCustomerFullName(d.newCustomerFullName);
+          if (d.newCustomerEmail) setNewCustomerEmail(d.newCustomerEmail);
+          if (d.newCustomerPhone) setNewCustomerPhone(d.newCustomerPhone);
+          if (d.newCustomerCompany) setNewCustomerCompany(d.newCustomerCompany);
+          if (d.newCustomerAddress) setNewCustomerAddress(d.newCustomerAddress);
+          if (d.customOrderId) setCustomOrderId(d.customOrderId);
+          if (d.orderDateInput) setOrderDateInput(d.orderDateInput);
+          if (d.cnDateInput) setCnDateInput(d.cnDateInput);
+          if (d.bdDateInput) setBdDateInput(d.bdDateInput);
+          if (d.newCustomTrackingNumber) setNewCustomTrackingNumber(d.newCustomTrackingNumber);
+          if (d.newInitialStatus) setNewInitialStatus(d.newInitialStatus);
+          if (d.orderScope) setOrderScope(d.orderScope);
+          if (d.sourcingSupplier) setSourcingSupplier(d.sourcingSupplier);
+          if (d.chinaTrackingNo) setChinaTrackingNo(d.chinaTrackingNo);
+          if (d.sourcingItemDetails) setSourcingItemDetails(d.sourcingItemDetails);
+          if (d.sourcingQuantity) setSourcingQuantity(d.sourcingQuantity);
+          if (d.sourcingUnitPriceRmb) setSourcingUnitPriceRmb(d.sourcingUnitPriceRmb);
+          if (d.sourcingRmbRateBdt) setSourcingRmbRateBdt(d.sourcingRmbRateBdt);
+          if (d.sourcingShippingMark) setSourcingShippingMark(d.sourcingShippingMark);
+          if (d.sourcingWebsiteOrderNo) setSourcingWebsiteOrderNo(d.sourcingWebsiteOrderNo);
+          if (d.freightRatePerKgBdt) setFreightRatePerKgBdt(d.freightRatePerKgBdt);
+          if (d.bdCourierName) setBdCourierName(d.bdCourierName);
+          if (d.bdCourierTrackingNo) setBdCourierTrackingNo(d.bdCourierTrackingNo);
+          if (d.advancePaidBdt) setAdvancePaidBdt(d.advancePaidBdt);
+          if (d.orderRemarks) setOrderRemarks(d.orderRemarks);
+          if (d.importerClientInput) setImporterClientInput(d.importerClientInput);
+          if (d.grossWeightKgInput) setGrossWeightKgInput(d.grossWeightKgInput);
+          if (d.recipientContactName) setRecipientContactName(d.recipientContactName);
+          if (d.addressLine1) setAddressLine1(d.addressLine1);
+          if (d.addressLine2) setAddressLine2(d.addressLine2);
+          if (d.recipientPhoneCode) setRecipientPhoneCode(d.recipientPhoneCode);
+          if (d.recipientPhoneBody) setRecipientPhoneBody(d.recipientPhoneBody);
+          if (d.deliveryNotes) setDeliveryNotes(d.deliveryNotes);
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Auto-save in-progress draft to localStorage while editing new order form
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (activeTab !== 'new_order') return;
+
+    const hasData =
+      selectedCustomerId ||
+      sourcingItemDetails ||
+      chinaTrackingNo ||
+      sourcingShippingMark ||
+      sourcingWebsiteOrderNo ||
+      newCustomerFullName ||
+      newCustomerPhone ||
+      importerClientInput ||
+      customOrderId ||
+      sourcingUnitPriceRmb ||
+      advancePaidBdt ||
+      orderRemarks ||
+      recipientContactName ||
+      addressLine1;
+
+    if (!hasData) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      try {
+        const draft = {
+          selectedCustomerId,
+          orderCustomerMode,
+          newCustomerFullName,
+          newCustomerEmail,
+          newCustomerPhone,
+          newCustomerCompany,
+          newCustomerAddress,
+          customOrderId,
+          orderDateInput,
+          cnDateInput,
+          bdDateInput,
+          newCustomTrackingNumber,
+          newInitialStatus,
+          orderScope,
+          sourcingSupplier,
+          chinaTrackingNo,
+          sourcingItemDetails,
+          sourcingQuantity,
+          sourcingUnitPriceRmb,
+          sourcingRmbRateBdt,
+          sourcingShippingMark,
+          sourcingWebsiteOrderNo,
+          freightRatePerKgBdt,
+          bdCourierName,
+          bdCourierTrackingNo,
+          advancePaidBdt,
+          orderRemarks,
+          importerClientInput,
+          grossWeightKgInput,
+          recipientContactName,
+          addressLine1,
+          addressLine2,
+          recipientPhoneCode,
+          recipientPhoneBody,
+          deliveryNotes
+        };
+        localStorage.setItem('goshipping_create_order_draft', JSON.stringify(draft));
+      } catch {}
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [
+    activeTab,
+    selectedCustomerId,
+    orderCustomerMode,
+    newCustomerFullName,
+    newCustomerEmail,
+    newCustomerPhone,
+    newCustomerCompany,
+    newCustomerAddress,
+    customOrderId,
+    orderDateInput,
+    cnDateInput,
+    bdDateInput,
+    newCustomTrackingNumber,
+    newInitialStatus,
+    orderScope,
+    sourcingSupplier,
+    chinaTrackingNo,
+    sourcingItemDetails,
+    sourcingQuantity,
+    sourcingUnitPriceRmb,
+    sourcingRmbRateBdt,
+    sourcingShippingMark,
+    sourcingWebsiteOrderNo,
+    freightRatePerKgBdt,
+    bdCourierName,
+    bdCourierTrackingNo,
+    advancePaidBdt,
+    orderRemarks,
+    importerClientInput,
+    grossWeightKgInput,
+    recipientContactName,
+    addressLine1,
+    addressLine2,
+    recipientPhoneCode,
+    recipientPhoneBody,
+    deliveryNotes
+  ]);
 
   // Handler: Create Master Consignment & Tracking Order
   const handleCreateConsignment = async (e: React.FormEvent) => {
@@ -1659,30 +1888,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         mode: newMode.toUpperCase()
       });
 
-      // Clear input fields
-      setCustomerSearchQuery('');
-      setCustomOrderId('');
-      setOrderDateInput('');
-      setCnDateInput('');
-      setBdDateInput('');
-      setImporterClientInput('');
-      setGrossWeightKgInput(10);
-      setNewCustomerFullName('');
-      setNewCustomerEmail('');
-      setNewCustomerPhone('');
-      setNewCustomerCompany('');
-      setNewCustomerAddress('');
-      setSourcingItemDetails('');
-      setChinaTrackingNo('');
-      setSourcingQuantity(1);
-      setSourcingUnitPriceRmb('');
-      setSourcingRmbRateBdt('19.5');
-      setAdvancePaidBdt('');
-      setGrossWeightKgInput(10);
-      setFreightRatePerKgBdt(950);
-      setOrderRemarks('');
-      setNewCustomTrackingNumber('');
-      setNewInitialStatus('purchased');
+      // Order successfully created! Reset all fields and remove persisted localStorage draft completely
+      resetCreateOrderForm();
 
       showToast(`Order created successfully (${orderScope === 'both' ? 'Sourcing + Freight' : orderScope === 'sourcing' ? 'Sourcing Only' : 'Freight Only'})!`, 'success');
       loadData(false);
@@ -2698,18 +2905,38 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
           {/* 3. Unified + Create Order Button */}
           {activeTab === 'new_order' ? (
-            <button
-              type="button"
-              onClick={() => switchTab('orders')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
-              title="Return to Orders list"
-            >
-              <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
-              </svg>
-              <span>Back to Orders</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Are you sure you want to clear this order form and discard any unsaved draft?')) {
+                    resetCreateOrderForm();
+                    showToast('Order form cleared and draft removed.', 'info');
+                  }
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
+                title="Clear all fields and remove saved draft"
+              >
+                <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span>Clear Form</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => switchTab('orders')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
+                title="Return to Orders list"
+              >
+                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <line x1="19" y1="12" x2="5" y2="12" />
+                  <polyline points="12 19 5 12 12 5" />
+                </svg>
+                <span>Back to Orders</span>
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -4699,6 +4926,23 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           <span>Dispatch &amp; Create Order</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Clear all fields in this order form and start fresh?')) {
+                          resetCreateOrderForm();
+                          showToast('Order form cleared and draft removed.', 'info');
+                        }
+                      }}
+                      className="w-full mt-2 py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 font-semibold text-xs transition-none shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                      <span>Reset / Clear Form</span>
                     </button>
                   </div>
 

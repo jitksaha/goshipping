@@ -212,6 +212,12 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   }, [records]);
 
   const resetForm = () => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('goshipping_pos_draft');
+        localStorage.removeItem('goshipping_create_order_draft');
+      }
+    } catch {}
     setFormData({
       orderId: '',
       orderDate: '',
