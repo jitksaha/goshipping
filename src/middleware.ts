@@ -97,14 +97,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (pathname.startsWith('/api') || pathname.startsWith('/_astro') || pathname.startsWith('/brand')) {
       // Pass through
     } else if (pathname === '/' || pathname === '') {
-      if (currentUser?.role === 'super_admin') {
+      if (currentUser && ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(currentUser.role)) {
         return context.redirect('/admin');
       }
       return context.redirect('/admin/login');
     } else if (pathname === '/login') {
       return context.redirect('/admin/login');
     } else if (pathname === '/admin/login') {
-      if (currentUser?.role === 'super_admin') {
+      if (currentUser && ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(currentUser.role)) {
         return context.redirect('/admin');
       }
     } else if (pathname.startsWith('/admin')) {
@@ -112,7 +112,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
         return context.redirect(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
       }
       // If currently impersonating a customer, allow them to view customer dashboard directly
-      if (currentUser.role !== 'super_admin' && !currentUser.impersonatedBy) {
+      const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(currentUser.role);
+      if (!isStaff && !currentUser.impersonatedBy) {
         const dest = isGoshippingDomain ? 'https://goshipping.com.bd/dashboard?error=unauthorized_admin' : '/dashboard?error=unauthorized_admin';
         return context.redirect(dest);
       }
@@ -136,16 +137,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     // Protect admin operations routes (for localhost / non-goshipping environments)
     if (pathname === '/admin/login') {
-      if (currentUser?.role === 'super_admin') {
+      if (currentUser && ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(currentUser.role)) {
         return context.redirect('/admin');
       }
-      // Allow unauthenticated Super Admins to view /admin/login
+      // Allow unauthenticated staff to view /admin/login
     } else if (pathname.startsWith('/admin')) {
       if (!currentUser) {
         return context.redirect(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
       }
-      // STRICT RBAC: Only super_admin can access the admin control center
-      if (currentUser.role !== 'super_admin') {
+      // STRICT RBAC: Only authorized staff can access the admin control center
+      const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(currentUser.role);
+      if (!isStaff) {
         return context.redirect('/dashboard?error=unauthorized_admin');
       }
     }

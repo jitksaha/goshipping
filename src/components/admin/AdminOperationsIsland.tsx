@@ -315,6 +315,7 @@ interface UserRowActionMenuProps {
   onEdit: (u: any) => void;
   onToggleStatus: (id: string, status: string) => void;
   onDelete: (id: string, name: string) => void;
+  onSendResetPassword?: (user: any) => void;
   onViewOrders?: (customerName: string) => void;
   openUpward?: boolean;
 }
@@ -325,6 +326,7 @@ function UserRowActionMenu({
   onEdit,
   onToggleStatus,
   onDelete,
+  onSendResetPassword,
   onViewOrders,
   openUpward = false
 }: UserRowActionMenuProps) {
@@ -410,6 +412,27 @@ function UserRowActionMenu({
                 <div>
                   <span className="block text-xs font-semibold text-slate-900 group-hover:text-[#EA1D2C] transition-colors">View Orders &amp; Invoice</span>
                   <span className="block text-[10px] text-slate-400">Filter orders &amp; invoice</span>
+                </div>
+              </button>
+            )}
+
+            {/* Send Password Reset Email */}
+            {onSendResetPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onSendResetPassword(user);
+                }}
+                className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer group"
+              >
+                <svg className="w-3.5 h-3.5 text-indigo-500 shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <div>
+                  <span className="block text-xs font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">Send Reset Password</span>
+                  <span className="block text-[10px] text-slate-400">Email OTP verification code</span>
                 </div>
               </button>
             )}
@@ -2388,15 +2411,40 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (!confirm(`Are you sure you want to permanently delete user "${userName}"? This action cannot be undone.`)) return;
     try {
+      // Optimistically remove from state
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete user');
+      if (!res.ok) {
+        showToast(data.error || 'Failed to delete user', 'error');
+        loadData();
+        return;
+      }
+      showToast(`User "${userName}" deleted permanently`, 'success');
       loadData();
     } catch (err: any) {
-      alert(err.message || 'User deletion failed');
+      showToast(err.message || 'User deletion failed', 'error');
+      loadData();
+    }
+  };
+
+  const handleSendResetPassword = async (userObj: any) => {
+    if (!confirm(`Send password reset email and OTP to ${userObj.fullName} (${userObj.email})?`)) return;
+    try {
+      showToast(`Dispatching password reset to ${userObj.email}...`, 'info');
+      const res = await fetch(`/api/admin/users/${userObj.id}/send-reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to dispatch password reset');
+      showToast(`Password reset code dispatched! Code: ${data.code}`, 'success');
+      alert(`Password Reset Dispatched to ${userObj.email}!\n\nVerification Code (OTP): ${data.code}\n\nThe user can enter this OTP on the login page by clicking "Forgot password?" to set their new password.`);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to send reset email', 'error');
     }
   };
 
@@ -6638,6 +6686,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             onEdit={openEditUserModal}
                             onToggleStatus={handleToggleUserStatus}
                             onDelete={handleDeleteUser}
+                            onSendResetPassword={handleSendResetPassword}
                             onViewOrders={(custName) => {
                               try { sessionStorage.setItem('goshipping_filter_customer', custName); } catch {}
                               setActiveTab('orders');

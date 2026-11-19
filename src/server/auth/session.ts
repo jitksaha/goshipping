@@ -273,6 +273,15 @@ export function deleteAccount(id: string): boolean {
     }
   }
   saveAuthStore();
+
+  // Clean up database sessions and user record in MySQL if connected
+  if (db) {
+    try {
+      db.delete(schema.sessions).where(eq(schema.sessions.userId, removedUser.id)).catch(() => {});
+      db.delete(schema.users).where(eq(schema.users.id, removedUser.id)).catch(() => {});
+    } catch {}
+  }
+
   return true;
 }
 

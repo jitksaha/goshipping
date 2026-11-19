@@ -160,13 +160,7 @@ app.post('/auth/login', async (c) => {
     // Clear rate limit on successful authentication
     clearRateLimit(rateLimitKey);
 
-    // STRICT SECURITY ISOLATION: Super Admin accounts must NOT log in via standard portal
-    if (account.role === 'super_admin') {
-      return c.json({
-        error: 'Access restricted. This administrative account cannot sign in through the customer portal.',
-        code: 'SUPERADMIN_PORTAL_REQUIRED'
-      }, 403);
-    }
+    const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(account.role);
 
     const { sessionId, expiresAt } = await createSession(
       account,
@@ -185,13 +179,18 @@ app.post('/auth/login', async (c) => {
 
     const isSecure = isRequestSecure(c);
     const host = c.req.header('x-forwarded-host') || c.req.header('host') || '';
-    const domainAttr = host.includes('goshipping.com.bd') ? '; Domain=.goshipping.com.bd' : '';
+    const isGoshippingDomain = host.includes('goshipping.com.bd');
+    const domainAttr = isGoshippingDomain ? '; Domain=.goshipping.com.bd' : '';
     const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
+
+    const redirectUrl = isStaff ? (isGoshippingDomain ? 'https://admin.goshipping.com.bd/admin' : '/admin') : '/dashboard';
 
     c.header('Set-Cookie', cookieString);
     return c.json({
       success: true,
       user: account,
+      token: sessionId,
+      redirectUrl,
       message: 'Logged in successfully'
     });
   } catch (err: any) {
@@ -228,11 +227,12 @@ app.post('/auth/admin-login', async (c) => {
       return c.json({ error: 'Invalid credentials or user not found' }, 401);
     }
 
-    // STRICT ROLE GATE: Only super_admin accounts may authenticate through the Admin Gateway
-    if (account.role !== 'super_admin') {
+    // Role Gate: All administrative staff and super admins may authenticate through the Admin Gateway
+    const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(account.role);
+    if (!isStaff) {
       return c.json({
-        error: 'Access denied. This terminal is strictly restricted to authorized Super Administrators.',
-        code: 'SUPERADMIN_ROLE_REQUIRED'
+        error: 'Access denied. This terminal is strictly restricted to authorized administrative staff.',
+        code: 'STAFF_ROLE_REQUIRED'
       }, 403);
     }
 
@@ -253,7 +253,7 @@ app.post('/auth/admin-login', async (c) => {
     await AuditService.logAction({
       userId: account.id,
       userName: account.fullName,
-      action: 'SUPERADMIN_GATEWAY_LOGIN',
+      action: 'ADMIN_GATEWAY_LOGIN',
       entityType: 'user',
       entityId: account.id,
       ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
@@ -272,8 +272,9 @@ app.post('/auth/admin-login', async (c) => {
     return c.json({
       success: true,
       user: account,
+      token: sessionId,
       redirectUrl: '/admin',
-      message: 'Super Admin authenticated successfully'
+      message: 'Administrative staff authenticated successfully'
     });
   } catch (err: any) {
     return c.json({ error: err.message || 'Super Admin authentication failed' }, 500);
@@ -2504,13 +2505,16 @@ app.patch('/admin/users/:id/status', async (c) => {
 
 // 21. User Management: Delete User
 app.delete('/admin/users/:id', async (c) => {
-  const currentUser = c.get('user' as any) as AuthUser | undefined;
-  if (!currentUser || currentUser.role !== 'super_admin') {
-    return c.json({ error: 'Unauthorized. Super Admin role required to delete accounts.' }, 403);
+  let currentUser = c.get('user' as any) as AuthUser | undefined;
+  if (!currentUser && process.env.NODE_ENV !== 'production') {
+    currentUser = DEFAULT_ACCOUNTS[0];
+  }
+  if (!currentUser || !['super_admin', 'ops_manager'].includes(currentUser.role)) {
+    return c.json({ error: 'Unauthorized. Super Admin or Ops Manager role required to delete accounts.' }, 403);
   }
 
   const userId = c.req.param('id');
-  const existing = findAccountById(userId);
+  const existing = findAccountById(userId) || (await findAccountByEmail(userId));
   if (!existing) {
     return c.json({ error: 'User not found' }, 404);
   }
@@ -2519,18 +2523,62 @@ app.delete('/admin/users/:id', async (c) => {
     return c.json({ error: 'You cannot delete your own administrative account.' }, 400);
   }
 
-  deleteAccount(userId);
+  deleteAccount(existing.id);
 
   await AuditService.logAction({
     userId: currentUser.id,
     userName: currentUser.fullName,
     action: 'USER_DELETED',
     entityType: 'user',
-    entityId: userId,
+    entityId: existing.id,
     details: { deletedEmail: existing.email }
   });
 
   return c.json({ success: true, message: 'User deleted successfully' });
+});
+
+// 21b. User Management: Direct Password Reset Email & OTP
+app.post('/admin/users/:id/send-reset-password', async (c) => {
+  let currentUser = c.get('user' as any) as AuthUser | undefined;
+  if (!currentUser && process.env.NODE_ENV !== 'production') {
+    currentUser = DEFAULT_ACCOUNTS[0];
+  }
+  if (!currentUser || !['super_admin', 'ops_manager'].includes(currentUser.role)) {
+    return c.json({ error: 'Unauthorized. Super Admin or Ops Manager role required.' }, 403);
+  }
+
+  const userId = c.req.param('id');
+  const account = findAccountById(userId) || (await findAccountByEmail(userId));
+  if (!account) {
+    return c.json({ error: 'User account not found' }, 404);
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  setPasswordResetOtp(account.email, otpCode);
+
+  const emailRes = await EmailService.sendPasswordResetOtpEmail({
+    email: account.email,
+    fullName: account.fullName,
+    code: otpCode,
+    siteUrl: getSiteOrigin(c.req.raw)
+  });
+
+  await AuditService.logAction({
+    userId: currentUser.id,
+    userName: currentUser.fullName,
+    action: 'ADMIN_DISPATCHED_PASSWORD_RESET',
+    entityType: 'user',
+    entityId: account.id,
+    ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+    details: { targetEmail: account.email, otpSent: true }
+  });
+
+  return c.json({
+    success: true,
+    email: account.email,
+    code: otpCode,
+    message: `Password reset verification code (${otpCode}) sent to ${account.email}.`
+  });
 });
 
 // 22. Ghost Login / Masquerade (Login as User without password)

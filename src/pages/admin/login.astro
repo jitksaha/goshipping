@@ -195,10 +195,19 @@ const siteOrigin = getSiteOrigin(Astro.request);
             throw new Error(data.error || 'Authentication failed');
           }
 
+          if (data.token) {
+            const isGoshippingDomain = window.location.hostname.includes('goshipping.com.bd');
+            const domainStr = isGoshippingDomain ? '; domain=.goshipping.com.bd' : '';
+            const secureStr = window.location.protocol === 'https:' ? '; secure' : '';
+            document.cookie = `goshipping_session=${encodeURIComponent(data.token)}; path=/; max-age=2592000; SameSite=Lax${domainStr}${secureStr}`;
+          }
+
           btnLabel.textContent = 'Redirecting...';
+          const params = new URLSearchParams(window.location.search);
+          const targetRedirect = params.get('redirect') || data.redirectUrl || '/admin';
           setTimeout(() => {
-            window.location.replace('/admin');
-          }, 300);
+            window.location.replace(targetRedirect);
+          }, 150);
         } catch (err) {
           errorBox.textContent = err.message || 'Access denied';
           errorBox.classList.remove('hidden');

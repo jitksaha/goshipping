@@ -527,22 +527,34 @@ const trackingConfig = getTrackingConfig();
             });
           }
 
+          if (data.token) {
+            const isGoshippingDomain = window.location.hostname.includes('goshipping.com.bd');
+            const domainStr = isGoshippingDomain ? '; domain=.goshipping.com.bd' : '';
+            const secureStr = window.location.protocol === 'https:' ? '; secure' : '';
+            document.cookie = `goshipping_session=${encodeURIComponent(data.token)}; path=/; max-age=2592000; SameSite=Lax${domainStr}${secureStr}`;
+          }
+
           submitBtn.textContent = 'Redirecting...';
 
           const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(data.user?.role);
+          const isGoshippingDomain = window.location.hostname.includes('goshipping.com.bd');
+          const defaultAdminUrl = isGoshippingDomain ? 'https://admin.goshipping.com.bd/admin' : '/admin';
+          const defaultCustomerUrl = isGoshippingDomain ? 'https://goshipping.com.bd/dashboard' : '/dashboard';
 
           if (redirectUrl) {
             if (!isStaff && redirectUrl.startsWith('/admin')) {
-              window.location.replace('/dashboard');
+              window.location.replace(defaultCustomerUrl);
             } else if (isStaff && redirectUrl.startsWith('/dashboard')) {
-              window.location.replace('/admin');
+              window.location.replace(defaultAdminUrl);
             } else {
               window.location.replace(redirectUrl);
             }
+          } else if (data.redirectUrl) {
+            window.location.replace(data.redirectUrl);
           } else if (!isStaff) {
-            window.location.replace('/dashboard');
+            window.location.replace(defaultCustomerUrl);
           } else {
-            window.location.replace('/admin');
+            window.location.replace(defaultAdminUrl);
           }
         } catch (err) {
           errorBox.textContent = err.message || 'Login failed';

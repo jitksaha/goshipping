@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import LiveTrackingIsland from '../marketing/LiveTrackingIsland';
 import QuoteCalculatorIsland from '../marketing/QuoteCalculatorIsland';
 import ReferenceSelect from '../common/ReferenceSelect';
@@ -9,6 +9,8 @@ import {
 } from '../common/DashboardSkeleton';
 import type { ShipmentRecord } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
+import type { PosLedgerRecord } from '../../server/services/posLedger.service';
+import CombinedCommercialInvoiceModal from '../admin/CombinedCommercialInvoiceModal';
 
 interface UserProps {
   id: string;
@@ -180,6 +182,79 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   const [selectedTrackingCode, setSelectedTrackingCode] = useState<string>('');
   const [selectedOrderInfo, setSelectedOrderInfo] = useState<ShipmentRecord | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Checkbox selection for combined commercial invoice printing
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<string[]>([]);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+
+  const toggleSelectShipment = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedShipmentIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllShipments = (shipmentList: ShipmentRecord[]) => {
+    const listIds = shipmentList.map((s) => s.id);
+    const allSelected = listIds.length > 0 && listIds.every((id) => selectedShipmentIds.includes(id));
+    if (allSelected) {
+      setSelectedShipmentIds((prev) => prev.filter((id) => !listIds.includes(id)));
+    } else {
+      setSelectedShipmentIds((prev) => Array.from(new Set([...prev, ...listIds])));
+    }
+  };
+
+  const selectedPosRecords: PosLedgerRecord[] = useMemo(() => {
+    const selected = shipments.filter((s) => selectedShipmentIds.includes(s.id));
+    return selected.map((s) => {
+      const anyS = s as any;
+      const quantity = anyS.quantity || (s.items && s.items.length > 0 ? s.items.reduce((acc: number, it: any) => acc + (it.quantity || 1), 0) : s.totalPieces) || 1;
+      const unitPriceRmb = anyS.unitPriceRmb || 0;
+      const rmbRate = anyS.rmbRateBdt || 19.5;
+      const totalPurchaseRmb = anyS.totalPurchaseRmb || (unitPriceRmb * quantity);
+      const purchaseCostBdt = anyS.purchaseCostBdt || (totalPurchaseRmb * rmbRate) || 0;
+      const purchaseCostPaidBdt = anyS.purchaseCostPaidBdt || 0;
+      const purchaseCostDueBdt = anyS.purchaseCostDueBdt || (purchaseCostBdt - purchaseCostPaidBdt);
+      const bdWeight = anyS.bdWeightKg || s.totalWeightKg || 0;
+      const cnWeight = anyS.cnWeightKg || s.totalWeightKg || 0;
+      const freightRate = anyS.shippingRatePerKgBdt || (s.mode === 'air' ? 950 : 350);
+      const freightBdt = anyS.internationalFreightBdt || (bdWeight > 0 ? bdWeight * freightRate : 0);
+      const totalBillBdt = anyS.totalBillBdt || (purchaseCostBdt + freightBdt);
+
+      return {
+        id: s.id,
+        orderId: s.trackingNumber,
+        orderDate: s.createdAt || new Date().toISOString(),
+        cnDate: s.createdAt || new Date().toISOString(),
+        bdDate: s.updatedAt || new Date().toISOString(),
+        customerName: s.customerName || user?.fullName || 'Customer',
+        mobileNo: s.customerPhone || s.recipientPhone || user?.phone || '+880 1711 000000',
+        importerClient: anyS.importerClient || s.customerName || user?.companyName || user?.fullName || 'Commercial Consignee',
+        shippingMark: anyS.shippingMark || s.bookingReference || 'N/A',
+        websiteOrderNo: anyS.websiteOrderRef || s.trackingNumber,
+        itemDetails: s.productName || anyS.cargoDescription || 'Commercial Goods',
+        chinaCourierTracking: anyS.chinaCourierTracking || s.carrierWaybillNumber || '',
+        currentStatus: s.status,
+        supplierName: anyS.supplierName || 'Taobao / 1688 Vendor',
+        quantity,
+        unitPriceRmb,
+        totalPurchaseRmb,
+        rmbRateBdt: rmbRate,
+        purchaseCostBdt,
+        purchaseCostPaidBdt,
+        purchaseCostDueBdt,
+        serviceType: s.mode === 'air' ? 'Air Cargo (7–14 days)' : s.mode === 'sea' ? 'Sea Freight (25–35 days)' : 'Hand Carry Express',
+        cnWeightKg: cnWeight,
+        bdWeightKg: bdWeight,
+        shippingRatePerKgBdt: freightRate,
+        internationalFreightBdt: freightBdt,
+        totalBillBdt,
+        paymentStatus: s.paymentStatus === 'payment_received' ? 'Paid' : (purchaseCostPaidBdt > 0 ? 'Partial' : 'Due'),
+        createdAt: s.createdAt || new Date().toISOString(),
+        updatedAt: s.updatedAt || new Date().toISOString()
+      };
+    });
+  }, [shipments, selectedShipmentIds, user]);
 
   // Search & Filter for My Shipments
   const [shipmentSearch, setShipmentSearch] = useState('');
@@ -585,25 +660,50 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
 
           {/* Active Shipments Quick Table */}
           <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-slate-200 flex items-center justify-between">
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="font-bold text-slate-900 text-sm">
                   Active in-flight & sea consignments
                 </h2>
                 <p className="text-xs text-slate-500">Real-time status of cargo in motion across China ⇄ Bangladesh</p>
               </div>
-              <button
-                onClick={() => switchTab('shipments')}
-                className="text-xs font-semibold text-[#EA1D2C] hover:underline"
-              >
-                View all ({shipments.length})
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedShipmentIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowInvoiceModal(true)}
+                    className="px-3 py-1.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                  >
+                    <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <polyline points="6 9 6 2 18 2 18 9" />
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                      <rect x="6" y="14" width="12" height="8" />
+                    </svg>
+                    <span>Print Invoice ({selectedShipmentIds.length})</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => switchTab('shipments')}
+                  className="text-xs font-semibold text-[#EA1D2C] hover:underline"
+                >
+                  View all ({shipments.length})
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs">
                   <tr>
+                    <th className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={shipments.slice(0, 5).length > 0 && shipments.slice(0, 5).every((s) => selectedShipmentIds.includes(s.id))}
+                        onChange={() => selectAllShipments(shipments.slice(0, 5))}
+                        className="w-4 h-4 rounded border-slate-300 text-[#EA1D2C] focus:ring-[#EA1D2C] accent-[#EA1D2C] cursor-pointer"
+                        title="Select All"
+                      />
+                    </th>
                     <th className="py-3 px-4">Tracking code</th>
                     <th className="py-3 px-4">Product Name</th>
                     <th className="py-3 px-4">Mode</th>
@@ -619,12 +719,20 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                       key={s.id}
                       onClick={(e) => {
                         const target = e.target as HTMLElement;
-                        if (!target.closest('button') && !target.closest('a')) {
+                        if (!target.closest('button') && !target.closest('a') && !target.closest('input')) {
                           setSelectedOrderInfo(s);
                         }
                       }}
                       className="hover:bg-slate-50/70 transition-none cursor-pointer"
                     >
+                      <td className="py-3.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedShipmentIds.includes(s.id)}
+                          onChange={(e) => toggleSelectShipment(s.id, e as any)}
+                          className="w-4 h-4 rounded border-slate-300 text-[#EA1D2C] focus:ring-[#EA1D2C] accent-[#EA1D2C] cursor-pointer"
+                        />
+                      </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
                         <button
                           type="button"
@@ -695,12 +803,28 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">All Shipments</h3>
               <p className="text-xs text-slate-500">Complete record of your shipments and delivery history</p>
             </div>
-            <button
-              onClick={() => switchTab('request-quote')}
-              className="px-4 py-2 rounded-lg bg-[#EA1D2C] text-white text-xs font-bold hover:bg-[#D41523] transition-colors shadow-xs"
-            >
-              + Get a Quote
-            </button>
+            <div className="flex items-center gap-2">
+              {selectedShipmentIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowInvoiceModal(true)}
+                  className="px-3.5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <rect x="6" y="14" width="12" height="8" />
+                  </svg>
+                  <span>Print Combined Commercial Invoice ({selectedShipmentIds.length})</span>
+                </button>
+              )}
+              <button
+                onClick={() => switchTab('request-quote')}
+                className="px-4 py-2 rounded-lg bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors shadow-xs"
+              >
+                + Get a Quote
+              </button>
+            </div>
           </div>
 
           {/* Search & Filter Bar */}
@@ -756,6 +880,15 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
             <table className="w-full min-w-[900px] text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 uppercase font-bold border-b border-slate-200 text-[10px] tracking-wider">
                 <tr>
+                  <th className="py-3 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={filteredShipments.length > 0 && filteredShipments.every((s) => selectedShipmentIds.includes(s.id))}
+                      onChange={() => selectAllShipments(filteredShipments)}
+                      className="w-4 h-4 rounded border-slate-300 text-[#EA1D2C] focus:ring-[#EA1D2C] accent-[#EA1D2C] cursor-pointer"
+                      title="Select All Filtered"
+                    />
+                  </th>
                   <th className="py-3 px-4">Tracking Code</th>
                   <th className="py-3 px-4">Product Name</th>
                   <th className="py-3 px-4">Mode &amp; Service</th>
@@ -771,12 +904,20 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                     key={s.id}
                     onClick={(e) => {
                       const target = e.target as HTMLElement;
-                      if (!target.closest('button') && !target.closest('a')) {
+                      if (!target.closest('button') && !target.closest('a') && !target.closest('input')) {
                         setSelectedOrderInfo(s);
                       }
                     }}
                     className="hover:bg-slate-50/70 transition-colors cursor-pointer"
                   >
+                    <td className="py-4 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedShipmentIds.includes(s.id)}
+                        onChange={(e) => toggleSelectShipment(s.id, e as any)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#EA1D2C] focus:ring-[#EA1D2C] accent-[#EA1D2C] cursor-pointer"
+                      />
+                    </td>
                     <td className="py-4 px-4 font-mono font-bold text-slate-900">
                       <button
                         type="button"
@@ -1711,6 +1852,58 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
             </div>
           </div>
         </div>
+      )}
+
+      {/* Floating Action Bar for Selected Consignments */}
+      {selectedShipmentIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-slate-800 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-xs">
+              {selectedShipmentIds.length}
+            </span>
+            <span className="text-xs font-semibold">
+              {selectedShipmentIds.length} Consignment{selectedShipmentIds.length > 1 ? 's' : ''} Selected
+            </span>
+          </div>
+
+          <div className="h-4 w-px bg-slate-700" />
+
+          <button
+            type="button"
+            onClick={() => setShowInvoiceModal(true)}
+            className="h-8 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+          >
+            <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect x="6" y="14" width="12" height="8" />
+            </svg>
+            <span>Print Combined Commercial Invoice</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedShipmentIds([])}
+            className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+          >
+            Deselect All
+          </button>
+        </div>
+      )}
+
+      {/* Combined Commercial Invoice Modal */}
+      {showInvoiceModal && selectedPosRecords.length > 0 && (
+        <CombinedCommercialInvoiceModal
+          isOpen={showInvoiceModal}
+          onClose={() => setShowInvoiceModal(false)}
+          selectedRecords={selectedPosRecords}
+          showToast={(msg, type) => {
+            console.log(`[Invoice] (${type || 'info'}): ${msg}`);
+          }}
+          onInvoiceSaved={() => {
+            loadData();
+          }}
+        />
       )}
       </main>
     </div>
