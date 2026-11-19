@@ -490,6 +490,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [shipmentSearch, setShipmentSearch] = useState('');
   const [shipmentModeFilter, setShipmentModeFilter] = useState('all');
   const [shipmentStatusFilter, setShipmentStatusFilter] = useState('all');
+  const [overviewOrderSearch, setOverviewOrderSearch] = useState('');
 
   // Search & filter for quotes
   const [quoteSearch, setQuoteSearch] = useState('');
@@ -2683,6 +2684,45 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     return matchesQ && matchesMode && matchesStatus;
   });
 
+  // Filtered shipments for Overview Tab: Real-time search across tracking #, customer, mark, route, carrier, status
+  const filteredOverviewShipments = useMemo(() => {
+    const q = overviewOrderSearch.trim().toLowerCase();
+    if (!q) return shipments;
+
+    const qDigits = q.replace(/\D/g, '');
+
+    return shipments.filter((s) => {
+      const sCustPhoneDigits = (s.customerPhone || '').replace(/\D/g, '');
+      const sRecipPhoneDigits = (s.recipientPhone || '').replace(/\D/g, '');
+      const matchesPhone =
+        qDigits.length >= 3 &&
+        (sCustPhoneDigits.includes(qDigits) || sRecipPhoneDigits.includes(qDigits));
+
+      const trackingMatch = s.trackingNumber.toLowerCase().includes(q);
+      const custMatch = (s.customerName || '').toLowerCase().includes(q);
+      const markMatch = ((s as any).shippingMark || s.bookingReference || '').toLowerCase().includes(q);
+      const originMatch = (s.originCity || '').toLowerCase().includes(q);
+      const destMatch = (s.destCity || '').toLowerCase().includes(q);
+      const carrierMatch = ((s as any).carrierLine || s.carrierName || '').toLowerCase().includes(q);
+      const flightMatch = (s.voyageOrFlightNumber || '').toLowerCase().includes(q);
+      const statusMatch = (s.status || '').toLowerCase().replace(/_/g, ' ').includes(q);
+      const itemDescMatch = (s.items?.[0]?.description || '').toLowerCase().includes(q);
+
+      return (
+        trackingMatch ||
+        custMatch ||
+        markMatch ||
+        originMatch ||
+        destMatch ||
+        carrierMatch ||
+        flightMatch ||
+        statusMatch ||
+        itemDescMatch ||
+        matchesPhone
+      );
+    });
+  }, [shipments, overviewOrderSearch]);
+
   // Filtered quotes: Real-time search by quote #, customer name, company name, email, phone number & route
   const filteredQuotes = quotes.filter((q) => {
     const query = quoteSearch.trim().toLowerCase();
@@ -3673,46 +3713,85 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
               </div>
             </div>
 
-            {/* 4. SPLIT GRID: RECENT ORDERS (RESPONSIVE TABLE + MOBILE CARDS) & RECENT QUOTES */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left 2 Cols: Recent Orders */}
-              <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 space-y-4 shadow-2xs">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                        Recent Orders
-                      </h2>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 font-mono">
-                        {shipments.length} Active
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500">Latest shipments and live tracking updates</p>
+            {/* 4. RECENT ORDERS (FULL-WIDTH RESPONSIVE TABLE + MOBILE CARDS WITH LIVE SEARCH) */}
+            <div className="w-full bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 space-y-4 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
+                      Recent Orders
+                    </h2>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 font-mono">
+                      {filteredOverviewShipments.length} {overviewOrderSearch ? 'Found' : 'Active'}
+                    </span>
                   </div>
+                  <p className="text-xs text-slate-500">Latest shipments and live tracking updates</p>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-1 max-w-md justify-end">
+                  <div className="relative w-full sm:w-64">
+                    <input
+                      type="text"
+                      value={overviewOrderSearch}
+                      onChange={(e) => setOverviewOrderSearch(e.target.value)}
+                      placeholder="Search tracking, client, mark, route..."
+                      className="w-full h-8 pl-8 pr-7 rounded-lg border border-slate-200 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-white"
+                    />
+                    <svg className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    {overviewOrderSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setOverviewOrderSearch('')}
+                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer font-bold"
+                        title="Clear search"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => switchTab('orders')}
-                    className="h-8 px-3 rounded-lg border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50/40 text-xs font-semibold text-slate-700 hover:text-[#EA1D2C] shadow-2xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="h-8 px-3 rounded-lg border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50/40 text-xs font-semibold text-slate-700 hover:text-[#EA1D2C] shadow-2xs inline-flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
                   >
                     <span>View All Orders</span>
                     <span className="text-[11px]">→</span>
                   </button>
                 </div>
+              </div>
 
-                {/* DESKTOP VIEW: CLEAN TABLE */}
-                <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-lg">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200 text-[10px] tracking-wider font-mono">
+              {/* DESKTOP VIEW: CLEAN FULL-WIDTH TABLE */}
+              <div className="hidden md:block overflow-x-auto border border-slate-200 rounded-lg">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-slate-600 uppercase font-semibold border-b border-slate-200 text-[10px] tracking-wider font-mono">
+                    <tr>
+                      <th className="py-2.5 px-3">Tracking Code</th>
+                      <th className="py-2.5 px-3">Customer &amp; Mark</th>
+                      <th className="py-2.5 px-3">Route &amp; Carrier</th>
+                      <th className="py-2.5 px-3">Live Status</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredOverviewShipments.length === 0 ? (
                       <tr>
-                        <th className="py-2.5 px-3">Tracking Code</th>
-                        <th className="py-2.5 px-3">Customer &amp; Mark</th>
-                        <th className="py-2.5 px-3">Route &amp; Carrier</th>
-                        <th className="py-2.5 px-3">Live Status</th>
-                        <th className="py-2.5 px-3 text-right">Action</th>
+                        <td colSpan={5} className="py-8 text-center text-xs text-slate-500">
+                          <div className="flex flex-col items-center justify-center gap-1">
+                            <svg className="w-6 h-6 text-slate-300 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <circle cx="11" cy="11" r="8" />
+                              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                            <span className="font-semibold text-slate-700">No matching orders found</span>
+                            <span className="text-[11px] text-slate-400">Try searching with another tracking code, client name, or route</span>
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {shipments.slice(0, 5).map((s, idx) => (
+                    ) : (
+                      filteredOverviewShipments.slice(0, 8).map((s, idx) => (
                         <tr key={s.id} className="hover:bg-slate-50/70 transition-colors">
                           <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
                             <div className="flex items-center gap-1.5">
@@ -3723,7 +3802,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                   navigator.clipboard.writeText(s.trackingNumber);
                                   showToast(`Copied ${s.trackingNumber}`, 'info');
                                 }}
-                                className="text-slate-400 hover:text-slate-600"
+                                className="text-slate-400 hover:text-slate-600 cursor-pointer"
                                 title="Copy tracking code"
                               >
                                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -3736,31 +3815,53 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                               <span className="px-1.5 py-0.2 rounded bg-slate-100 font-bold uppercase text-[9px] text-slate-600">
                                 {s.mode === 'air' ? '✈️ Air' : '🚢 Sea'}
                               </span>
-                              <span>· {s.packageCount || s.items.length} units</span>
+                              <span>· {s.totalPieces || (s as any).packageCount || s.items.length} units</span>
                             </div>
                           </td>
                           <td className="py-2.5 px-3">
-                            <div className="font-semibold text-slate-800 truncate max-w-[170px]">{s.customerName}</div>
-                            <div className="text-[10px] text-slate-400 font-mono">
-                              {s.customerPhone ? s.customerPhone : (s.items?.[0]?.description ? s.items[0].description.slice(0, 20) : 'Standard Cargo')}
+                            <div className="font-semibold text-slate-800 truncate max-w-[200px]">{s.customerName}</div>
+                            <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                              {Boolean((s as any).shippingMark || s.bookingReference) && (
+                                <span className="text-[#EA1D2C] font-semibold">[{((s as any).shippingMark || s.bookingReference)}]</span>
+                              )}
+                              <span>{s.customerPhone ? s.customerPhone : (s.items?.[0]?.description ? s.items[0].description.slice(0, 20) : 'Standard Cargo')}</span>
                             </div>
                           </td>
                           <td className="py-2.5 px-3">
                             <div className="font-medium text-slate-800">
                               {s.originCity} → {s.destCity}
                             </div>
-                            <div className="text-[10px] text-slate-400 font-mono uppercase">{s.voyageOrFlightNumber || 'Scheduled Flight'}</div>
+                            <div className="text-[10px] text-slate-400 font-mono uppercase">{s.voyageOrFlightNumber || (s as any).carrierLine || s.carrierName || 'Scheduled Line'}</div>
                           </td>
                           <td className="py-2.5 px-3">
                             <StatusQuickDropdown
                               shipmentId={s.id}
                               currentStatus={s.status}
                               onUpdate={handleQuickStatusUpdate}
-                              openUpward={idx >= 3}
+                              openUpward={idx >= 4}
                             />
                           </td>
                           <td className="py-2.5 px-3 text-right">
                             <div className="flex items-center justify-end gap-1.5">
+                              {/* Copy Tracking Link */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const url = typeof window !== 'undefined'
+                                    ? `${window.location.origin}/tracking?code=${encodeURIComponent(s.trackingNumber)}`
+                                    : `https://goshipping.com.bd/tracking?code=${encodeURIComponent(s.trackingNumber)}`;
+                                  navigator.clipboard.writeText(url);
+                                  showToast(`Copied tracking link for ${s.trackingNumber}`, 'success');
+                                }}
+                                className="h-7 w-7 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-blue-600 bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-200 shadow-2xs transition-colors cursor-pointer shrink-0"
+                                title="Copy public tracking link"
+                              >
+                                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                </svg>
+                              </button>
+
                               <a
                                 href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
                                 target="_blank"
@@ -3817,14 +3918,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             </div>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-                {/* MOBILE VIEW: SLEEK TOUCH CARDS */}
-                <div className="md:hidden space-y-3">
-                  {shipments.slice(0, 5).map((s) => (
+              {/* MOBILE VIEW: SLEEK TOUCH CARDS */}
+              <div className="md:hidden space-y-3">
+                {filteredOverviewShipments.length === 0 ? (
+                  <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-lg">
+                    No matching orders found
+                  </div>
+                ) : (
+                  filteredOverviewShipments.slice(0, 8).map((s) => (
                     <div key={s.id} className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2.5">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -3850,6 +3957,23 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const url = typeof window !== 'undefined'
+                                ? `${window.location.origin}/tracking?code=${encodeURIComponent(s.trackingNumber)}`
+                                : `https://goshipping.com.bd/tracking?code=${encodeURIComponent(s.trackingNumber)}`;
+                              navigator.clipboard.writeText(url);
+                              showToast(`Copied tracking link`, 'success');
+                            }}
+                            className="p-1.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs"
+                            title="Copy link"
+                          >
+                            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                          </button>
                           <a
                             href={`/tracking?code=${encodeURIComponent(s.trackingNumber)}`}
                             target="_blank"
@@ -3881,79 +4005,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Right Col: Recent Quotes */}
-              <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 space-y-4 shadow-2xs flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-base font-bold text-slate-900 font-['Manrope',sans-serif]">
-                          Recent Quotes
-                        </h2>
-                        {pendingQuotesCount > 0 && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-100 text-amber-800 font-mono">
-                            {pendingQuotesCount} Pending
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500">Price requests waiting for review</p>
-                    </div>
-                    <button
-                      onClick={() => switchTab('quotes')}
-                      className="text-xs font-bold text-[#EA1D2C] hover:underline cursor-pointer"
-                    >
-                      All ({quotes.length}) →
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {quotes.slice(0, 4).map((q) => (
-                      <div key={q.id} className="p-3 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors space-y-2 bg-slate-50/40">
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-bold text-slate-900">{q.quoteNumber}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${getQuoteBadge(q.status)}`}>
-                            {q.status}
-                          </span>
-                        </div>
-                        <div className="text-xs font-medium text-slate-800">
-                          {q.guestName} ({q.originCity} → {q.destCity})
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500">
-                          <span>{q.totalWeightKg} KG · {q.totalCbm} CBM</span>
-                          {q.status === 'submitted' || q.status === 'under_review' ? (
-                            <button
-                              onClick={() => {
-                                setSelectedQuoteForPricing(q);
-                                setShowPricingModal(true);
-                              }}
-                              className="px-2.5 py-1 rounded bg-[#EA1D2C] text-white text-[10px] font-bold hover:bg-[#D41523] transition-colors cursor-pointer"
-                            >
-                              Set Price →
-                            </button>
-                          ) : (
-                            <span className="font-bold text-emerald-700 font-mono">
-                              ৳{q.revisions[0]?.totalAmount.toLocaleString()} BDT
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {quotes.length === 0 && (
-                      <p className="text-xs text-slate-400 py-4 text-center">No quotation requests found</p>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => switchTab('quotes')}
-                  className="w-full py-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors text-center block mt-3 shadow-2xs hover:shadow-xs cursor-pointer"
-                >
-                  Manage All Quotations &amp; Pricing →
-                </button>
+                  ))
+                )}
               </div>
             </div>
 
