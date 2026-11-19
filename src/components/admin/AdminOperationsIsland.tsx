@@ -2728,7 +2728,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       </header>
 
       {/* Main Content Workspace */}
-      <main className="flex-1 overflow-y-auto p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6">
         {loading ? (
           <div className="space-y-6 animate-in fade-in duration-150">
             {activeTab === 'overview' && <OverviewSkeleton />}
@@ -2853,7 +2853,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 min-w-0">
                 {/* 1. Active Shipments */}
                 <div
                   onClick={() => switchTab('orders')}
@@ -3043,32 +3043,76 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             </div>
 
             {/* 2. COMPACT QUICK STATUS DISPATCHER & PUBLIC TRACKER BAR */}
-            <div className="bg-white border border-slate-200/90 rounded-xl p-3 sm:p-4 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              {/* Left: Indicator & Title */}
-              <div className="flex items-center gap-2.5 shrink-0">
-                <div className="w-8 h-8 rounded-lg bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-sm shadow-2xs shrink-0">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
-                  </svg>
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif]">
-                      Quick Status Dispatcher
-                    </span>
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-100 text-[#EA1D2C] uppercase tracking-wider font-mono">
-                      Fast Update
-                    </span>
+            <div className="bg-white border border-slate-200/90 rounded-xl p-3.5 sm:p-4 shadow-2xs space-y-3 min-w-0">
+              {/* Header: Title, Description & Action Buttons */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-sm shadow-2xs shrink-0">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" fillOpacity="0.2" />
+                    </svg>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Instantly update consignment transit milestone &amp; verify on public tracking
-                  </p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold text-slate-900 font-['Manrope',sans-serif]">
+                        Quick Status Dispatcher
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-100 text-[#EA1D2C] uppercase tracking-wider font-mono">
+                        Fast Update
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 truncate">
+                      Instantly update consignment transit milestone &amp; verify on public tracking
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right: Public Tracker Button & Create Order Button */}
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  {(() => {
+                    const activeTrackingCode = shipments.find(s => s.id === quickShipmentId)?.trackingNumber || shipments[0]?.trackingNumber || 'GOSH-2026-9812';
+                    return (
+                      <a
+                        href={`/tracking?code=${encodeURIComponent(activeTrackingCode)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="h-8 px-2.5 rounded-lg border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5"
+                        title={`Open public tracking page for ${activeTrackingCode}`}
+                      >
+                        <svg className="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" />
+                          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.2" />
+                        </svg>
+                        <span>View Public Tracker</span>
+                        <svg className="w-3 h-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </a>
+                    );
+                  })()}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewCustomTrackingNumber('');
+                      switchTab('new_order');
+                    }}
+                    className="h-8 px-3 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+                  >
+                    <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    <span>+ Create Order</span>
+                  </button>
                 </div>
               </div>
 
-              {/* Middle: Inline Shipment & Stage Selector */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 max-w-2xl">
-                <div className="flex-1 min-w-[200px]">
+              {/* Controls: Inline Consignment & Stage Selector + Update Status Button */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 min-w-0">
+                <div className="flex-1 min-w-0">
                   <ReferenceSelect
                     value={quickShipmentId || (shipments[0]?.id || '')}
                     onChange={(newId) => {
@@ -3088,7 +3132,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   />
                 </div>
 
-                <div className="w-full sm:w-48">
+                <div className="w-full sm:w-64 shrink-0">
                   <ReferenceSelect
                     value={quickTargetStage}
                     onChange={(val) => setQuickTargetStage(val)}
@@ -3111,7 +3155,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   type="button"
                   disabled={updatingQuickStage || shipments.length === 0}
                   onClick={handleInstantOverviewStatusUpdate}
-                  className="h-9 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
+                  className="h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
                 >
                   {updatingQuickStage ? (
                     <>
@@ -3126,48 +3170,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <span>Update Status</span>
                     </>
                   )}
-                </button>
-              </div>
-
-              {/* Right: Public Tracker Button & Create Order Button */}
-              <div className="flex items-center gap-2 shrink-0">
-                {(() => {
-                  const activeTrackingCode = shipments.find(s => s.id === quickShipmentId)?.trackingNumber || shipments[0]?.trackingNumber || 'GOSH-2026-9812';
-                  return (
-                    <a
-                      href={`/tracking?code=${encodeURIComponent(activeTrackingCode)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="h-9 px-3 rounded-lg border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5"
-                      title={`Open public tracking page for ${activeTrackingCode}`}
-                    >
-                      <svg className="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="currentColor" fillOpacity="0.2" />
-                      </svg>
-                      <span>View Public Tracker</span>
-                      <svg className="w-3 h-3 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                        <polyline points="15 3 21 3 21 9" />
-                        <line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </a>
-                  );
-                })()}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewCustomTrackingNumber('');
-                    switchTab('new_order');
-                  }}
-                  className="h-9 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-2xs transition-all cursor-pointer inline-flex items-center gap-1.5 shrink-0"
-                >
-                  <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
-                  <span>+ Create Order</span>
                 </button>
               </div>
             </div>
