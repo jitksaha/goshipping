@@ -1713,20 +1713,26 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       let finalRecipientAddress = compiledAddress || newRecipientAddress.trim();
 
       // If Admin opted to Register New Customer Account on the fly
+      let clientEmailToUse = '';
       if (orderCustomerMode === 'new') {
         if (!newCustomerFullName.trim()) {
           throw new Error('Please enter customer full name.');
         }
-        if (!newCustomerEmail.trim() || !newCustomerEmail.includes('@')) {
-          throw new Error('Please enter a valid customer email address.');
+        if (newCustomerEmail.trim() && !newCustomerEmail.includes('@')) {
+          throw new Error('Please enter a valid customer email address or leave it blank.');
         }
         if (!newCustomerPhone.trim()) {
           throw new Error('Please enter customer phone/WhatsApp number.');
         }
 
-        const existingAcc = users.find(
-          (u) => u.email.toLowerCase() === newCustomerEmail.trim().toLowerCase()
-        );
+        const phoneDigits = newCustomerPhone.replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
+        clientEmailToUse = newCustomerEmail.trim().toLowerCase() || `client.${phoneDigits}@goshipping.client`;
+
+        const existingAcc = users.find((u) => {
+          if (newCustomerEmail.trim() && u.email?.toLowerCase() === newCustomerEmail.trim().toLowerCase()) return true;
+          if (newCustomerPhone.trim() && u.phone && u.phone.replace(/\D/g, '') === newCustomerPhone.replace(/\D/g, '')) return true;
+          return false;
+        });
 
         if (existingAcc) {
           finalCustomerId = existingAcc.id;
@@ -1741,7 +1747,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               fullName: newCustomerFullName.trim(),
-              email: newCustomerEmail.trim().toLowerCase(),
+              email: clientEmailToUse,
               password: newCustomerPassword.trim() || 'password123',
               role: 'customer',
               status: 'active',
@@ -1858,7 +1864,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       if (orderScope === 'both' || orderScope === 'freight') {
         const finalCustomerEmail =
           orderCustomerMode === 'new'
-            ? newCustomerEmail.trim().toLowerCase()
+            ? (newCustomerEmail.trim().toLowerCase() || clientEmailToUse)
             : currentSelectedCustomer?.email;
         const finalCustomerPhone =
           orderCustomerMode === 'new'
@@ -2452,12 +2458,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     e.preventDefault();
     setSubmittingUser(true);
     try {
+      const phoneDigits = (userPhone || '').replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
+      const finalEmail = userEmail.trim().toLowerCase() || `client.${phoneDigits}@goshipping.client`;
+
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: userFullName,
-          email: userEmail,
+          email: finalEmail,
           password: userPassword || 'password',
           role: userRole,
           status: userStatus,
@@ -4340,14 +4349,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Email Address *
+                          Email Address <span className="text-slate-400 font-normal">(Optional)</span>
                         </label>
                         <input
                           type="email"
                           value={newCustomerEmail}
                           onChange={(e) => setNewCustomerEmail(e.target.value)}
-                          placeholder="client@company.com"
-                          required={orderCustomerMode === 'new'}
+                          placeholder="client@company.com (optional)"
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
@@ -7675,13 +7683,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Official Email</label>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Official Email <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
+                  </label>
                   <input
                     type="email"
-                    placeholder="tariqul@company.com"
+                    placeholder="tariqul@company.com (optional)"
                     value={userEmail}
                     onChange={(e) => setUserEmail(e.target.value)}
-                    required
                     className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white"
                   />
                 </div>

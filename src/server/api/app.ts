@@ -117,9 +117,9 @@ function clearRateLimit(key: string): void {
   rateLimitMap.delete(key);
 }
 
-// 02. Auth: Login
+// 02. Auth: Login (Accepts official email or mobile phone/WhatsApp)
 const LoginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(3),
   password: z.string().min(4)
 });
 
@@ -284,7 +284,7 @@ app.post('/auth/admin-login', async (c) => {
 // 02b. Auth: Customer Registration
 const RegisterSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
+  email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
   phone: z.string().min(6, 'Please enter a valid phone or WhatsApp number'),
   companyName: z.string().optional(),
   password: z.string().min(6, 'Password must be at least 6 characters')
@@ -298,17 +298,24 @@ app.post('/auth/register', async (c) => {
       return c.json({ error: 'Invalid registration payload', details: parsed.error.issues }, 400);
     }
 
-    const { fullName, email, phone, companyName, password } = parsed.data;
+    const { fullName, email: inputEmail, phone, companyName, password } = parsed.data;
+    const phoneDigits = phone.replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
+    const email = (inputEmail && inputEmail.trim())
+      ? inputEmail.toLowerCase().trim()
+      : `client.${phoneDigits}@goshipping.client`;
+
     const existing = await findAccountByEmail(email);
     if (existing) {
-      return c.json({ error: 'An account with this email address already exists. Please sign in.' }, 409);
+      return c.json({ error: 'An account with this email address or phone already exists. Please sign in.' }, 409);
     }
 
     const newCustomerId = `usr-cust-${Date.now().toString(36)}`;
     const newCustomer: AuthUser = {
       id: newCustomerId,
-      email: email.toLowerCase().trim(),
+      email,
       fullName: fullName.trim(),
+      phone: phone.trim(),
+      companyName: companyName?.trim() || fullName.trim(),
       role: 'customer',
       avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`
     };
@@ -2345,7 +2352,7 @@ app.get('/admin/users', async (c) => {
 // 18. User Management: Create User
 const CreateUserSchema = z.object({
   fullName: z.string().min(2),
-  email: z.string().email(),
+  email: z.string().email().optional().or(z.literal('')),
   password: z.string().min(4).default('password'),
   role: z.enum(['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent', 'customer']).default('customer'),
   status: z.enum(['active', 'suspended']).default('active'),
@@ -2368,14 +2375,18 @@ app.post('/admin/users', async (c) => {
       return c.json({ error: 'Validation failed', details: parsed.error.issues }, 400);
     }
 
-    const existing = await findAccountByEmail(parsed.data.email);
+    const rawEmail = (parsed.data.email || '').trim();
+    const phoneDigits = (parsed.data.phone || '').replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
+    const finalEmail = rawEmail.length > 0 ? rawEmail.toLowerCase() : `client.${phoneDigits}@goshipping.client`;
+
+    const existing = await findAccountByEmail(finalEmail);
     if (existing) {
-      return c.json({ error: 'A user account with this email address already exists.' }, 400);
+      return c.json({ error: 'A user account with this email address or phone already exists.' }, 400);
     }
 
     const newUser: AuthUser = {
       id: `usr-${Date.now().toString(36)}`,
-      email: parsed.data.email.toLowerCase().trim(),
+      email: finalEmail,
       fullName: parsed.data.fullName,
       role: parsed.data.role,
       status: parsed.data.status,
@@ -2396,20 +2407,22 @@ app.post('/admin/users', async (c) => {
       details: { email: newUser.email, role: newUser.role }
     });
 
-    // Send welcome onboarding email to the created user with login credentials
+    // Send welcome onboarding email to the created user with login credentials if valid real email provided
     let emailResult: { success: boolean; id?: string; error?: string; fallback?: boolean } = { success: false };
-    try {
-      emailResult = await EmailService.sendWelcomeUserEmail({
-        fullName: newUser.fullName,
-        email: newUser.email,
-        role: newUser.role,
-        companyName: newUser.companyName,
-        phone: newUser.phone,
-        password: parsed.data.password
-      });
-    } catch (err: any) {
-      console.error('[EmailService] User onboarding email error:', err);
-      emailResult = { success: false, error: err.message };
+    if (rawEmail && !finalEmail.endsWith('@goshipping.client')) {
+      try {
+        emailResult = await EmailService.sendWelcomeUserEmail({
+          fullName: newUser.fullName,
+          email: newUser.email,
+          role: newUser.role,
+          companyName: newUser.companyName,
+          phone: newUser.phone,
+          password: parsed.data.password
+        });
+      } catch (err: any) {
+        console.error('[EmailService] User onboarding email error:', err);
+        emailResult = { success: false, error: err.message };
+      }
     }
 
     return c.json({
