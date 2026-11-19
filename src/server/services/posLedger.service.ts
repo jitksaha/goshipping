@@ -438,7 +438,7 @@ export class PosLedgerService {
       internationalFreightBdt: calc.internationalFreightBdt,
       totalBillBdt: calc.totalBillBdt,
       paymentStatus: calc.paymentStatus,
-      bdCourierName: payload.bdCourierName || 'Steadfast',
+      bdCourierName: payload.bdCourierName || '',
       bdTrackingNo: payload.bdTrackingNo || '',
       remark: payload.remark || '',
       sheetSyncStatus: 'pending',

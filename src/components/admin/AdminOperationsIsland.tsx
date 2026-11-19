@@ -7,6 +7,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { ShipmentRecord, ShipmentItem } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
 import type { WarehouseRecord } from '../../server/services/warehouse.service';
+import type { PosLedgerRecord } from '../../server/services/posLedger.service';
 import { TRACKING_STATUSES, normalizeStatusCode, calculatePhysicalProgress, type TrackingStatusCode } from '../../server/services/tracking-status';
 import { DESTINATION_ADDRESS_CONFIGS, PHONE_DIAL_CODES } from '../marketing/shippingLocations';
 import { downloadInvoicePDF, SETTLEMENT_BANKS, type SettlementBankInfo } from '../../lib/invoicePdf';
@@ -661,8 +662,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [sourcingShippingMark, setSourcingShippingMark] = useState('');
   const [sourcingWebsiteOrderNo, setSourcingWebsiteOrderNo] = useState('');
   const [freightRatePerKgBdt, setFreightRatePerKgBdt] = useState<number | string>(950);
-  const [bdCourierName, setBdCourierName] = useState('Steadfast');
+  const [bdCourierName, setBdCourierName] = useState('');
   const [bdCourierTrackingNo, setBdCourierTrackingNo] = useState('');
+  const [editingOrderRecord, setEditingOrderRecord] = useState<PosLedgerRecord | null>(null);
   const [advancePaidBdt, setAdvancePaidBdt] = useState<number | string>('');
   const [orderRemarks, setOrderRemarks] = useState('');
   const [customOrderId, setCustomOrderId] = useState('');
@@ -1527,8 +1529,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setRecipientPhoneBody('');
     setDeliveryNotes('');
     setDeliveryInstructions('');
-    setBdCourierName('Steadfast');
+    setBdCourierName('');
     setBdCourierTrackingNo('');
+    setEditingOrderRecord(null);
 
     // 4. Cargo Items Table
     setOrderItems([
@@ -1543,6 +1546,76 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         declaredValue: '' as any
       }
     ]);
+  };
+
+  // Switch to full-page order screen in direct edit mode
+  const startEditOrder = (record: PosLedgerRecord) => {
+    setEditingOrderRecord(record);
+
+    // 1. Identification & Dates
+    setCustomOrderId(record.orderId || '');
+    setNewCustomTrackingNumber(record.orderId || '');
+    setOrderDateInput(record.orderDate || '');
+    setCnDateInput(record.cnDate || '');
+    setBdDateInput(record.bdDate || '');
+    setImporterClientInput(record.importerClient || '');
+    setSourcingShippingMark(record.shippingMark || '');
+    setSourcingWebsiteOrderNo(record.websiteOrderNo || '');
+
+    // 2. Customer Matching
+    const cleanPhone = (record.mobileNo || '').replace(/\D/g, '');
+    const matchedCustomer = customers.find((c) =>
+      (cleanPhone.length >= 6 && (c as any).phone && (c as any).phone.replace(/\D/g, '').includes(cleanPhone.slice(-10))) ||
+      (record.customerName && (c.fullName.toLowerCase() === record.customerName.toLowerCase() || (c as any).companyName?.toLowerCase() === record.customerName.toLowerCase()))
+    );
+
+    if (matchedCustomer) {
+      setOrderCustomerMode('existing');
+      setSelectedCustomerId(matchedCustomer.id);
+      setNewCustName(matchedCustomer.fullName);
+    } else {
+      setOrderCustomerMode('existing');
+      setSelectedCustomerId('');
+      setNewCustName(record.customerName || '');
+    }
+
+    // 3. Sourcing & Scope
+    if (record.serviceType === 'Sourcing Only') {
+      setOrderScope('sourcing');
+    } else if (record.serviceType === 'International Freight Cargo' || record.serviceType === 'Freight Only') {
+      setOrderScope('freight');
+    } else {
+      setOrderScope('both');
+    }
+
+    setSourcingSupplier(record.supplierName || 'Taobao');
+    setChinaTrackingNo(record.chinaCourierTracking || '');
+    setSourcingItemDetails(record.itemDetails || '');
+    setSourcingQuantity(record.quantity || 1);
+    setSourcingUnitPriceRmb(record.unitPriceRmb ? String(record.unitPriceRmb) : '');
+    setSourcingRmbRateBdt(record.rmbRateBdt ? String(record.rmbRateBdt) : '19.5');
+    setAdvancePaidBdt(record.purchaseCostPaidBdt ? String(record.purchaseCostPaidBdt) : '');
+    setGrossWeightKgInput(record.cnWeightKg || record.bdWeightKg ? String(record.cnWeightKg || record.bdWeightKg) : '');
+    setFreightRatePerKgBdt(record.shippingRatePerKgBdt ? Number(record.shippingRatePerKgBdt) : 950);
+    setBdCourierName(record.bdCourierName || '');
+    setBdCourierTrackingNo(record.bdTrackingNo || '');
+    setOrderRemarks(record.remark || '');
+
+    // 4. Status
+    if (record.currentStatus) {
+      const norm = normalizeStatusCode(record.currentStatus);
+      setNewInitialStatus(norm as any);
+    }
+
+    // 5. Recipient
+    setRecipientContactName(record.customerName || '');
+    if (record.mobileNo) {
+      setRecipientPhoneBody(record.mobileNo.replace(/\D/g, ''));
+      setNewRecipientPhone(record.mobileNo);
+    }
+
+    // Switch to full-page order screen
+    switchTab('new_order');
   };
 
   // Restore saved in-progress draft from localStorage on mount
@@ -1597,6 +1670,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (activeTab !== 'new_order') return;
+    if (editingOrderRecord) return;
 
     const hasData =
       selectedCustomerId ||
@@ -1848,6 +1922,46 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         bdDate: bdDateInput || '',
         currentStatus: TRACKING_STATUSES[newInitialStatus as TrackingStatusCode]?.label || (newInitialStatus === 'delivered' ? 'Delivered' : 'Processing')
       };
+
+      if (editingOrderRecord) {
+        // UPDATE EXISTING ORDER IN POS LEDGER
+        const posRes = await fetch(`/api/admin/pos-ledger/${editingOrderRecord.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(posPayload)
+        });
+
+        if (!posRes.ok) {
+          const errJson = await posRes.json().catch(() => ({}));
+          throw new Error(errJson.error || 'Failed to update order in POS Ledger');
+        }
+
+        // Also update matching tracking/shipment if exists
+        try {
+          const matchShipment = shipments.find((s) =>
+            s.trackingNumber.toUpperCase() === (editingOrderRecord.orderId || '').toUpperCase() ||
+            s.trackingNumber.toUpperCase() === (editingOrderRecord.bdTrackingNo || '').toUpperCase() ||
+            s.id === editingOrderRecord.id
+          );
+          if (matchShipment) {
+            await fetch(`/api/shipments/${matchShipment.id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                status: newInitialStatus,
+                notes: orderRemarks.trim() || deliveryNotes.trim() || undefined
+              })
+            });
+          }
+        } catch {}
+
+        setEditingOrderRecord(null);
+        resetCreateOrderForm();
+        showToast(`Order ${editingOrderRecord.orderId} updated successfully and synced everywhere!`, 'success');
+        loadData(false);
+        switchTab('orders');
+        return;
+      }
 
       const posRes = await fetch('/api/admin/pos-ledger', {
         method: 'POST',
@@ -2978,8 +3092,10 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         };
       case 'new_order':
         return {
-          title: 'Create Consignment Order',
-          subtitle: 'Add multiple cargo products, configure linehaul route, and initialize live tracking'
+          title: editingOrderRecord ? `Edit Consignment Order: ${editingOrderRecord.orderId}` : 'Create Consignment Order',
+          subtitle: editingOrderRecord
+            ? `Editing order for ${editingOrderRecord.customerName}. Updates will directly sync to POS Ledger, tracking, and Google Sheets.`
+            : 'Add multiple cargo products, configure linehaul route, and initialize live tracking'
         };
       case 'overview':
       default:
@@ -3020,46 +3136,69 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* Right Action Controls */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
 
-
-
           {/* 3. Unified + Create Order Button */}
           {activeTab === 'new_order' ? (
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('Are you sure you want to clear this order form and discard any unsaved draft?')) {
+              {editingOrderRecord ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingOrderRecord(null);
                     resetCreateOrderForm();
-                    showToast('Order form cleared and draft removed.', 'info');
-                  }
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
-                title="Clear all fields and remove saved draft"
-              >
-                <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-                <span>Clear Form</span>
-              </button>
+                    switchTab('orders');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:text-slate-900 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
+                  title="Cancel edit and return to orders"
+                >
+                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="19" y1="12" x2="5" y2="12" />
+                    <polyline points="12 19 5 12 12 5" />
+                  </svg>
+                  <span>Cancel Edit &amp; Back</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Are you sure you want to clear this order form and discard any unsaved draft?')) {
+                        resetCreateOrderForm();
+                        showToast('Order form cleared and draft removed.', 'info');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
+                    title="Clear all fields and remove saved draft"
+                  >
+                    <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    <span>Clear Form</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => switchTab('orders')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
-                title="Return to Orders list"
-              >
-                <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <line x1="19" y1="12" x2="5" y2="12" />
-                  <polyline points="12 19 5 12 12 5" />
-                </svg>
-                <span>Back to Orders</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => switchTab('orders')}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-none shadow-2xs cursor-pointer"
+                    title="Return to Orders list"
+                  >
+                    <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <line x1="19" y1="12" x2="5" y2="12" />
+                      <polyline points="12 19 5 12 12 5" />
+                    </svg>
+                    <span>Back to Orders</span>
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <button
               type="button"
-              onClick={() => switchTab('new_order')}
+              onClick={() => {
+                setEditingOrderRecord(null);
+                resetCreateOrderForm();
+                switchTab('new_order');
+              }}
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[var(--color-brand-primary)] text-white text-xs font-bold hover:opacity-90 transition-none shadow-xs cursor-pointer"
               title="Create New Order"
             >
@@ -3067,7 +3206,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              <span>Create Order</span>
+              <span>+ Create Order</span>
             </button>
           )}
         </div>
@@ -3979,14 +4118,28 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(`/api/admin/pos-ledger?search=${encodeURIComponent(s.trackingNumber)}`);
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      const found = (data.records || []).find((r: any) =>
+                                        (r.orderId && r.orderId.toUpperCase() === s.trackingNumber.toUpperCase()) ||
+                                        (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === s.trackingNumber.toUpperCase())
+                                      );
+                                      if (found) {
+                                        startEditOrder(found);
+                                        return;
+                                      }
+                                    }
+                                  } catch {}
                                   if (typeof window !== 'undefined') {
                                     sessionStorage.setItem('goshipping_edit_order_id', s.trackingNumber);
                                   }
                                   switchTab('orders');
                                 }}
                                 className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-md bg-slate-900 hover:bg-black text-white text-xs font-semibold shadow-2xs hover:shadow-xs transition-colors cursor-pointer shrink-0"
-                                title="Edit order in POS Ledger and sync"
+                                title="Edit order in full consignment screen and sync"
                               >
                                 <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -4071,7 +4224,21 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/admin/pos-ledger?search=${encodeURIComponent(s.trackingNumber)}`);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  const found = (data.records || []).find((r: any) =>
+                                    (r.orderId && r.orderId.toUpperCase() === s.trackingNumber.toUpperCase()) ||
+                                    (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === s.trackingNumber.toUpperCase())
+                                  );
+                                  if (found) {
+                                    startEditOrder(found);
+                                    return;
+                                  }
+                                }
+                              } catch {}
                               if (typeof window !== 'undefined') {
                                 sessionStorage.setItem('goshipping_edit_order_id', s.trackingNumber);
                               }
@@ -4842,21 +5009,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                        Delivery Street Address *
-                      </label>
-                      <input
-                        type="text"
-                        value={addressLine1}
-                        onChange={(e) => {
-                          setAddressLine1(e.target.value);
-                          setNewRecipientAddress(e.target.value);
-                        }}
-                        placeholder="e.g. Flat 4/A, Plot 14, Sector 7, Uttara, Dhaka"
-                        className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                      />
-                    </div>
+                    {/* Soft divider line replacing street address */}
+                    <div className="border-t border-slate-200/60 my-2" />
 
                     {/* Local Courier & Tracking (Col AA) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -4869,7 +5023,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           onChange={(e) => setBdCourierName(e.target.value)}
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white cursor-pointer"
                         >
-                          <option value="Steadfast">Steadfast Courier (Recommended)</option>
+                          <option value="">None</option>
+                          <option value="Steadfast">Steadfast Courier</option>
                           <option value="Pathao">Pathao Courier</option>
                           <option value="RedX">RedX Logistics</option>
                           <option value="Sundarban">Sundarban Courier</option>
@@ -5040,7 +5195,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           <svg className="w-3.5 h-3.5 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                           </svg>
-                          <span>Recording &amp; Syncing...</span>
+                          <span>{editingOrderRecord ? 'Saving & Updating...' : 'Recording & Syncing...'}</span>
+                        </>
+                      ) : editingOrderRecord ? (
+                        <>
+                          <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>Save &amp; Update Order</span>
                         </>
                       ) : (
                         <>
@@ -5053,22 +5215,40 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       )}
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm('Clear all fields in this order form and start fresh?')) {
+                    {editingOrderRecord ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingOrderRecord(null);
                           resetCreateOrderForm();
-                          showToast('Order form cleared and draft removed.', 'info');
-                        }
-                      }}
-                      className="w-full mt-2 py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 font-semibold text-xs transition-none shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                      <span>Reset / Clear Form</span>
-                    </button>
+                          switchTab('orders');
+                        }}
+                        className="w-full mt-2 py-1.5 px-3 rounded-lg border border-slate-300 hover:border-slate-400 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-semibold text-xs transition-none shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <line x1="19" y1="12" x2="5" y2="12" />
+                          <polyline points="12 19 5 12 12 5" />
+                        </svg>
+                        <span>Cancel &amp; Return to Orders</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm('Clear all fields in this order form and start fresh?')) {
+                            resetCreateOrderForm();
+                            showToast('Order form cleared and draft removed.', 'info');
+                          }
+                        }}
+                        className="w-full mt-2 py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-900 font-semibold text-xs transition-none shadow-2xs cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <svg className="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        <span>Reset / Clear Form</span>
+                      </button>
+                    )}
                   </div>
 
                 </div>
@@ -5082,7 +5262,15 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* ========================================================= */}
         {(activeTab === 'shipments' || activeTab === 'tracking' || activeTab === 'orders' || activeTab === 'pos_ledger' || activeTab === 'ledger') && (
           <div className="space-y-6">
-            <PosLedgerTerminal showToast={showToast} />
+            <PosLedgerTerminal
+              showToast={showToast}
+              onEditOrder={startEditOrder}
+              onCreateOrder={() => {
+                setEditingOrderRecord(null);
+                resetCreateOrderForm();
+                switchTab('new_order');
+              }}
+            />
           </div>
         )}
 

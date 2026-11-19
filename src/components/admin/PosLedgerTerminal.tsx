@@ -15,7 +15,15 @@ interface PosStats {
   totalWeightKg: number;
 }
 
-export default function PosLedgerTerminal({ showToast }: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+export default function PosLedgerTerminal({
+  showToast,
+  onEditOrder,
+  onCreateOrder
+}: {
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  onEditOrder?: (record: PosLedgerRecord) => void;
+  onCreateOrder?: () => void;
+}) {
   const [records, setRecords] = useState<PosLedgerRecord[]>([]);
   const [stats, setStats] = useState<PosStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -306,10 +314,14 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
           (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === targetEditId.toUpperCase())
       );
       if (target) {
-        openEditDrawer(target);
+        if (onEditOrder) {
+          onEditOrder(target);
+        } else {
+          openEditDrawer(target);
+        }
       }
     }
-  }, [records]);
+  }, [records, onEditOrder]);
 
   const resetForm = () => {
     try {
@@ -340,7 +352,7 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
       cnWeightKg: '',
       bdWeightKg: '',
       shippingRatePerKgBdt: 850,
-      bdCourierName: 'Steadfast',
+      bdCourierName: '',
       bdTrackingNo: '',
       remark: ''
     });
@@ -348,11 +360,19 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   };
 
   const openNewOrderDrawer = () => {
+    if (onCreateOrder) {
+      onCreateOrder();
+      return;
+    }
     resetForm();
     setShowPosDrawer(true);
   };
 
   const openEditDrawer = (rec: PosLedgerRecord) => {
+    if (onEditOrder) {
+      onEditOrder(rec);
+      return;
+    }
     setEditingRecord(rec);
     setFormData({
       orderId: rec.orderId || '',
@@ -2543,6 +2563,7 @@ function doPost(e) {
                       onChange={(e) => setFormData({ ...formData, bdCourierName: e.target.value })}
                       className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
                     >
+                      <option value="">None</option>
                       <option value="Steadfast">Steadfast Courier</option>
                       <option value="Pathao">Pathao Courier</option>
                       <option value="RedX">RedX Logistics</option>
