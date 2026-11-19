@@ -18,6 +18,7 @@ export interface RealtimeTrackingPayload {
     description: string;
     locationName: string;
     eventTime: string;
+    occurredAtBst?: string;
   };
 }
 

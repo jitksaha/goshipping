@@ -52,6 +52,77 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const [showDetailedReport, setShowDetailedReport] = useState(true);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
+  // Partial Payment Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentTargetRecord, setPaymentTargetRecord] = useState<PosLedgerRecord | null>(null);
+  const [paymentAmountInput, setPaymentAmountInput] = useState<string>('');
+  const [paymentMethodInput, setPaymentMethodInput] = useState<string>('bKash');
+  const [paymentMilestoneInput, setPaymentMilestoneInput] = useState<string>('Installment Payment');
+  const [paymentTrxIdInput, setPaymentTrxIdInput] = useState<string>('');
+  const [paymentNoteInput, setPaymentNoteInput] = useState<string>('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
+  const openPartialPaymentModal = (rec: PosLedgerRecord) => {
+    setPaymentTargetRecord(rec);
+    setPaymentAmountInput(rec.purchaseCostDueBdt > 0 ? String(rec.purchaseCostDueBdt) : '');
+    setPaymentMethodInput('bKash');
+    setPaymentMilestoneInput('Installment Payment');
+    setPaymentTrxIdInput('');
+    setPaymentNoteInput('');
+    setShowPaymentModal(true);
+  };
+
+  const handleRecordPartialPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentTargetRecord) return;
+    const amount = Number(paymentAmountInput);
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Please enter a valid payment amount', 'error');
+      return;
+    }
+
+    setIsSubmittingPayment(true);
+    try {
+      const res = await fetch(`/api/admin/pos-ledger/${paymentTargetRecord.id}/payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          method: paymentMethodInput,
+          milestone: paymentMilestoneInput,
+          trxId: paymentTrxIdInput,
+          note: paymentNoteInput
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(
+          `Payment of ৳${amount.toLocaleString()} recorded for ${paymentTargetRecord.orderId}!`,
+          'success'
+        );
+        setShowPaymentModal(false);
+        setPaymentTargetRecord(null);
+        await loadLedger();
+
+        // If editingRecord is open and matches this order, update it too
+        if (editingRecord && editingRecord.id === data.record.id) {
+          setEditingRecord(data.record);
+          setFormData((prev) => ({
+            ...prev,
+            purchaseCostPaidBdt: data.record.purchaseCostPaidBdt
+          }));
+        }
+      } else {
+        throw new Error(data.error || 'Failed to record payment');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error recording payment', 'error');
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
+
   // Auto-detect customer filter from Users tab navigation
   useEffect(() => {
     try {
@@ -1742,6 +1813,17 @@ function doPost(e) {
                           )}
                         </button>
 
+                        {/* Partial Payment Button */}
+                        <button
+                          type="button"
+                          onClick={() => openPartialPaymentModal(r)}
+                          className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer transition-none shadow-2xs flex items-center gap-1"
+                          title="Record Partial Payment / Installment"
+                        >
+                          <span className="font-extrabold text-[12px] leading-none">+</span>
+                          <span>Pay</span>
+                        </button>
+
                         {/* Edit Button */}
                         <button
                           type="button"
@@ -1946,7 +2028,14 @@ function doPost(e) {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => openPartialPaymentModal(r)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold shadow-2xs"
+                  >
+                    + Pay
+                  </button>
                   <button
                     type="button"
                     onClick={() => openEditDrawer(r)}
@@ -2377,7 +2466,18 @@ function doPost(e) {
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-slate-500 block uppercase font-mono">Customer Paid ৳</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-slate-500 block uppercase font-mono">Customer Paid ৳</label>
+                      {editingRecord && (
+                        <button
+                          type="button"
+                          onClick={() => openPartialPaymentModal(editingRecord)}
+                          className="text-[9px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                        >
+                          + Add Pay
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="number"
                       step="any"
@@ -2400,6 +2500,34 @@ function doPost(e) {
                     <span className="text-base font-black text-slate-900 font-mono">৳{computedForm.totalBillBdt.toLocaleString()}</span>
                   </div>
                 </div>
+
+                {/* Installment Payment History Log */}
+                {editingRecord && Array.isArray(editingRecord.payments) && editingRecord.payments.length > 0 && (
+                  <div className="p-3 rounded-lg bg-emerald-50/60 border border-emerald-200 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-mono font-bold text-emerald-900 border-b border-emerald-200 pb-1">
+                      <span>INSTALLMENT PAYMENT LEDGER ({editingRecord.payments.length} ENTRIES)</span>
+                      <button
+                        type="button"
+                        onClick={() => openPartialPaymentModal(editingRecord)}
+                        className="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] hover:bg-emerald-700 cursor-pointer"
+                      >
+                        + Add Partial Payment
+                      </button>
+                    </div>
+                    <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                      {editingRecord.payments.map((p, pIdx) => (
+                        <div key={p.id || pIdx} className="flex items-center justify-between text-[11px] bg-white px-2.5 py-1 rounded border border-emerald-100">
+                          <div>
+                            <span className="font-bold text-slate-800">{p.milestone || 'Installment'}</span>
+                            <span className="text-[10px] text-slate-400 font-mono ml-1.5">{p.dateTime}</span>
+                            {p.trxId && <span className="text-[10px] text-slate-500 font-mono ml-1.5">({p.method}: {p.trxId})</span>}
+                          </div>
+                          <span className="font-mono font-bold text-emerald-700">৳{Number(p.amount).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Section 4: BD Local Delivery Dispatch */}
@@ -2855,11 +2983,168 @@ function doPost(e) {
           </div>
         </div>
       )}
+      {/* 5B. ADD PARTIAL PAYMENT / INSTALLMENT ENTRY MODAL */}
+      {showPaymentModal && paymentTargetRecord && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm">
+                  ৳
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white font-['Manrope']">
+                    Record Partial Payment
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Order: <strong className="text-white">{paymentTargetRecord.orderId}</strong> · {paymentTargetRecord.customerName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setPaymentTargetRecord(null);
+                }}
+                className="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Financial Status Summary Pill */}
+            <div className="bg-slate-100/90 px-5 py-3 border-b border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-mono block">Total Billed</span>
+                <span className="font-bold text-slate-900 font-mono">৳{Number(paymentTargetRecord.totalBillBdt).toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-mono block">Already Paid</span>
+                <span className="font-bold text-emerald-700 font-mono">৳{Number(paymentTargetRecord.purchaseCostPaidBdt).toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-mono block">Balance Due</span>
+                <span className="font-bold text-rose-600 font-mono">৳{Number(paymentTargetRecord.purchaseCostDueBdt).toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Payment Form */}
+            <form onSubmit={handleRecordPartialPayment} className="p-5 space-y-3.5 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 flex items-center justify-between">
+                  <span>Payment Amount (৳) *</span>
+                  <span className="text-[10px] text-slate-400 font-mono font-normal">Auto-converts to paid total</span>
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  min={1}
+                  required
+                  autoFocus
+                  value={paymentAmountInput}
+                  onChange={(e) => setPaymentAmountInput(e.target.value)}
+                  placeholder="e.g. 10000"
+                  className="w-full h-9 px-3 rounded-lg border border-slate-300 text-sm font-mono font-extrabold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Payment Method *</label>
+                  <select
+                    value={paymentMethodInput}
+                    onChange={(e) => setPaymentMethodInput(e.target.value)}
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs bg-white"
+                  >
+                    <option value="bKash">bKash Merchant</option>
+                    <option value="Nagad">Nagad</option>
+                    <option value="Bank Transfer">Bank Transfer (SCB / City)</option>
+                    <option value="Cash">Cash in Hand</option>
+                    <option value="Rocket">Rocket</option>
+                    <option value="Upay">Upay</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Milestone / Stage</label>
+                  <select
+                    value={paymentMilestoneInput}
+                    onChange={(e) => setPaymentMilestoneInput(e.target.value)}
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs bg-white"
+                  >
+                    <option value="Order Confirmation Advance">Order Advance</option>
+                    <option value="China Warehouse Arrival">China Warehouse Arrival</option>
+                    <option value="Dispatched from China">Dispatched from China</option>
+                    <option value="Arrived Bangladesh HSIA">Arrived Bangladesh HSIA</option>
+                    <option value="Final Delivery Handover">Final Delivery Clearance</option>
+                    <option value="General Installment">General Installment</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">TrxID / Reference (Optional)</label>
+                  <input
+                    type="text"
+                    value={paymentTrxIdInput}
+                    onChange={(e) => setPaymentTrxIdInput(e.target.value)}
+                    placeholder="e.g. BK-98302184"
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Remarks / Collector Note (Optional)</label>
+                  <input
+                    type="text"
+                    value={paymentNoteInput}
+                    onChange={(e) => setPaymentNoteInput(e.target.value)}
+                    placeholder="Collected by delivery agent"
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setPaymentTargetRecord(null);
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer text-xs font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingPayment}
+                  className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-50 text-xs shadow-2xs flex items-center gap-1.5"
+                >
+                  {isSubmittingPayment ? (
+                    <>
+                      <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      <span>Recording Payment...</span>
+                    </>
+                  ) : (
+                    <span>Record Payment →</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* 6. COMBINED COMMERCIAL INVOICE PRINT MODAL */}
       <CombinedCommercialInvoiceModal
         isOpen={showCombinedInvoiceModal}
         onClose={() => setShowCombinedInvoiceModal(false)}
         selectedRecords={selectedRecords}
+        onPaymentRecorded={loadLedger}
         onInvoiceSaved={(invoice) => {
           // Update local orders with the invoice number
           setRecords((prev) =>

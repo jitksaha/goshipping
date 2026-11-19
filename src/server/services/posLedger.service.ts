@@ -6,6 +6,17 @@ import { posLedger } from '../db/schema';
 import { eq, desc, or } from 'drizzle-orm';
 import { syncOrderToGoogleSheet, setSyncStatusListener } from './googleSheetSync.service';
 
+export interface PaymentEntry {
+  id: string;
+  amount: number;
+  dateTime: string; // BST formatted timestamp string, e.g. "19 Nov 2026, 05:45 PM BST"
+  method: string;   // 'bKash' | 'Nagad' | 'Bank Transfer' | 'Cash' | 'Upay' | 'Rocket' | string
+  trxId?: string;
+  milestone?: string; // 'Order Advance' | 'China Warehouse Received' | 'Dispatched from China' | 'Bangladesh HSIA Arrival' | 'Doorstep Delivery' | string
+  note?: string;
+  recordedBy?: string;
+}
+
 export interface PosLedgerRecord {
   id: string;
   orderId: string;
@@ -35,6 +46,7 @@ export interface PosLedgerRecord {
   internationalFreightBdt: number;
   totalBillBdt: number;
   paymentStatus: 'Due' | 'Paid' | 'Partial';
+  payments?: PaymentEntry[];
   bdCourierName?: string;
   bdTrackingNo?: string;
   remark?: string;
@@ -55,6 +67,7 @@ declare global {
 export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
   totalPurchaseRmb: number;
   purchaseCostBdt: number;
+  purchaseCostPaidBdt: number;
   purchaseCostDueBdt: number;
   internationalFreightBdt: number;
   totalBillBdt: number;
@@ -67,14 +80,19 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
   const rmbRate = Number(input.rmbRateBdt) || 19.5;
   const purchaseCostBdt = Math.round(totalRmb * rmbRate * 100) / 100;
 
-  const paidBdt = Number(input.purchaseCostPaidBdt) || 0;
-  const purchaseDueBdt = Math.max(0, Math.round((purchaseCostBdt - paidBdt) * 100) / 100);
-
   const bdWeight = Number(input.bdWeightKg) || Number(input.cnWeightKg) || 0;
   const shippingRate = Number(input.shippingRatePerKgBdt) || 0;
   const intlFreightBdt = Math.round(bdWeight * shippingRate * 100) / 100;
 
   const totalBillBdt = Math.round((purchaseCostBdt + intlFreightBdt) * 100) / 100;
+
+  // If input has payment entries, calculate total paid from payments
+  let paidBdt = Number(input.purchaseCostPaidBdt) || 0;
+  if (Array.isArray(input.payments) && input.payments.length > 0) {
+    paidBdt = input.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }
+
+  const purchaseDueBdt = Math.max(0, Math.round((totalBillBdt - paidBdt) * 100) / 100);
 
   let paymentStatus: 'Due' | 'Paid' | 'Partial' = 'Due';
   if (paidBdt >= totalBillBdt && totalBillBdt > 0) {
@@ -88,6 +106,7 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
   return {
     totalPurchaseRmb: totalRmb,
     purchaseCostBdt,
+    purchaseCostPaidBdt: paidBdt,
     purchaseCostDueBdt: purchaseDueBdt,
     internationalFreightBdt: intlFreightBdt,
     totalBillBdt,
@@ -463,7 +482,8 @@ export class PosLedgerService {
         paymentStatus: record.paymentStatus,
         bdCourierName: record.bdCourierName,
         bdTrackingNo: record.bdTrackingNo,
-        remark: record.remark
+        remark: record.remark,
+        payments: record.payments || []
       });
     } catch {}
 
@@ -564,7 +584,8 @@ export class PosLedgerService {
         paymentStatus: updated.paymentStatus,
         bdCourierName: updated.bdCourierName,
         bdTrackingNo: updated.bdTrackingNo,
-        remark: updated.remark
+        remark: updated.remark,
+        payments: updated.payments || []
       }).where(eq(posLedger.id, existing.id));
     } catch {}
 
@@ -614,6 +635,159 @@ export class PosLedgerService {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Add Partial Payment / Installment Entry with Automatic Recalculation
+   */
+  static async addPayment(
+    idOrOrderId: string,
+    payment: Omit<PaymentEntry, 'id'>
+  ): Promise<{ record: PosLedgerRecord; payment: PaymentEntry } | null> {
+    const cleanId = String(idOrOrderId).trim();
+    const idx = memoryLedger.findIndex(
+      (r) => r.id === cleanId || r.orderId.toUpperCase() === cleanId.toUpperCase()
+    );
+    if (idx === -1) return null;
+
+    const record = { ...memoryLedger[idx] };
+    const existingPayments = Array.isArray(record.payments) ? [...record.payments] : [];
+
+    // If order already had an advance recorded previously but no payment history array exists yet,
+    // establish the initial baseline entry
+    if (record.purchaseCostPaidBdt > 0 && existingPayments.length === 0) {
+      existingPayments.push({
+        id: `pay-init-${record.id}`,
+        amount: record.purchaseCostPaidBdt,
+        dateTime: record.orderDate ? `${record.orderDate} BST` : 'Initial Order Advance BST',
+        method: 'Advance',
+        milestone: 'Order Confirmation Advance',
+        note: 'Baseline advance registered at order creation'
+      });
+    }
+
+    const bstDateTime = payment.dateTime || new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Dhaka',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(new Date()) + ' BST';
+
+    const newPayment: PaymentEntry = {
+      id: `pay-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`,
+      amount: Math.round((Number(payment.amount) || 0) * 100) / 100,
+      dateTime: bstDateTime,
+      method: payment.method || 'Cash',
+      trxId: payment.trxId?.trim() || undefined,
+      milestone: payment.milestone?.trim() || 'Installment Payment',
+      note: payment.note?.trim() || undefined,
+      recordedBy: payment.recordedBy?.trim() || 'Accounts Desk'
+    };
+
+    existingPayments.push(newPayment);
+    record.payments = existingPayments;
+
+    // Recalculate totals
+    const totalPaid = existingPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    record.purchaseCostPaidBdt = Math.round(totalPaid * 100) / 100;
+    record.purchaseCostDueBdt = Math.max(0, Math.round((record.totalBillBdt - record.purchaseCostPaidBdt) * 100) / 100);
+
+    if (record.purchaseCostDueBdt <= 0 && record.totalBillBdt > 0) {
+      record.paymentStatus = 'Paid';
+    } else if (record.purchaseCostPaidBdt > 0) {
+      record.paymentStatus = 'Partial';
+    } else {
+      record.paymentStatus = 'Due';
+    }
+    record.updatedAt = new Date().toISOString();
+
+    memoryLedger[idx] = record;
+    saveToFile(memoryLedger);
+
+    try {
+      await db.update(posLedger).set({
+        purchaseCostPaidBdt: String(record.purchaseCostPaidBdt),
+        purchaseCostDueBdt: String(record.purchaseCostDueBdt),
+        paymentStatus: record.paymentStatus,
+        payments: record.payments
+      }).where(eq(posLedger.id, record.id));
+    } catch {}
+
+    // Synchronous or background sync to Google Sheet
+    try {
+      syncOrderToGoogleSheet(record).catch(() => {});
+    } catch {}
+
+    return { record, payment: newPayment };
+  }
+
+  /**
+   * Get overall outstanding financial summary across all active consignments for a customer
+   */
+  static async getCustomerOutstandingSummary(customerKey: string): Promise<{
+    customerName: string;
+    importerClient: string;
+    totalOrders: number;
+    activeOrders: number;
+    totalBillBdt: number;
+    totalPaidBdt: number;
+    totalDueBdt: number;
+    orders: Array<{
+      id: string;
+      orderId: string;
+      itemDetails: string;
+      currentStatus: string;
+      totalBillBdt: number;
+      purchaseCostPaidBdt: number;
+      purchaseCostDueBdt: number;
+      paymentStatus: string;
+      shippingMark?: string;
+    }>;
+  }> {
+    const k = (customerKey || '').trim().toLowerCase();
+    const matching = memoryLedger.filter((r) => {
+      if (!k) return false;
+      return (
+        r.customerName.toLowerCase().includes(k) ||
+        r.importerClient.toLowerCase().includes(k) ||
+        (r.shippingMark && r.shippingMark.toLowerCase().includes(k)) ||
+        (r.mobileNo && r.mobileNo.includes(k))
+      );
+    });
+
+    const totalOrders = matching.length;
+    const activeOrders = matching.filter(
+      (r) => !r.currentStatus.toLowerCase().includes('delivered')
+    ).length;
+    const totalBillBdt = Math.round(matching.reduce((s, r) => s + (Number(r.totalBillBdt) || 0), 0));
+    const totalPaidBdt = Math.round(matching.reduce((s, r) => s + (Number(r.purchaseCostPaidBdt) || 0), 0));
+    const totalDueBdt = Math.round(matching.reduce((s, r) => s + (Number(r.purchaseCostDueBdt) || 0), 0));
+
+    const primary = matching[0] || { customerName: customerKey, importerClient: '' };
+
+    return {
+      customerName: primary.customerName || customerKey,
+      importerClient: primary.importerClient || '',
+      totalOrders,
+      activeOrders,
+      totalBillBdt,
+      totalPaidBdt,
+      totalDueBdt,
+      orders: matching.map((r) => ({
+        id: r.id,
+        orderId: r.orderId,
+        itemDetails: r.itemDetails,
+        currentStatus: r.currentStatus,
+        totalBillBdt: Number(r.totalBillBdt) || 0,
+        purchaseCostPaidBdt: Number(r.purchaseCostPaidBdt) || 0,
+        purchaseCostDueBdt: Number(r.purchaseCostDueBdt) || 0,
+        paymentStatus: r.paymentStatus,
+        shippingMark: r.shippingMark
+      }))
+    };
   }
 
   /**

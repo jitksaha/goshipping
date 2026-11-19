@@ -398,6 +398,7 @@ export const posLedger = mysqlTable('pos_ledger', {
   bdCourierName: varchar('bd_courier_name', { length: 50 }),
   bdTrackingNo: varchar('bd_tracking_no', { length: 100 }),
   remark: text('remark'),
+  payments: json('payments'),
   profitEstimateBdt: decimal('profit_estimate_bdt', { precision: 12, scale: 2 }).default('0.00'),
   sheetSyncStatus: varchar('sheet_sync_status', { length: 30 }).default('pending'),
   sheetSyncedAt: varchar('sheet_synced_at', { length: 50 }),

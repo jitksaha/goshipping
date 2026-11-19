@@ -46,6 +46,10 @@ export interface InvoiceRecord {
   vatTax: number;
   totalBDT: number;
   totalUSD: number;
+  shippingCharges?: number;
+  discount?: number;
+  advancePaid?: number;
+  balanceDue?: number;
   status: 'pending' | 'paid';
   issueDate: string;
   dueDate: string;
@@ -286,6 +290,10 @@ export class InvoiceService {
     subtotal?: number;
     vatTax?: number;
     totalBDT: number;
+    shippingCharges?: number;
+    discount?: number;
+    advancePaid?: number;
+    balanceDue?: number;
     status?: 'pending' | 'paid';
     issueDate?: string;
     dueDate?: string;
@@ -344,6 +352,10 @@ export class InvoiceService {
       vatTax: Number(data.vatTax) || 0,
       totalBDT,
       totalUSD,
+      shippingCharges: data.shippingCharges,
+      discount: data.discount,
+      advancePaid: data.advancePaid,
+      balanceDue: data.balanceDue,
       status: data.status || 'pending',
       issueDate,
       dueDate,
@@ -368,6 +380,10 @@ export class InvoiceService {
     bankId?: string;
     notes?: string;
     status?: 'pending' | 'paid';
+    shippingCharges?: number;
+    discount?: number;
+    advancePaid?: number;
+    balanceDue?: number;
     ratePerKg?: number;
     baseFreightOverride?: number;
     terminalHandlingOverride?: number;
@@ -476,6 +492,10 @@ export class InvoiceService {
       vatTax,
       totalBDT,
       totalUSD,
+      shippingCharges: data.shippingCharges,
+      discount: data.discount,
+      advancePaid: data.advancePaid,
+      balanceDue: data.balanceDue,
       status: data.status || 'pending',
       issueDate,
       dueDate,

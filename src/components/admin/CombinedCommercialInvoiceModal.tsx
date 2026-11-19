@@ -1,5 +1,26 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { PosLedgerRecord } from '../../server/services/posLedger.service';
+
+interface CustomerSummary {
+  customerName: string;
+  importerClient: string;
+  totalOrders: number;
+  activeOrders: number;
+  totalBillBdt: number;
+  totalPaidBdt: number;
+  totalDueBdt: number;
+  orders: Array<{
+    id: string;
+    orderId: string;
+    itemDetails: string;
+    currentStatus: string;
+    totalBillBdt: number;
+    purchaseCostPaidBdt: number;
+    purchaseCostDueBdt: number;
+    paymentStatus: string;
+    shippingMark?: string;
+  }>;
+}
 
 interface CombinedCommercialInvoiceModalProps {
   isOpen: boolean;
@@ -7,6 +28,7 @@ interface CombinedCommercialInvoiceModalProps {
   selectedRecords: PosLedgerRecord[];
   onInvoiceSaved?: (invoice: any) => void;
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  onPaymentRecorded?: () => void;
 }
 
 export default function CombinedCommercialInvoiceModal({
@@ -14,7 +36,8 @@ export default function CombinedCommercialInvoiceModal({
   onClose,
   selectedRecords,
   onInvoiceSaved,
-  showToast
+  showToast,
+  onPaymentRecorded
 }: CombinedCommercialInvoiceModalProps) {
   if (!isOpen || selectedRecords.length === 0) return null;
 
@@ -22,7 +45,7 @@ export default function CombinedCommercialInvoiceModal({
   const [isSaved, setIsSaved] = useState(false);
   const [savedInvoiceNumber, setSavedInvoiceNumber] = useState<string | null>(null);
 
-  // Auto-generate invoice number based on current year and sequence or timestamp
+  // Auto-generate invoice number based on current year and sequence
   const initialInvoiceNum = useMemo(() => {
     const year = new Date().getFullYear();
     const randSeq = String(Math.floor(1000 + Math.random() * 9000));
@@ -30,15 +53,16 @@ export default function CombinedCommercialInvoiceModal({
   }, []);
 
   const [invoiceNumber, setInvoiceNumber] = useState(initialInvoiceNum);
-  const [issueDate, setIssueDate] = useState(() => new Date().toLocaleDateString('en-GB'));
+  const [issueDate, setIssueDate] = useState(() => {
+    const now = new Date();
+    return `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+  });
   const [deliveryAddress, setDeliveryAddress] = useState(
     'House 12, Road 4, Sector 7, Uttara Model Town, Dhaka-1230, Bangladesh'
   );
-  const [shippingMethod, setShippingMethod] = useState(selectedRecords[0]?.serviceType || 'Air Priority Cargo');
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid'>(() => {
-    const allPaid = selectedRecords.every((r) => r.paymentStatus === 'Paid');
-    return allPaid ? 'paid' : 'pending';
-  });
+  const [shippingMethod, setShippingMethod] = useState(
+    selectedRecords[0]?.serviceType || 'Air Cargo (7–14 days)'
+  );
 
   // Client Details derived from first record
   const primaryRecord = selectedRecords[0];
@@ -48,43 +72,157 @@ export default function CombinedCommercialInvoiceModal({
   const shippingMark = primaryRecord.shippingMark || 'N/A';
   const orderCodes = selectedRecords.map((r) => r.orderId).join(', ');
 
-  // Summary Computations
-  const totals = useMemo(() => {
-    const totalPcs = selectedRecords.reduce((acc, r) => acc + (Number(r.quantity) || 0), 0);
-    const totalWeightKg = selectedRecords.reduce(
+  // Base Products Subtotal from selected records
+  const productsSubtotal = useMemo(() => {
+    return selectedRecords.reduce((acc, r) => acc + (Number(r.purchaseCostBdt) || 0), 0);
+  }, [selectedRecords]);
+
+  // Default pre-filled freight charges from selected records
+  const initialFreightSum = useMemo(() => {
+    return selectedRecords.reduce((acc, r) => acc + (Number(r.internationalFreightBdt) || 0), 0);
+  }, [selectedRecords]);
+
+  // Default pre-filled paid amount from selected records
+  const initialPaidSum = useMemo(() => {
+    return selectedRecords.reduce((acc, r) => acc + (Number(r.purchaseCostPaidBdt) || 0), 0);
+  }, [selectedRecords]);
+
+  // Total Pcs and Weight
+  const totalPcs = useMemo(() => {
+    return selectedRecords.reduce((acc, r) => acc + (Number(r.quantity) || 0), 0);
+  }, [selectedRecords]);
+
+  const totalWeightKg = useMemo(() => {
+    const w = selectedRecords.reduce(
       (acc, r) => acc + (Number(r.bdWeightKg || r.cnWeightKg) || 0),
       0
     );
-    const totalPurchaseRmb = selectedRecords.reduce(
-      (acc, r) => acc + (Number(r.totalPurchaseRmb) || 0),
-      0
-    );
-    const totalPurchaseBdt = selectedRecords.reduce(
-      (acc, r) => acc + (Number(r.purchaseCostBdt) || 0),
-      0
-    );
-    const totalFreightBdt = selectedRecords.reduce(
-      (acc, r) => acc + (Number(r.internationalFreightBdt) || 0),
-      0
-    );
-    const grandTotalBdt = selectedRecords.reduce((acc, r) => acc + (Number(r.totalBillBdt) || 0), 0);
-    const advancePaidBdt = selectedRecords.reduce(
-      (acc, r) => acc + (Number(r.purchaseCostPaidBdt) || 0),
-      0
-    );
-    const balanceDueBdt = Math.max(0, grandTotalBdt - advancePaidBdt);
-
-    return {
-      totalPcs,
-      totalWeightKg: Math.round(totalWeightKg * 100) / 100,
-      totalPurchaseRmb: Math.round(totalPurchaseRmb * 100) / 100,
-      totalPurchaseBdt: Math.round(totalPurchaseBdt),
-      totalFreightBdt: Math.round(totalFreightBdt),
-      grandTotalBdt: Math.round(grandTotalBdt),
-      advancePaidBdt: Math.round(advancePaidBdt),
-      balanceDueBdt: Math.round(balanceDueBdt)
-    };
+    return Math.round(w * 100) / 100;
   }, [selectedRecords]);
+
+  // Editable Financial States
+  const [shippingCharges, setShippingCharges] = useState<number>(initialFreightSum);
+  const [discountBdt, setDiscountBdt] = useState<number>(0);
+  const [advancePaidBdt, setAdvancePaidBdt] = useState<number>(initialPaidSum);
+  const [paymentMethod, setPaymentMethod] = useState<string>('Bank / bKash / Nagad');
+
+  // Sync state if selected records change
+  useEffect(() => {
+    setShippingCharges(initialFreightSum);
+    setAdvancePaidBdt(initialPaidSum);
+  }, [initialFreightSum, initialPaidSum]);
+
+  // Calculated Grand Total & Balance Due
+  const grandTotalBdt = useMemo(() => {
+    const total = productsSubtotal + (Number(shippingCharges) || 0) - (Number(discountBdt) || 0);
+    return Math.max(0, Math.round(total * 100) / 100);
+  }, [productsSubtotal, shippingCharges, discountBdt]);
+
+  const balanceDueBdt = useMemo(() => {
+    const due = grandTotalBdt - (Number(advancePaidBdt) || 0);
+    return Math.max(0, Math.round(due * 100) / 100);
+  }, [grandTotalBdt, advancePaidBdt]);
+
+  // Payment Status
+  const paymentStatus = useMemo<'Due' | 'Partial' | 'Paid'>(() => {
+    if (balanceDueBdt <= 0 && grandTotalBdt > 0) return 'Paid';
+    if (advancePaidBdt > 0) return 'Partial';
+    return 'Due';
+  }, [balanceDueBdt, grandTotalBdt, advancePaidBdt]);
+
+  // Customer Overall Account Summary Across All Orders
+  const [customerSummary, setCustomerSummary] = useState<CustomerSummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
+  useEffect(() => {
+    const clientKey = primaryRecord.importerClient || primaryRecord.customerName || primaryRecord.mobileNo;
+    if (!clientKey) return;
+
+    setLoadingSummary(true);
+    fetch(`/api/admin/pos-ledger/customer-summary?client=${encodeURIComponent(clientKey)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.summary) {
+          setCustomerSummary(data.summary);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingSummary(false));
+  }, [primaryRecord]);
+
+  // Quick Payment Recording Modal State
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmountInput, setPaymentAmountInput] = useState<string>('');
+  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<string>(
+    selectedRecords[0]?.id || ''
+  );
+  const [paymentMethodInput, setPaymentMethodInput] = useState<string>('bKash');
+  const [paymentMilestoneInput, setPaymentMilestoneInput] = useState<string>(
+    'Commercial Invoice Payment'
+  );
+  const [paymentTrxIdInput, setPaymentTrxIdInput] = useState<string>('');
+  const [paymentNoteInput, setPaymentNoteInput] = useState<string>('');
+  const [recordingPayment, setRecordingPayment] = useState(false);
+
+  // Handle Quick Payment Submit
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = Number(paymentAmountInput);
+    if (isNaN(amount) || amount <= 0) {
+      showToast('Please enter a valid payment amount', 'error');
+      return;
+    }
+
+    setRecordingPayment(true);
+    try {
+      const res = await fetch(`/api/admin/pos-ledger/${selectedOrderForPayment}/payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          method: paymentMethodInput,
+          milestone: paymentMilestoneInput,
+          trxId: paymentTrxIdInput,
+          note: paymentNoteInput
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(
+          `Payment of ৳${amount.toLocaleString()} recorded successfully!`,
+          'success'
+        );
+        // Update local advance paid state
+        setAdvancePaidBdt((prev) => prev + amount);
+        setShowPaymentModal(false);
+        setPaymentAmountInput('');
+        setPaymentTrxIdInput('');
+        setPaymentNoteInput('');
+
+        // Refresh customer summary
+        const clientKey = primaryRecord.importerClient || primaryRecord.customerName;
+        if (clientKey) {
+          fetch(`/api/admin/pos-ledger/customer-summary?client=${encodeURIComponent(clientKey)}`)
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.success && d.summary) setCustomerSummary(d.summary);
+            })
+            .catch(() => {});
+        }
+
+        if (onPaymentRecorded) {
+          onPaymentRecorded();
+        }
+      } else {
+        throw new Error(data.error || 'Failed to record payment');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error recording payment', 'error');
+    } finally {
+      setRecordingPayment(false);
+    }
+  };
 
   // Handle Print Action
   const handlePrint = () => {
@@ -105,7 +243,7 @@ export default function CombinedCommercialInvoiceModal({
         customerAddress: deliveryAddress,
         shippingMark,
         mode: shippingMethod.toLowerCase().includes('sea') ? 'sea' : 'air',
-        totalWeightKg: totals.totalWeightKg,
+        totalWeightKg,
         items: selectedRecords.map((r, idx) => ({
           itemId: `itm-${r.orderId || idx + 1}`,
           itemCode: r.orderId,
@@ -114,17 +252,19 @@ export default function CombinedCommercialInvoiceModal({
           arrivedQuantity: r.quantity,
           totalQuantity: r.quantity,
           weightKg: Number(r.bdWeightKg || r.cnWeightKg) || 1,
-          ratePerKg: Number(r.shippingRatePerKgBdt) || 950,
-          amountBDT: Number(r.totalBillBdt) || 0
+          ratePerKg: Number(r.shippingRatePerKgBdt) || 850,
+          amountBDT: Number(r.purchaseCostBdt) || 0
         })),
-        baseFreight: totals.totalFreightBdt,
-        subtotal: totals.grandTotalBdt,
-        totalBDT: totals.grandTotalBdt,
-        advancePaid: totals.advancePaidBdt,
-        balanceDue: totals.balanceDueBdt,
-        status: paymentStatus,
+        baseFreight: shippingCharges,
+        shippingCharges,
+        discount: discountBdt,
+        subtotal: productsSubtotal,
+        totalBDT: grandTotalBdt,
+        advancePaid: advancePaidBdt,
+        balanceDue: balanceDueBdt,
+        status: balanceDueBdt <= 0 ? 'paid' : 'pending',
         issueDate,
-        paymentMethod: 'Bank Wire / bKash Merchant',
+        paymentMethod,
         notes: `Consolidated commercial invoice for ${selectedRecords.length} consignments (${orderCodes})`
       };
 
@@ -139,7 +279,7 @@ export default function CombinedCommercialInvoiceModal({
         setIsSaved(true);
         setSavedInvoiceNumber(data.invoice.invoiceNumber || invoiceNumber);
         showToast(
-          `Commercial Invoice ${data.invoice.invoiceNumber || invoiceNumber} saved & hosted to Invoices desk!`,
+          `Commercial Invoice ${data.invoice.invoiceNumber || invoiceNumber} saved to Invoices desk!`,
           'success'
         );
         if (onInvoiceSaved) {
@@ -156,10 +296,10 @@ export default function CombinedCommercialInvoiceModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-100 rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-300 my-auto flex flex-col max-h-[94vh]">
+    <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-slate-100 rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-300 my-auto flex flex-col max-h-[95vh]">
         {/* Top Control Bar (Non-Printable) */}
-        <div className="no-print bg-white px-5 py-3.5 border-b border-slate-200 rounded-t-2xl flex items-center justify-between shrink-0">
+        <div className="no-print bg-white px-5 py-3.5 border-b border-slate-200 rounded-t-2xl flex items-center justify-between shrink-0 flex-wrap gap-2">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-red-50 text-[#EA1D2C] border border-red-200 flex items-center justify-center font-bold text-sm">
               <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -169,23 +309,42 @@ export default function CombinedCommercialInvoiceModal({
               </svg>
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900">
-                Combined Commercial Invoice &amp; Print Desk
+              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span>Commercial Invoice Desk</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono font-semibold">
+                  Excel-Template Parity
+                </span>
               </h2>
               <p className="text-[11px] text-slate-500">
-                Consolidating {selectedRecords.length} orders for{' '}
+                Consolidating {selectedRecords.length} items for{' '}
                 <span className="font-semibold text-slate-800">{clientName}</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Save & Host Button */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Record Partial Payment Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
+                setShowPaymentModal(true);
+              }}
+              className="h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+            >
+              <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span>+ Record Payment</span>
+            </button>
+
+            {/* Save to Invoice Desk Button */}
             <button
               type="button"
               disabled={isSaving || isSaved}
               onClick={handleSaveToInvoiceDesk}
-              className={`h-9 px-3.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+              className={`h-9 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
                 isSaved
                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 cursor-default'
                   : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
@@ -193,24 +352,24 @@ export default function CombinedCommercialInvoiceModal({
             >
               {isSaved ? (
                 <>
-                  <svg className="w-4 h-4 text-emerald-600 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span>Hosted in Invoices ({savedInvoiceNumber})</span>
+                  <span>Hosted ({savedInvoiceNumber})</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
                     <polyline points="17 21 17 13 7 13 7 21" />
                     <polyline points="7 3 7 8 15 8" />
                   </svg>
-                  <span>{isSaving ? 'Hosting...' : 'Save to Invoices Desk'}</span>
+                  <span>{isSaving ? 'Saving...' : 'Save to Desk'}</span>
                 </>
               )}
             </button>
 
-            {/* Print Commercial Invoice Button */}
+            {/* Print Button */}
             <button
               type="button"
               onClick={handlePrint}
@@ -221,7 +380,7 @@ export default function CombinedCommercialInvoiceModal({
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                 <rect x="6" y="14" width="12" height="8" />
               </svg>
-              <span>Print Commercial Invoice</span>
+              <span>Print Invoice</span>
             </button>
 
             {/* Close Button */}
@@ -243,7 +402,7 @@ export default function CombinedCommercialInvoiceModal({
         <div className="overflow-y-auto p-4 sm:p-6 bg-slate-200/70">
           <div
             id="printable-commercial-invoice"
-            className="bg-white rounded-xl shadow-md border border-slate-300 p-6 sm:p-8 max-w-[800px] mx-auto text-slate-900 font-sans space-y-6"
+            className="bg-white rounded-xl shadow-md border border-slate-300 p-6 sm:p-8 max-w-[820px] mx-auto text-slate-900 font-sans space-y-6"
           >
             {/* Header: GoShipping Brand & Invoice Title */}
             <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5 gap-4">
@@ -255,7 +414,7 @@ export default function CombinedCommercialInvoiceModal({
                   </span>
                 </div>
                 <p className="text-xs font-semibold text-slate-700 mt-1">
-                  China Sourcing &amp; International Freight Forwarding Desk
+                  China Sourcing &amp; Shipping to Bangladesh
                 </p>
                 <p className="text-[10px] text-slate-500 mt-0.5">
                   Dhaka Hub: Plot 14, Sector 7, Uttara, Dhaka | Hotline: +880 1711 000000 | billing@goshipping.com.bd
@@ -266,143 +425,183 @@ export default function CombinedCommercialInvoiceModal({
               </div>
 
               <div className="text-right shrink-0">
-                <span className="inline-block px-2.5 py-0.5 rounded text-[11px] font-mono font-bold tracking-wider uppercase bg-slate-900 text-white">
-                  Commercial Invoice
+                <span className="inline-block px-3 py-1 rounded text-xs font-mono font-bold tracking-wider uppercase bg-[#EA1D2C] text-white">
+                  ORDER INVOICE
                 </span>
-                <div className="text-base font-mono font-extrabold text-[#EA1D2C] mt-1.5">
-                  {invoiceNumber}
+                <div className="text-sm font-mono font-extrabold text-slate-900 mt-2">
+                  INVOICE NO: <span className="text-[#EA1D2C]">{invoiceNumber}</span>
                 </div>
                 <div className="text-xs font-medium text-slate-600 mt-0.5">
-                  Date: <span className="font-mono font-bold text-slate-900">{issueDate}</span>
+                  DATE: <span className="font-mono font-bold text-slate-900">{issueDate}</span>
                 </div>
                 <div className="text-[11px] font-medium text-slate-500">
-                  Currency: <span className="font-bold text-slate-800">BDT (৳)</span>
+                  CURRENCY: <span className="font-bold text-slate-800">BDT (৳)</span>
                 </div>
               </div>
             </div>
 
-            {/* Billed To (Customer) & Logistics Metadata Grid */}
+            {/* BILL TO & CUSTOMER IDENTIFICATION */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              {/* Box 1: Billed To / Consignee */}
+              {/* BILL TO BOX */}
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 space-y-1.5">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 pb-1 flex items-center justify-between">
-                  <span>BILL TO (IMPORTER / CLIENT)</span>
-                  <span className="text-emerald-700 font-semibold lowercase">verified client</span>
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-1 flex items-center justify-between">
+                  <span>BILL TO</span>
+                  <span className="text-emerald-700 font-semibold lowercase">verified consignee</span>
                 </div>
-                <div>
-                  <div className="font-extrabold text-sm text-slate-900">{clientName}</div>
-                  {contactPerson && contactPerson !== clientName && (
-                    <div className="text-slate-600 text-xs font-medium">Attn: {contactPerson}</div>
-                  )}
+                <div className="grid grid-cols-3 gap-1 pt-0.5">
+                  <span className="text-slate-500 text-[11px]">Customer Name:</span>
+                  <span className="col-span-2 font-extrabold text-slate-900 text-xs">
+                    {clientName}
+                  </span>
                 </div>
-                <div className="text-slate-600 flex items-center gap-1.5 font-mono text-[11px]">
-                  <span>Phone/WA:</span>
-                  <span className="font-bold text-slate-800">{mobileNo}</span>
+                {contactPerson && contactPerson !== clientName && (
+                  <div className="grid grid-cols-3 gap-1">
+                    <span className="text-slate-500 text-[11px]">Attn / Person:</span>
+                    <span className="col-span-2 font-semibold text-slate-800 text-[11px]">
+                      {contactPerson}
+                    </span>
+                  </div>
+                )}
+                <div className="grid grid-cols-3 gap-1 font-mono">
+                  <span className="text-slate-500 text-[11px]">Phone / WhatsApp:</span>
+                  <span className="col-span-2 font-bold text-slate-900 text-[11px]">
+                    {mobileNo}
+                  </span>
                 </div>
+                {primaryRecord.importerClient && (
+                  <div className="grid grid-cols-3 gap-1 font-mono">
+                    <span className="text-slate-500 text-[11px]">Business / Page:</span>
+                    <span className="col-span-2 font-medium text-slate-800 text-[11px]">
+                      {primaryRecord.importerClient}
+                    </span>
+                  </div>
+                )}
                 {shippingMark && shippingMark !== 'N/A' && (
-                  <div className="text-slate-600 flex items-center gap-1.5 font-mono text-[11px]">
-                    <span>Shipping Mark:</span>
-                    <span className="font-bold text-[#EA1D2C] px-1.5 py-0.2 rounded bg-red-50 border border-red-200">
+                  <div className="grid grid-cols-3 gap-1 font-mono">
+                    <span className="text-slate-500 text-[11px]">Shipping Mark:</span>
+                    <span className="col-span-2 font-bold text-[#EA1D2C] text-[11px]">
                       {shippingMark}
                     </span>
                   </div>
                 )}
-                <div className="text-slate-600 text-[11px] leading-relaxed pt-0.5">
-                  <span className="text-slate-400">Address:</span> {deliveryAddress}
+                <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-200/60">
+                  <span className="text-slate-500 text-[11px]">Delivery Address:</span>
+                  <span className="col-span-2 text-slate-700 text-[11px] leading-relaxed">
+                    {deliveryAddress}
+                  </span>
                 </div>
               </div>
 
-              {/* Box 2: Consignment & Logistics Summary */}
+              {/* CONSIGNMENT & ROUTE SPECIFICATION */}
               <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 space-y-1.5">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 pb-1 flex items-center justify-between">
-                  <span>CONSIGNMENT &amp; ROUTE SPECIFICATION</span>
-                  <span className="text-blue-700 font-semibold">{shippingMethod}</span>
+                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-1 flex items-center justify-between">
+                  <span>SHIPPING &amp; LOGISTICS ROUTE</span>
+                  <span className="text-blue-700 font-bold">{shippingMethod}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Origin Corridor:</span>
+                    <span className="text-slate-400 block text-[10px]">Origin Hub:</span>
                     <span className="font-semibold text-slate-800">Guangzhou / Yiwu, China</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Destination Hub:</span>
-                    <span className="font-semibold text-slate-800">Dhaka Hub (HSIA / Port)</span>
+                    <span className="font-semibold text-slate-800">Dhaka Hub (HSIA / Chittagong)</span>
                   </div>
                   <div>
                     <span className="text-slate-400 block text-[10px]">Total Consignments:</span>
-                    <span className="font-mono font-bold text-slate-900">{selectedRecords.length} Orders ({totals.totalPcs} pcs)</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      {selectedRecords.length} Products ({totalPcs} Pcs)
+                    </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Billed Cargo Weight:</span>
-                    <span className="font-mono font-bold text-slate-900">{totals.totalWeightKg} KG</span>
+                    <span className="text-slate-400 block text-[10px]">Total Billed Weight:</span>
+                    <span className="font-mono font-bold text-slate-900">
+                      {totalWeightKg > 0 ? `${totalWeightKg} KG` : 'Pending Weight'}
+                    </span>
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-500 font-mono pt-1 truncate border-t border-slate-200/60 mt-1" title={orderCodes}>
-                  <span className="text-slate-400">Orders:</span> {orderCodes}
+                <div className="text-[10px] text-slate-500 font-mono pt-1.5 border-t border-slate-200/60 mt-1 truncate" title={orderCodes}>
+                  <span className="text-slate-400">Order IDs:</span> {orderCodes}
                 </div>
               </div>
             </div>
 
-            {/* PRODUCT DETAILS TABLE */}
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            {/* PRODUCT DETAILS TABLE (Matching Excel Format) */}
+            <div className="border border-slate-300 rounded-lg overflow-hidden shadow-2xs">
+              <div className="bg-[#EA1D2C] text-white px-3.5 py-2 font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-between">
+                <span>PRODUCT DETAILS</span>
+                <span className="text-[11px] font-normal">{selectedRecords.length} Selected Line Items</span>
+              </div>
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-900 text-white text-[10px] font-mono uppercase tracking-wider">
-                    <th className="py-2.5 px-3 border-r border-slate-800 w-8 text-center">#</th>
-                    <th className="py-2.5 px-3 border-r border-slate-800">Product Specifications &amp; Order</th>
-                    <th className="py-2.5 px-3 border-r border-slate-800 w-16 text-center">Qty</th>
-                    <th className="py-2.5 px-3 border-r border-slate-800 text-right">Unit (¥)</th>
-                    <th className="py-2.5 px-3 border-r border-slate-800 text-right">Purchase (৳)</th>
-                    <th className="py-2.5 px-3 border-r border-slate-800 text-center">Weight</th>
-                    <th className="py-2.5 px-3 border-r border-slate-800 text-right">Rate</th>
-                    <th className="py-2.5 px-3 border-r border-slate-800 text-right">Freight (৳)</th>
-                    <th className="py-2.5 px-3 text-right font-extrabold">Total (৳)</th>
+                  <tr className="bg-slate-100 text-slate-800 text-[10px] font-mono uppercase tracking-wider font-bold border-b border-slate-300">
+                    <th className="py-2.5 px-3 border-r border-slate-200 w-16 text-center">Photo</th>
+                    <th className="py-2.5 px-3 border-r border-slate-200">Product / Details</th>
+                    <th className="py-2.5 px-3 border-r border-slate-200 w-24 text-center">SKU / Model</th>
+                    <th className="py-2.5 px-3 border-r border-slate-200 w-28 text-center">Tracking No.</th>
+                    <th className="py-2.5 px-3 border-r border-slate-200 w-14 text-center">Qty</th>
+                    <th className="py-2.5 px-3 border-r border-slate-200 w-24 text-right">Unit Price (৳)</th>
+                    <th className="py-2.5 px-3 text-right w-28 font-bold">Total (৳)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 text-[11px] text-slate-800">
                   {selectedRecords.map((r, idx) => {
-                    const weight = Number(r.bdWeightKg || r.cnWeightKg) || 0;
+                    const unitPriceBdt = r.quantity > 0
+                      ? Math.round(((Number(r.purchaseCostBdt) || 0) / r.quantity) * 100) / 100
+                      : Math.round((Number(r.unitPriceRmb) || 0) * (Number(r.rmbRateBdt) || 19.5));
+                    const lineTotal = Number(r.purchaseCostBdt) || (unitPriceBdt * r.quantity);
+
                     return (
-                      <tr key={r.id || idx} className={idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'}>
-                        <td className="py-2 px-3 border-r border-slate-200 font-mono text-center text-slate-400">
-                          {idx + 1}
-                        </td>
-                        <td className="py-2 px-3 border-r border-slate-200">
-                          <div className="font-semibold text-slate-900">{r.itemDetails}</div>
-                          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 mt-0.5">
-                            <span className="font-bold text-[#EA1D2C]">{r.orderId}</span>
-                            <span>·</span>
-                            <span>{r.supplierName}</span>
-                            {r.chinaCourierTracking && (
-                              <>
-                                <span>·</span>
-                                <span className="text-slate-400">SF: {r.chinaCourierTracking}</span>
-                              </>
-                            )}
+                      <tr key={r.id || idx} className={idx % 2 === 1 ? 'bg-slate-50/70' : 'bg-white'}>
+                        {/* Product Photo */}
+                        <td className="py-2.5 px-2 border-r border-slate-200 text-center">
+                          <div className="w-10 h-10 mx-auto rounded border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400 overflow-hidden">
+                            <svg className="w-5 h-5 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <rect x="3" y="3" width="18" height="18" rx="2" />
+                              <circle cx="8.5" cy="8.5" r="1.5" />
+                              <polyline points="21 15 16 10 5 21" />
+                            </svg>
                           </div>
                         </td>
-                        <td className="py-2 px-3 border-r border-slate-200 text-center font-mono font-medium">
+
+                        {/* Product / Details */}
+                        <td className="py-2.5 px-3 border-r border-slate-200">
+                          <div className="font-bold text-slate-900 text-xs">{r.itemDetails}</div>
+                          <div className="text-[10px] text-slate-500 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-amber-800">{r.supplierName}</span>
+                            <span>·</span>
+                            <span>¥{Number(r.unitPriceRmb).toFixed(2)} @ ৳{r.rmbRateBdt}</span>
+                          </div>
+                        </td>
+
+                        {/* SKU / Model */}
+                        <td className="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-medium text-slate-700">
+                          {r.shippingMark || 'Standard'}
+                        </td>
+
+                        {/* Tracking No */}
+                        <td className="py-2.5 px-3 border-r border-slate-200 text-center font-mono">
+                          <div className="font-bold text-slate-900 text-[11px]">{r.orderId}</div>
+                          {r.chinaCourierTracking && (
+                            <div className="text-[9px] text-slate-400 truncate max-w-[100px] mx-auto" title={r.chinaCourierTracking}>
+                              CN: {r.chinaCourierTracking}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Qty */}
+                        <td className="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-semibold">
                           {r.quantity}
                         </td>
-                        <td className="py-2 px-3 border-r border-slate-200 text-right font-mono text-slate-600">
-                          ¥{Number(r.unitPriceRmb).toFixed(2)}
-                          <span className="block text-[9px] text-slate-400 font-sans">
-                            @{Number(r.rmbRateBdt).toFixed(2)}
-                          </span>
+
+                        {/* Unit Price (৳) */}
+                        <td className="py-2.5 px-3 border-r border-slate-200 text-right font-mono text-slate-700">
+                          ৳{unitPriceBdt.toLocaleString()}
                         </td>
-                        <td className="py-2 px-3 border-r border-slate-200 text-right font-mono font-semibold text-slate-900">
-                          ৳{Number(r.purchaseCostBdt).toLocaleString()}
-                        </td>
-                        <td className="py-2 px-3 border-r border-slate-200 text-center font-mono text-slate-700">
-                          {weight} KG
-                        </td>
-                        <td className="py-2 px-3 border-r border-slate-200 text-right font-mono text-slate-500">
-                          ৳{r.shippingRatePerKgBdt}
-                        </td>
-                        <td className="py-2 px-3 border-r border-slate-200 text-right font-mono font-semibold text-sky-800">
-                          ৳{Number(r.internationalFreightBdt).toLocaleString()}
-                        </td>
-                        <td className="py-2 px-3 text-right font-mono font-bold text-slate-900 bg-slate-50/30">
-                          ৳{Number(r.totalBillBdt).toLocaleString()}
+
+                        {/* Total (৳) */}
+                        <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900 bg-slate-50/40">
+                          ৳{lineTotal.toLocaleString()}
                         </td>
                       </tr>
                     );
@@ -411,84 +610,240 @@ export default function CombinedCommercialInvoiceModal({
               </table>
             </div>
 
-            {/* Bottom Grid: Payment Summary & Bank Instructions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-2">
-              {/* Left Column: Settlement & Payment Instructions */}
-              <div className="rounded-lg border border-slate-200 p-3.5 space-y-2 bg-slate-50/30">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-1">
-                  OFFICIAL SETTLEMENT BANK ACCOUNTS
-                </div>
-                <div className="text-[11px] text-slate-700 space-y-1 font-sans">
-                  <div>
-                    <span className="font-bold text-slate-900">1. Standard Chartered Bank:</span>
-                    <div className="font-mono text-[10px] text-slate-600 pl-3">
-                      A/C: <strong className="text-slate-900">01-8492049-01</strong> · Gulshan-2 Branch
+            {/* PAYMENT SUMMARY & CUSTOMER OVERALL BALANCE (EXCEL ALIGNED) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs pt-1">
+              {/* Left Column: Settlement Bank Instructions & Customer Overall Outstanding Due */}
+              <div className="space-y-4">
+                {/* Highlighted Banner: Customer Total Outstanding Due Across All Active Consignments */}
+                <div className="rounded-lg border-2 border-amber-300 bg-amber-50/80 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between border-b border-amber-200 pb-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                      <span>CUSTOMER OVERALL ACCOUNT DUE (সকল অর্ডারের বকেয়া)</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-800">
+                      {customerSummary ? `${customerSummary.totalOrders} Total Orders` : 'Loading...'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-baseline justify-between pt-1">
+                    <div>
+                      <span className="text-[11px] text-amber-950 font-medium block">
+                        Total Outstanding Across All Active Consignments:
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        Including pending orders &amp; uncollected shipments
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg font-black font-mono text-rose-700">
+                        ৳{(customerSummary?.totalDueBdt ?? 0).toLocaleString()}
+                      </span>
                     </div>
                   </div>
-                  <div>
-                    <span className="font-bold text-slate-900">2. The City Bank PLC:</span>
-                    <div className="font-mono text-[10px] text-slate-600 pl-3">
-                      A/C: <strong className="text-slate-900">1102948291001</strong> · Principal Branch
+
+                  {customerSummary && customerSummary.orders.filter((o) => o.purchaseCostDueBdt > 0).length > 0 && (
+                    <div className="text-[10px] font-mono text-slate-600 pt-1.5 border-t border-amber-200/70 space-y-1">
+                      <span className="font-semibold text-slate-700 block">Unsettled Consignments:</span>
+                      <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1">
+                        {customerSummary.orders
+                          .filter((o) => o.purchaseCostDueBdt > 0)
+                          .map((o) => (
+                            <div key={o.id} className="flex items-center justify-between text-[10px] bg-white/70 px-2 py-0.5 rounded border border-amber-200/50">
+                              <span className="font-bold text-slate-800">{o.orderId}</span>
+                              <span className="text-slate-500 truncate max-w-[140px]">{o.itemDetails}</span>
+                              <span className="text-rose-600 font-bold">Due: ৳{o.purchaseCostDueBdt.toLocaleString()}</span>
+                            </div>
+                          ))}
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <span className="font-bold text-slate-900">3. bKash Merchant:</span>
-                    <div className="font-mono text-[10px] text-slate-600 pl-3">
-                      Wallet: <strong className="text-slate-900">01711-000000</strong> (Payment Counter 1)
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                <div className="text-[10px] text-slate-500 border-t border-slate-200 pt-1.5 leading-relaxed">
-                  <strong>Notice:</strong> Final shipping/customs charges are calculated based on physical weight or CBM measured at Bangladesh customs gateway.
+                {/* Settlement Accounts */}
+                <div className="rounded-lg border border-slate-200 p-3.5 space-y-2 bg-slate-50/40">
+                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 pb-1">
+                    OFFICIAL SETTLEMENT BANK &amp; WALLETS
+                  </div>
+                  <div className="text-[11px] text-slate-700 space-y-1.5 font-sans">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-900">1. Standard Chartered Bank:</span>
+                      <span className="font-mono text-[10px] text-slate-700">01-8492049-01</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-900">2. The City Bank PLC:</span>
+                      <span className="font-mono text-[10px] text-slate-700">1102948291001</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-900">3. bKash Merchant:</span>
+                      <span className="font-mono text-[10px] text-[#EA1D2C] font-bold">01711-000000</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 border-t border-slate-200 pt-1 leading-relaxed">
+                    <strong>Note:</strong> Final shipping and customs charges are calculated based on actual weight measured at Bangladesh entry gateway.
+                  </p>
                 </div>
               </div>
 
-              {/* Right Column: Financial Summary Table */}
-              <div className="rounded-lg border border-slate-200 bg-white overflow-hidden self-start">
-                <div className="bg-slate-100 px-3.5 py-1.5 border-b border-slate-200 font-mono font-bold text-[10px] uppercase tracking-wider text-slate-700">
-                  PAYMENT &amp; SETTLEMENT SUMMARY (BDT)
+              {/* Right Column: Financial Summary Table (Excel Table Aligned) */}
+              <div className="rounded-lg border border-slate-300 bg-white overflow-hidden self-start shadow-2xs">
+                <div className="bg-slate-900 text-white px-3.5 py-2 font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-between">
+                  <span>PAYMENT SUMMARY</span>
+                  <span className="text-[10px] text-slate-300">AMOUNT (৳)</span>
                 </div>
                 <table className="w-full text-xs font-mono">
                   <tbody className="divide-y divide-slate-100">
+                    {/* Products Subtotal */}
                     <tr>
-                      <td className="py-1.5 px-3.5 text-slate-600 font-sans">China Sourcing / Purchase Total:</td>
-                      <td className="py-1.5 px-3.5 text-right font-medium text-slate-900">
-                        ৳{totals.totalPurchaseBdt.toLocaleString()}
+                      <td className="py-2 px-3.5 text-slate-700 font-sans font-medium">Products Subtotal:</td>
+                      <td className="py-2 px-3.5 text-right font-bold text-slate-900 text-sm">
+                        ৳{productsSubtotal.toLocaleString()}
                       </td>
                     </tr>
-                    <tr>
-                      <td className="py-1.5 px-3.5 text-slate-600 font-sans">International Freight Charges:</td>
-                      <td className="py-1.5 px-3.5 text-right font-medium text-sky-800">
-                        ৳{totals.totalFreightBdt.toLocaleString()}
+
+                    {/* Shipping / Other Charges (Editable) */}
+                    <tr className="bg-sky-50/30">
+                      <td className="py-2 px-3.5 text-slate-700 font-sans">
+                        <div className="flex items-center gap-1.5">
+                          <span>Shipping / Other Charges:</span>
+                          <span className="no-print text-[9px] px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 font-bold uppercase">
+                            Editable
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-1 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-slate-400">৳</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={shippingCharges}
+                            onChange={(e) => setShippingCharges(Number(e.target.value) || 0)}
+                            className="w-24 text-right h-7 px-1.5 font-mono font-bold text-sky-800 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                          />
+                        </div>
                       </td>
                     </tr>
-                    <tr>
-                      <td className="py-1.5 px-3.5 text-slate-600 font-sans">Customs &amp; Terminal Clearance:</td>
-                      <td className="py-1.5 px-3.5 text-right text-slate-400">৳0.00 (Included)</td>
-                    </tr>
-                    <tr className="bg-slate-50/80 font-bold border-t border-slate-200">
-                      <td className="py-2 px-3.5 text-slate-900 font-sans">GROSS TOTAL BILLED:</td>
-                      <td className="py-2 px-3.5 text-right text-sm text-slate-900">
-                        ৳{totals.grandTotalBdt.toLocaleString()}
+
+                    {/* Manual Discount (Editable) */}
+                    <tr className="bg-amber-50/30">
+                      <td className="py-2 px-3.5 text-slate-700 font-sans">
+                        <div className="flex items-center gap-1.5">
+                          <span>Discount / Adjustment:</span>
+                          <span className="no-print text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
+                            Manual
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-1 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-amber-600">- ৳</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={discountBdt}
+                            onChange={(e) => setDiscountBdt(Number(e.target.value) || 0)}
+                            placeholder="0"
+                            className="w-24 text-right h-7 px-1.5 font-mono font-bold text-amber-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          />
+                        </div>
                       </td>
                     </tr>
-                    <tr>
-                      <td className="py-1.5 px-3.5 text-emerald-700 font-sans">Paid / Advance Received:</td>
-                      <td className="py-1.5 px-3.5 text-right font-semibold text-emerald-700">
-                        ৳{totals.advancePaidBdt.toLocaleString()}
+
+                    {/* GRAND TOTAL */}
+                    <tr className="bg-slate-100 font-extrabold border-t-2 border-slate-300">
+                      <td className="py-2 px-3.5 text-slate-900 font-sans text-xs uppercase tracking-wide">
+                        GRAND TOTAL:
+                      </td>
+                      <td className="py-2 px-3.5 text-right text-base text-slate-900 font-black">
+                        ৳{grandTotalBdt.toLocaleString()}
                       </td>
                     </tr>
-                    <tr className={`border-t-2 ${totals.balanceDueBdt > 0 ? 'bg-red-50 text-rose-800 border-red-300' : 'bg-emerald-50 text-emerald-800 border-emerald-300'}`}>
-                      <td className="py-2.5 px-3.5 font-black font-sans text-xs uppercase tracking-wide">
-                        {totals.balanceDueBdt > 0 ? 'NET BALANCE DUE:' : 'INVOICE FULLY PAID:'}
+
+                    {/* Paid / Advance Received (Editable) */}
+                    <tr className="bg-emerald-50/40">
+                      <td className="py-2 px-3.5 text-emerald-800 font-sans font-medium">
+                        <div className="flex items-center justify-between">
+                          <span>Paid / Advance:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
+                              setShowPaymentModal(true);
+                            }}
+                            className="no-print text-[10px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+                          >
+                            + Add Entry
+                          </button>
+                        </div>
                       </td>
-                      <td className="py-2.5 px-3.5 text-right font-extrabold text-base">
-                        ৳{totals.balanceDueBdt.toLocaleString()}
+                      <td className="py-1 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <span className="text-emerald-600">৳</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={advancePaidBdt}
+                            onChange={(e) => setAdvancePaidBdt(Number(e.target.value) || 0)}
+                            className="w-24 text-right h-7 px-1.5 font-mono font-bold text-emerald-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* BALANCE DUE */}
+                    <tr className={`border-t-2 ${balanceDueBdt > 0 ? 'bg-red-50 text-rose-800 border-red-300' : 'bg-emerald-50 text-emerald-800 border-emerald-300'}`}>
+                      <td className="py-3 px-3.5 font-black font-sans text-xs uppercase tracking-wide">
+                        {balanceDueBdt > 0 ? 'BALANCE DUE (INVOICE):' : 'INVOICE FULLY PAID:'}
+                      </td>
+                      <td className="py-3 px-3.5 text-right font-black text-lg">
+                        ৳{balanceDueBdt.toLocaleString()}
                       </td>
                     </tr>
                   </tbody>
                 </table>
+
+                {/* Status Badge */}
+                <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
+                  <span className="text-slate-500 font-sans">Payment Status:</span>
+                  <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider text-[10px] ${
+                    paymentStatus === 'Paid'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : paymentStatus === 'Partial'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                      : 'bg-red-100 text-red-800 border border-red-300'
+                  }`}>
+                    {paymentStatus}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* SHIPPING & PAYMENT TERMS (EXCEL SHEET ROWS 30-33) */}
+            <div className="border border-slate-200 rounded-lg p-3.5 bg-slate-50/50 text-[11px] space-y-2">
+              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-1">
+                SHIPPING &amp; PAYMENT POLICY
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-700">
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Shipping Mode:</span>
+                  <span className="font-semibold text-slate-900">{shippingMethod}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Est. Delivery:</span>
+                  <span className="font-semibold text-slate-900">Air: 7–14 days* | Sea: 30–45 days*</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Payment Status:</span>
+                  <span className="font-semibold text-slate-900">{paymentStatus}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px]">Payment Method:</span>
+                  <span className="font-semibold text-slate-900">{paymentMethod}</span>
+                </div>
               </div>
             </div>
 
@@ -502,7 +857,7 @@ export default function CombinedCommercialInvoiceModal({
               <div className="text-center space-y-0.5">
                 <div className="font-bold text-slate-800">Thank you for choosing Go Shipping.</div>
                 <div className="text-[10px] text-slate-400">
-                  Trusted China-to-Bangladesh Sourcing &amp; Express Forwarder
+                  Trusted Import &amp; Logistics Partner | goshipping.com.bd
                 </div>
               </div>
 
@@ -514,6 +869,134 @@ export default function CombinedCommercialInvoiceModal({
           </div>
         </div>
       </div>
+
+      {/* QUICK PAYMENT RECORDING MODAL (POPUP) */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
+            <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">
+                  ৳
+                </div>
+                <h3 className="text-sm font-bold">Record Partial Payment / Installment</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(false)}
+                className="text-slate-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordPayment} className="p-5 space-y-3.5 text-xs">
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Apply Payment to Order</label>
+                <select
+                  value={selectedOrderForPayment}
+                  onChange={(e) => setSelectedOrderForPayment(e.target.value)}
+                  className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                >
+                  {selectedRecords.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.orderId} — {r.itemDetails} (Due: ৳{r.purchaseCostDueBdt})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Amount Received (৳) *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min={1}
+                    required
+                    value={paymentAmountInput}
+                    onChange={(e) => setPaymentAmountInput(e.target.value)}
+                    placeholder="e.g. 5000"
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono font-bold text-emerald-700"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Payment Method *</label>
+                  <select
+                    value={paymentMethodInput}
+                    onChange={(e) => setPaymentMethodInput(e.target.value)}
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                  >
+                    <option value="bKash">bKash Merchant</option>
+                    <option value="Nagad">Nagad</option>
+                    <option value="Bank Transfer">Bank Transfer (City / SCB)</option>
+                    <option value="Cash">Cash in Hand</option>
+                    <option value="Rocket">Rocket</option>
+                    <option value="Upay">Upay</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Milestone / Purpose</label>
+                  <select
+                    value={paymentMilestoneInput}
+                    onChange={(e) => setPaymentMilestoneInput(e.target.value)}
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                  >
+                    <option value="Commercial Invoice Payment">Commercial Invoice Payment</option>
+                    <option value="Order Confirmation Advance">Order Confirmation Advance</option>
+                    <option value="China Warehouse Arrival">China Warehouse Arrival</option>
+                    <option value="Arrived Bangladesh HSIA">Arrived Bangladesh HSIA</option>
+                    <option value="Final Delivery Handover">Final Delivery Handover</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">TrxID / Reference</label>
+                  <input
+                    type="text"
+                    value={paymentTrxIdInput}
+                    onChange={(e) => setPaymentTrxIdInput(e.target.value)}
+                    placeholder="e.g. BK-9948201"
+                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Note / Remark</label>
+                <input
+                  type="text"
+                  value={paymentNoteInput}
+                  onChange={(e) => setPaymentNoteInput(e.target.value)}
+                  placeholder="Customer paid via agent"
+                  className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setShowPaymentModal(false)}
+                  className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={recordingPayment}
+                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {recordingPayment ? 'Recording...' : 'Record Payment →'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

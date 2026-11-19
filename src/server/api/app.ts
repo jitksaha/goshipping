@@ -2034,6 +2034,76 @@ app.delete('/admin/pos-ledger/:id', async (c) => {
   return c.json({ success: true, message: 'Record deleted successfully' });
 });
 
+app.post('/admin/pos-ledger/:id/payment', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized.' }, 403);
+  }
+
+  const { id } = c.req.param();
+  try {
+    const body = await c.req.json();
+    const amount = Number(body.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return c.json({ error: 'Payment amount must be greater than 0' }, 400);
+    }
+
+    const result = await PosLedgerService.addPayment(id, {
+      amount,
+      method: body.method || 'Cash',
+      trxId: body.trxId,
+      milestone: body.milestone,
+      note: body.note,
+      dateTime: body.dateTime,
+      recordedBy: user.fullName
+    });
+
+    if (!result) {
+      return c.json({ error: 'Record not found' }, 404);
+    }
+
+    await AuditService.logAction({
+      userId: user.id,
+      userName: user.fullName,
+      action: 'POS_LEDGER_PAYMENT_ADDED',
+      entityType: 'pos_ledger',
+      entityId: id,
+      details: {
+        orderId: result.record.orderId,
+        paymentAmount: amount,
+        method: body.method,
+        paidTotal: result.record.purchaseCostPaidBdt,
+        dueRemaining: result.record.purchaseCostDueBdt
+      }
+    });
+
+    return c.json({ success: true, record: result.record, payment: result.payment });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to record payment' }, 400);
+  }
+});
+
+app.get('/admin/pos-ledger/customer-summary', async (c) => {
+  let user = c.get('user' as any) as AuthUser | undefined;
+  if (!user && process.env.NODE_ENV !== 'production') {
+    user = DEFAULT_ACCOUNTS[0];
+  }
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Unauthorized.' }, 403);
+  }
+
+  const client = c.req.query('client') || c.req.query('name') || '';
+  if (!client.trim()) {
+    return c.json({ error: 'Client identifier required' }, 400);
+  }
+
+  const summary = await PosLedgerService.getCustomerOutstandingSummary(client);
+  return c.json({ success: true, summary });
+});
+
 app.post('/admin/pos-ledger/import', async (c) => {
   let user = c.get('user' as any) as AuthUser | undefined;
   if (!user && process.env.NODE_ENV !== 'production') {
