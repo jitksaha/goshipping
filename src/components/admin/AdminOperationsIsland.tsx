@@ -607,22 +607,22 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [sourcingSupplier, setSourcingSupplier] = useState('Taobao');
   const [chinaTrackingNo, setChinaTrackingNo] = useState('');
   const [sourcingItemDetails, setSourcingItemDetails] = useState('');
-  const [sourcingQuantity, setSourcingQuantity] = useState<number>(1);
-  const [sourcingUnitPriceRmb, setSourcingUnitPriceRmb] = useState<number>(0);
-  const [sourcingRmbRateBdt, setSourcingRmbRateBdt] = useState<number>(19.5);
+  const [sourcingQuantity, setSourcingQuantity] = useState<number | string>(1);
+  const [sourcingUnitPriceRmb, setSourcingUnitPriceRmb] = useState<number | string>('');
+  const [sourcingRmbRateBdt, setSourcingRmbRateBdt] = useState<number | string>('19.5');
   const [sourcingShippingMark, setSourcingShippingMark] = useState('');
   const [sourcingWebsiteOrderNo, setSourcingWebsiteOrderNo] = useState('');
-  const [freightRatePerKgBdt, setFreightRatePerKgBdt] = useState<number>(950);
+  const [freightRatePerKgBdt, setFreightRatePerKgBdt] = useState<number | string>(950);
   const [bdCourierName, setBdCourierName] = useState('Steadfast');
   const [bdCourierTrackingNo, setBdCourierTrackingNo] = useState('');
-  const [advancePaidBdt, setAdvancePaidBdt] = useState<number>(0);
+  const [advancePaidBdt, setAdvancePaidBdt] = useState<number | string>('');
   const [orderRemarks, setOrderRemarks] = useState('');
   const [customOrderId, setCustomOrderId] = useState('');
   const [orderDateInput, setOrderDateInput] = useState('');
   const [cnDateInput, setCnDateInput] = useState('');
   const [bdDateInput, setBdDateInput] = useState('');
   const [importerClientInput, setImporterClientInput] = useState('');
-  const [grossWeightKgInput, setGrossWeightKgInput] = useState<number>(10);
+  const [grossWeightKgInput, setGrossWeightKgInput] = useState<number | string>(10);
 
   // Section 4: Dynamic Structured Delivery Address State
   const [recipientContactName, setRecipientContactName] = useState('');
@@ -1677,8 +1677,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       setNewCustomerAddress('');
       setSourcingItemDetails('');
       setChinaTrackingNo('');
-      setSourcingUnitPriceRmb(0);
-      setAdvancePaidBdt(0);
+      setSourcingQuantity(1);
+      setSourcingUnitPriceRmb('');
+      setSourcingRmbRateBdt('19.5');
+      setAdvancePaidBdt('');
+      setGrossWeightKgInput(10);
+      setFreightRatePerKgBdt(950);
       setOrderRemarks('');
       setNewCustomTrackingNumber('');
       setNewInitialStatus('purchased');
@@ -4195,9 +4199,17 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </label>
                         <input
                           type="number"
+                          step="1"
                           min="1"
                           value={sourcingQuantity}
-                          onChange={(e) => setSourcingQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setSourcingQuantity(e.target.value)}
+                          onBlur={() => {
+                            if (!sourcingQuantity || Number(sourcingQuantity) < 1) {
+                              setSourcingQuantity(1);
+                            }
+                          }}
+                          placeholder="1"
                           required={orderScope === 'both' || orderScope === 'sourcing'}
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
@@ -4209,11 +4221,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </label>
                         <input
                           type="number"
-                          step="0.01"
+                          step="any"
                           min="0"
                           value={sourcingUnitPriceRmb}
-                          onChange={(e) => setSourcingUnitPriceRmb(Math.max(0, parseFloat(e.target.value) || 0))}
-                          placeholder="e.g. 45.00"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setSourcingUnitPriceRmb(e.target.value)}
+                          placeholder="0.00"
                           required={orderScope === 'both' || orderScope === 'sourcing'}
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
@@ -4225,10 +4238,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </label>
                         <input
                           type="number"
-                          step="0.01"
-                          min="1"
+                          step="any"
+                          min="0.01"
                           value={sourcingRmbRateBdt}
-                          onChange={(e) => setSourcingRmbRateBdt(Math.max(1, parseFloat(e.target.value) || 19.5))}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setSourcingRmbRateBdt(e.target.value)}
+                          onBlur={() => {
+                            if (!sourcingRmbRateBdt || Number(sourcingRmbRateBdt) <= 0) {
+                              setSourcingRmbRateBdt('19.5');
+                            }
+                          }}
                           placeholder="19.50"
                           required={orderScope === 'both' || orderScope === 'sourcing'}
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
@@ -4336,14 +4355,20 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </label>
                         <input
                           type="number"
-                          step="0.1"
+                          step="any"
                           min="0.1"
                           value={grossWeightKgInput}
+                          onFocus={(e) => e.target.select()}
                           onChange={(e) => {
-                            const val = Math.max(0.1, parseFloat(e.target.value) || 0.1);
+                            const val = e.target.value;
                             setGrossWeightKgInput(val);
-                            if (orderItems.length > 0) {
-                              updateOrderItem(orderItems[0].id, 'weightKg', val);
+                            if (orderItems.length > 0 && val !== '') {
+                              updateOrderItem(orderItems[0].id, 'weightKg', parseFloat(val) || 0.1);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (!grossWeightKgInput || Number(grossWeightKgInput) <= 0) {
+                              setGrossWeightKgInput(10);
                             }
                           }}
                           placeholder="10"
@@ -4358,9 +4383,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </label>
                         <input
                           type="number"
+                          step="any"
                           min="0"
                           value={freightRatePerKgBdt}
-                          onChange={(e) => setFreightRatePerKgBdt(Math.max(0, parseFloat(e.target.value) || 0))}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setFreightRatePerKgBdt(e.target.value)}
                           placeholder={newMode === 'sea' ? '450' : '950'}
                           required={orderScope === 'both' || orderScope === 'freight'}
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
@@ -4588,9 +4615,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       </label>
                       <input
                         type="number"
+                        step="any"
                         min="0"
                         value={advancePaidBdt}
-                        onChange={(e) => setAdvancePaidBdt(Math.max(0, parseFloat(e.target.value) || 0))}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setAdvancePaidBdt(e.target.value)}
                         placeholder="0"
                         className="w-full h-8 px-2.5 rounded-md border border-slate-300 font-mono font-bold text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                       />

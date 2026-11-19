@@ -117,14 +117,14 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
     chinaCourierTracking: '',
     currentStatus: 'Processing',
     supplierName: 'Taobao',
-    quantity: 1,
-    unitPriceRmb: 0,
-    rmbRateBdt: 19.5,
-    purchaseCostPaidBdt: 0,
+    quantity: 1 as number | string,
+    unitPriceRmb: '' as number | string,
+    rmbRateBdt: '19.5' as number | string,
+    purchaseCostPaidBdt: '' as number | string,
     serviceType: 'Sourcing & Shipping',
-    cnWeightKg: 0,
-    bdWeightKg: 0,
-    shippingRatePerKgBdt: 850,
+    cnWeightKg: '' as number | string,
+    bdWeightKg: '' as number | string,
+    shippingRatePerKgBdt: 850 as number | string,
     bdCourierName: 'Steadfast',
     bdTrackingNo: '',
     remark: ''
@@ -213,12 +213,12 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
       currentStatus: 'Processing',
       supplierName: 'Taobao',
       quantity: 1,
-      unitPriceRmb: 0,
-      rmbRateBdt: 19.5,
-      purchaseCostPaidBdt: 0,
+      unitPriceRmb: '',
+      rmbRateBdt: '19.5',
+      purchaseCostPaidBdt: '',
       serviceType: 'Sourcing & Shipping',
-      cnWeightKg: 0,
-      bdWeightKg: 0,
+      cnWeightKg: '',
+      bdWeightKg: '',
       shippingRatePerKgBdt: 850,
       bdCourierName: 'Steadfast',
       bdTrackingNo: '',
@@ -271,12 +271,23 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
     }
     setSavingRecord(true);
     try {
+      const payload = {
+        ...formData,
+        quantity: Number(formData.quantity) || 1,
+        unitPriceRmb: Number(formData.unitPriceRmb) || 0,
+        rmbRateBdt: Number(formData.rmbRateBdt) || 19.5,
+        purchaseCostPaidBdt: Number(formData.purchaseCostPaidBdt) || 0,
+        cnWeightKg: Number(formData.cnWeightKg) || 0,
+        bdWeightKg: Number(formData.bdWeightKg) || 0,
+        shippingRatePerKgBdt: Number(formData.shippingRatePerKgBdt) || 0
+      };
+
       if (editingRecord) {
         // Update
         const res = await fetch(`/api/admin/pos-ledger/${editingRecord.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to update order');
@@ -286,7 +297,7 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
         const res = await fetch('/api/admin/pos-ledger', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to create order');
@@ -1833,10 +1844,18 @@ function doPost(e) {
                     <label className="font-bold text-slate-700">Quantity (Pcs) *</label>
                     <input
                       type="number"
+                      step="1"
                       min={1}
                       required
                       value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) || 1 })}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                      onBlur={() => {
+                        if (!formData.quantity || Number(formData.quantity) < 1) {
+                          setFormData({ ...formData, quantity: 1 });
+                        }
+                      }}
+                      placeholder="1"
                       className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-center"
                     />
                   </div>
@@ -1844,11 +1863,13 @@ function doPost(e) {
                     <label className="font-bold text-slate-700">Unit Price (RMB ¥) *</label>
                     <input
                       type="number"
-                      step="0.01"
+                      step="any"
                       min={0}
                       required
                       value={formData.unitPriceRmb}
-                      onChange={(e) => setFormData({ ...formData, unitPriceRmb: Number(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, unitPriceRmb: e.target.value })}
+                      placeholder="0.00"
                       className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-center"
                     />
                   </div>
@@ -1862,11 +1883,18 @@ function doPost(e) {
                     <label className="font-bold text-slate-700">RMB Rate (BDT) *</label>
                     <input
                       type="number"
-                      step="0.05"
-                      min={1}
+                      step="any"
+                      min={0.01}
                       required
                       value={formData.rmbRateBdt}
-                      onChange={(e) => setFormData({ ...formData, rmbRateBdt: Number(e.target.value) || 19.5 })}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, rmbRateBdt: e.target.value })}
+                      onBlur={() => {
+                        if (!formData.rmbRateBdt || Number(formData.rmbRateBdt) <= 0) {
+                          setFormData({ ...formData, rmbRateBdt: '19.5' });
+                        }
+                      }}
+                      placeholder="19.50"
                       className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono font-bold text-center"
                     />
                   </div>
@@ -1878,10 +1906,12 @@ function doPost(e) {
                     <label className="font-bold text-slate-700">CN Weight (KG)</label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       min={0}
                       value={formData.cnWeightKg}
-                      onChange={(e) => setFormData({ ...formData, cnWeightKg: Number(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, cnWeightKg: e.target.value })}
+                      placeholder="0.0"
                       className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono text-center"
                     />
                   </div>
@@ -1889,10 +1919,12 @@ function doPost(e) {
                     <label className="font-bold text-slate-700">BD Weight (KG)</label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       min={0}
                       value={formData.bdWeightKg}
-                      onChange={(e) => setFormData({ ...formData, bdWeightKg: Number(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, bdWeightKg: e.target.value })}
+                      placeholder="0.0"
                       className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono text-center font-bold"
                     />
                   </div>
@@ -1900,10 +1932,12 @@ function doPost(e) {
                     <label className="font-bold text-slate-700">Shipping Rate / KG (৳)</label>
                     <input
                       type="number"
-                      step="10"
+                      step="any"
                       min={0}
                       value={formData.shippingRatePerKgBdt}
-                      onChange={(e) => setFormData({ ...formData, shippingRatePerKgBdt: Number(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, shippingRatePerKgBdt: e.target.value })}
+                      placeholder="850"
                       className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono text-center"
                     />
                   </div>
@@ -1926,10 +1960,12 @@ function doPost(e) {
                     <label className="text-[10px] text-slate-500 block uppercase font-mono">Customer Paid ৳</label>
                     <input
                       type="number"
-                      step="100"
+                      step="any"
                       min={0}
                       value={formData.purchaseCostPaidBdt}
-                      onChange={(e) => setFormData({ ...formData, purchaseCostPaidBdt: Number(e.target.value) || 0 })}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, purchaseCostPaidBdt: e.target.value })}
+                      placeholder="0"
                       className="w-full h-7 px-2 rounded border border-slate-300 text-xs font-mono font-bold text-emerald-700"
                     />
                   </div>
