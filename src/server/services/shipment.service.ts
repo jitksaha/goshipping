@@ -93,7 +93,11 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
     mode = 'road';
   }
 
-  const weight = Number(record.bdWeightKg) || Number(record.cnWeightKg) || 1.0;
+  const bdWeight = Number(record.bdWeightKg) || 0;
+  const cnWeight = Number(record.cnWeightKg) || 0;
+  const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(normStatus);
+  // Weight is initially blank/0 until cargo arrives in Bangladesh and admin enters BD weight
+  const weight = bdWeight > 0 ? bdWeight : (isBdStage && cnWeight > 0 ? cnWeight : 0);
   const pieces = Number(record.quantity) || 1;
   const trackingNumber = record.orderId || `GOS-${record.id}`;
 
@@ -144,9 +148,9 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
       statusCode: 'cn_warehouse_received',
       statusLabel: TRACKING_STATUSES.cn_warehouse_received.label,
       title: 'CN WAREHOUSE RECEIVED',
-      description: record.chinaCourierTracking
-        ? `Cargo received from domestic carrier ${record.chinaCourierTracking}. Weighed (${weight} KG) and palletized.`
-        : TRACKING_STATUSES.cn_warehouse_received.defaultDescription,
+      description: cnWeight > 0
+        ? `Cargo received from domestic carrier ${record.chinaCourierTracking || 'domestic partner'}. Weighed (${cnWeight} KG) and palletized.`
+        : (record.chinaCourierTracking ? `Cargo received from domestic carrier ${record.chinaCourierTracking} and staged for consolidation.` : TRACKING_STATUSES.cn_warehouse_received.defaultDescription),
       locationName: 'GoShipping Guangzhou Logistics Center, China',
       eventTime: stage2Time,
       occurredAtBst: formatBstDateTime(stage2Time),
@@ -360,8 +364,10 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
     currentLat: events[0]?.lat,
     currentLng: events[0]?.lng,
     totalWeightKg: weight,
-    totalCbm: Math.max(0.01, Math.round((weight / 167) * 100) / 100),
+    totalCbm: weight > 0 ? Math.max(0.01, Math.round((weight / 167) * 100) / 100) : 0,
     totalPieces: pieces,
+    cnWeightKg: cnWeight,
+    bdWeightKg: bdWeight,
     carrierName: record.bdCourierName ? `${record.bdCourierName} / GoShipping Lines` : 'GoShipping Express Linehaul',
     carrierWaybillNumber: record.chinaCourierTracking || record.bdTrackingNo || undefined,
     voyageOrFlightNumber: mode === 'air' ? 'Flight GS-701 (CAN-DAC)' : 'Vessel GS OCEAN-12',
@@ -381,7 +387,7 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
         packagingType: 'carton',
         quantity: pieces,
         weightKg: weight,
-        cbm: Math.max(0.01, Math.round((weight / 167) * 100) / 100),
+        cbm: weight > 0 ? Math.max(0.01, Math.round((weight / 167) * 100) / 100) : 0,
         categoryTag: 'Commercial',
         currency: 'BDT'
       }
@@ -469,6 +475,8 @@ export interface ShipmentRecord {
   totalWeightKg: number;
   totalCbm: number;
   totalPieces: number;
+  cnWeightKg?: number;
+  bdWeightKg?: number;
   carrierName: string;
   carrierWaybillNumber?: string;
   voyageOrFlightNumber: string;

@@ -325,7 +325,11 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   const activeShipments = shipments.filter((s) => s.status !== 'delivered');
   const pendingQuotes = quotes.filter((q) => q.status === 'submitted' || q.status === 'under_review');
   const pricedQuotes = quotes.filter((q) => q.status === 'priced');
-  const totalWeightKg = shipments.reduce((sum, s) => sum + (s.totalWeightKg || 0), 0);
+  const totalWeightKg = shipments.reduce((sum, s) => {
+    const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(s.status);
+    const weight = ((s as any).bdWeightKg && (s as any).bdWeightKg > 0) ? (s as any).bdWeightKg : (isBdStage && s.totalWeightKg > 0 ? s.totalWeightKg : 0);
+    return sum + weight;
+  }, 0);
 
   // Status badge styling helper
   const getStatusBadge = (status: string) => {
@@ -640,7 +644,13 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-xs">{s.mode === 'air' ? 'By Air' : s.mode === 'sea' ? 'By Ship' : s.mode === 'hand_carry' ? 'Hand Carry' : s.mode.toUpperCase()}</td>
-                      <td className="py-3.5 px-4 tabular-nums font-medium">{s.totalWeightKg} KG</td>
+                      <td className="py-3.5 px-4 tabular-nums font-medium">
+                        {(() => {
+                          const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(s.status);
+                          const displayWeight = ((s as any).bdWeightKg && (s as any).bdWeightKg > 0) ? (s as any).bdWeightKg : (isBdStage && s.totalWeightKg > 0 ? s.totalWeightKg : null);
+                          return displayWeight ? `${displayWeight} KG` : '—';
+                        })()}
+                      </td>
                       <td className="py-3.5 px-4 max-w-[200px] truncate font-medium text-slate-700">
                         {s.currentLocation}
                       </td>
@@ -808,7 +818,19 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                       {s.mode} · <span className="text-slate-500 font-sans font-medium">{s.serviceLevel}</span>
                     </td>
                     <td className="py-4 px-4 font-mono tabular-nums">
-                      {s.totalWeightKg} KG <span className="text-slate-400">/ {s.totalCbm} CBM</span>
+                      {(() => {
+                        const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(s.status);
+                        const displayWeight = ((s as any).bdWeightKg && (s as any).bdWeightKg > 0) ? (s as any).bdWeightKg : (isBdStage && s.totalWeightKg > 0 ? s.totalWeightKg : null);
+                        const displayCbm = (isBdStage && s.totalCbm > 0) ? s.totalCbm : null;
+                        if (displayWeight) {
+                          return (
+                            <>
+                              {displayWeight} KG {displayCbm ? <span className="text-slate-400">/ {displayCbm} CBM</span> : null}
+                            </>
+                          );
+                        }
+                        return <span className="text-slate-400 font-sans italic text-xs">—</span>;
+                      })()}
                     </td>
                     <td className="py-4 px-4 font-medium text-slate-700 max-w-[220px] truncate">
                       {s.currentLocation}
@@ -1496,7 +1518,14 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                       {selectedOrderInfo.productName}
                     </div>
                     <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      {selectedOrderInfo.totalWeightKg.toLocaleString()} KG · {selectedOrderInfo.totalCbm} CBM · {selectedOrderInfo.totalPieces || selectedOrderInfo.items.length} units
+                      {(() => {
+                        const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(selectedOrderInfo.status);
+                        const displayWeight = ((selectedOrderInfo as any).bdWeightKg && (selectedOrderInfo as any).bdWeightKg > 0) ? (selectedOrderInfo as any).bdWeightKg : (isBdStage && selectedOrderInfo.totalWeightKg > 0 ? selectedOrderInfo.totalWeightKg : null);
+                        const displayCbm = (isBdStage && selectedOrderInfo.totalCbm > 0) ? selectedOrderInfo.totalCbm : null;
+                        return displayWeight
+                          ? `${displayWeight} KG · ${displayCbm || 0} CBM · ${selectedOrderInfo.totalPieces || selectedOrderInfo.items.length} units`
+                          : `Weight: Pending BD Arrival · ${selectedOrderInfo.totalPieces || selectedOrderInfo.items.length} units`;
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1577,7 +1606,11 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                   <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                     <span>Package Contents &amp; Declarations ({selectedOrderInfo.items.length})</span>
                     <span className="font-mono text-slate-500 text-[11px]">
-                      {selectedOrderInfo.totalWeightKg} KG · {selectedOrderInfo.totalCbm} CBM
+                      {(() => {
+                        const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(selectedOrderInfo.status);
+                        const displayWeight = ((selectedOrderInfo as any).bdWeightKg && (selectedOrderInfo as any).bdWeightKg > 0) ? (selectedOrderInfo as any).bdWeightKg : (isBdStage && selectedOrderInfo.totalWeightKg > 0 ? selectedOrderInfo.totalWeightKg : null);
+                        return displayWeight ? `${displayWeight} KG · ${selectedOrderInfo.totalCbm || 0} CBM` : 'Pending BD Arrival';
+                      })()}
                     </span>
                   </div>
                   <div className="rounded-lg border border-slate-200 overflow-hidden">
@@ -1621,7 +1654,12 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                               {it.packagingType.replace(/_/g, ' ')}
                             </td>
                             <td className="py-2.5 px-3 text-right font-mono tabular-nums">{it.quantity}</td>
-                            <td className="py-2.5 px-3 text-right font-mono tabular-nums">{it.weightKg} KG</td>
+                            <td className="py-2.5 px-3 text-right font-mono tabular-nums">
+                              {(() => {
+                                const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(selectedOrderInfo.status);
+                                return (isBdStage && it.weightKg > 0) ? `${it.weightKg} KG` : '—';
+                              })()}
+                            </td>
                             <td className="py-2.5 px-3 text-right font-mono font-semibold text-slate-900">
                               {it.declaredValue ? `৳${it.declaredValue.toLocaleString()} BDT` : '—'}
                             </td>

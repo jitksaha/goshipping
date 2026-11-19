@@ -1591,7 +1591,7 @@ function doPost(e) {
                       <div className="mt-1 pt-1 border-t border-slate-100">
                         <span className="font-bold text-sky-700 text-xs">৳{Number(r.internationalFreightBdt).toLocaleString()}</span>
                         <span className="text-[10px] text-slate-400 block font-sans">
-                          {r.bdWeightKg || r.cnWeightKg} KG @ ৳{r.shippingRatePerKgBdt}
+                          {Number(r.bdWeightKg) > 0 ? `${r.bdWeightKg} KG (BD)` : Number(r.cnWeightKg) > 0 ? `${r.cnWeightKg} KG (CN)` : 'Pending BD'} @ ৳{r.shippingRatePerKgBdt}
                         </span>
                       </div>
                     </td>
@@ -2322,7 +2322,7 @@ function doPost(e) {
                 {/* Freight & Weight Inputs */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">CN Weight (KG)</label>
+                    <label className="font-bold text-slate-700">CN Weight (KG) <span className="font-normal text-slate-400">(Opt)</span></label>
                     <input
                       type="number"
                       step="any"
@@ -2330,12 +2330,12 @@ function doPost(e) {
                       value={formData.cnWeightKg}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setFormData({ ...formData, cnWeightKg: e.target.value })}
-                      placeholder="0.0"
+                      placeholder="Leave blank"
                       className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono text-center"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">BD Weight (KG)</label>
+                    <label className="font-bold text-slate-700 text-emerald-800">BD Weight (KG) <span className="font-normal text-emerald-600">(Enter on BD arrival)</span></label>
                     <input
                       type="number"
                       step="any"
@@ -2343,8 +2343,8 @@ function doPost(e) {
                       value={formData.bdWeightKg}
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setFormData({ ...formData, bdWeightKg: e.target.value })}
-                      placeholder="0.0"
-                      className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono text-center font-bold"
+                      placeholder="e.g. 12.5"
+                      className="w-full h-8 px-2.5 rounded border border-emerald-300 bg-emerald-50/30 text-xs font-mono text-center font-bold focus:bg-white"
                     />
                   </div>
                   <div className="space-y-1">

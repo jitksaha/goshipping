@@ -1072,8 +1072,19 @@ export default function LiveTrackingIsland({
                       </span>
                       <span className="text-slate-400">·</span>
                       <span className="font-mono tabular-nums">{trackingData.totalPieces} Pcs</span>
-                      <span className="text-slate-400">·</span>
-                      <span className="font-mono tabular-nums">{trackingData.totalWeightKg.toLocaleString()} KG</span>
+                      {(() => {
+                        const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(trackingData.status);
+                        const displayWeight = ((trackingData as any).bdWeightKg && (trackingData as any).bdWeightKg > 0) ? (trackingData as any).bdWeightKg : (isBdStage && trackingData.totalWeightKg > 0 ? trackingData.totalWeightKg : null);
+                        if (displayWeight) {
+                          return (
+                            <>
+                              <span className="text-slate-400">·</span>
+                              <span className="font-mono tabular-nums">{displayWeight.toLocaleString()} KG</span>
+                            </>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1407,7 +1418,11 @@ export default function LiveTrackingIsland({
                     Package Details & Contents
                   </h3>
                   <span className="text-xs font-mono text-slate-500">
-                    Total: {trackingData.totalWeightKg} KG · {trackingData.totalCbm} CBM
+                    {(() => {
+                      const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(trackingData.status);
+                      const displayWeight = ((trackingData as any).bdWeightKg && (trackingData as any).bdWeightKg > 0) ? (trackingData as any).bdWeightKg : (isBdStage && trackingData.totalWeightKg > 0 ? trackingData.totalWeightKg : null);
+                      return displayWeight ? `Total: ${displayWeight} KG · ${trackingData.totalCbm || 0} CBM` : 'Weight: Pending BD Arrival';
+                    })()}
                   </span>
                 </div>
 
@@ -1459,8 +1474,18 @@ export default function LiveTrackingIsland({
                             {item.packagingType.replace(/_/g, ' ')}
                           </td>
                           <td className="py-3 px-3 text-right font-mono tabular-nums">{item.quantity}</td>
-                          <td className="py-3 px-3 text-right font-mono tabular-nums">{item.weightKg}</td>
-                          <td className="py-3 px-3 text-right font-mono tabular-nums">{item.cbm}</td>
+                          <td className="py-3 px-3 text-right font-mono tabular-nums">
+                            {(() => {
+                              const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(trackingData.status);
+                              return (isBdStage && item.weightKg > 0) ? `${item.weightKg}` : '—';
+                            })()}
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono tabular-nums">
+                            {(() => {
+                              const isBdStage = ['arrived_dhaka_airport', 'awaiting_customs', 'bd_warehouse_received', 'payment_received', 'out_for_delivery', 'delivered'].includes(trackingData.status);
+                              return (isBdStage && item.cbm > 0) ? `${item.cbm}` : '—';
+                            })()}
+                          </td>
                           <td className="py-3 px-3">
                             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                               {item.categoryTag}

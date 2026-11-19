@@ -720,8 +720,8 @@ const ShipmentItemInputSchema = z.object({
   description: z.string().min(2),
   packagingType: z.string().default('carton'),
   quantity: z.number().int().positive().default(1),
-  weightKg: z.number().positive(),
-  cbm: z.number().positive(),
+  weightKg: z.number().min(0).optional().default(0),
+  cbm: z.number().min(0).optional().default(0),
   categoryTag: z.enum(['General', 'Commercial', 'Liquids', 'Dangerous', 'Perishable', 'Electronics']).default('Commercial'),
   declaredValue: z.number().optional(),
   currency: z.string().default('BDT')
@@ -750,6 +750,8 @@ const CreateShipmentSchema = z.object({
   serviceLevel: z.enum(['standard', 'express', 'priority']),
   totalWeightKg: z.number().min(0).optional().default(0),
   totalCbm: z.number().min(0).optional().default(0),
+  cnWeightKg: z.number().min(0).optional().default(0),
+  bdWeightKg: z.number().min(0).optional().default(0),
   totalPieces: z.number().int().positive(),
   carrierName: z.string().optional(),
   voyageOrFlightNumber: z.string().optional(),
@@ -1114,6 +1116,8 @@ const CreateQuoteSchema = z.object({
   quantity: z.number().int().positive().optional(),
   totalWeightKg: z.number().min(0).optional().default(0),
   totalCbm: z.number().min(0).optional().default(0),
+  cnWeightKg: z.number().min(0).optional().default(0),
+  bdWeightKg: z.number().min(0).optional().default(0),
   targetShipmentDate: z.string().optional()
 });
 

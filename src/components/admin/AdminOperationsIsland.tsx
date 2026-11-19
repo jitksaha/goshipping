@@ -647,7 +647,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [cnDateInput, setCnDateInput] = useState('');
   const [bdDateInput, setBdDateInput] = useState('');
   const [importerClientInput, setImporterClientInput] = useState('');
-  const [grossWeightKgInput, setGrossWeightKgInput] = useState<number | string>(10);
+  const [grossWeightKgInput, setGrossWeightKgInput] = useState<number | string>('');
 
   // Section 4: Dynamic Structured Delivery Address State
   const [recipientContactName, setRecipientContactName] = useState('');
@@ -794,7 +794,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
     const weight = Math.max(0, Number(grossWeightKgInput) || Number(orderTotals.chargeableWeight) || Number(orderTotals.totalWeight) || 0);
     const freightRate = Number(freightRatePerKgBdt) || (newMode === 'sea' ? 450 : 950);
-    const intlFreightBdt = Math.round(weight * freightRate);
+    const intlFreightBdt = weight > 0 ? Math.round(weight * freightRate) : 0;
 
     let totalBillBdt = 0;
     if (orderScope === 'both') {
@@ -1485,7 +1485,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setSourcingQuantity(1);
     setSourcingUnitPriceRmb('');
     setSourcingRmbRateBdt('19.5');
-    setGrossWeightKgInput(10);
+    setGrossWeightKgInput('');
     setFreightRatePerKgBdt(950);
     setAdvancePaidBdt('');
     setOrderRemarks('');
@@ -1780,9 +1780,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       }
 
       if (orderScope === 'both' || orderScope === 'freight') {
-        const invalidItems = orderItems.filter((it) => !it.description.trim() || !(Number(it.weightKg) > 0));
+        const invalidItems = orderItems.filter((it) => !it.description.trim());
         if (invalidItems.length > 0 && orderScope === 'freight') {
-          throw new Error('Please fill in product description and weight (KG) for all cargo items.');
+          throw new Error('Please fill in product description for all cargo items.');
         }
       }
 
@@ -1805,8 +1805,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         purchaseCostPaidBdt: Number(advancePaidBdt) || 0,
         purchaseCostDueBdt: dynamicFinanceTotals.dueBdt,
         serviceType: orderScope === 'both' ? 'Sourcing & Shipping' : orderScope === 'sourcing' ? 'Sourcing Only' : 'International Freight Cargo',
-        cnWeightKg: orderScope === 'sourcing' ? 0 : Number(grossWeightKgInput) || Number(orderTotals.totalWeight) || 0,
-        bdWeightKg: orderScope === 'sourcing' ? 0 : Number(grossWeightKgInput) || Number(orderTotals.totalWeight) || 0,
+        cnWeightKg: orderScope === 'sourcing' ? 0 : (Number(grossWeightKgInput) || Number(orderTotals.totalWeight) || 0),
+        bdWeightKg: (bdDateInput && Number(grossWeightKgInput) > 0) ? Number(grossWeightKgInput) : 0,
         shippingRatePerKgBdt: orderScope === 'sourcing' ? 0 : Number(freightRatePerKgBdt) || 0,
         internationalFreightBdt: orderScope === 'sourcing' ? 0 : dynamicFinanceTotals.intlFreightBdt,
         totalBillBdt: dynamicFinanceTotals.totalBillBdt,
@@ -1847,8 +1847,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           description: it.description.trim() || sourcingItemDetails.trim() || 'Commercial Cargo Item',
           packagingType: it.packagingType,
           quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
-          weightKg: Math.max(0.1, Number(it.weightKg) || 10),
-          cbm: Math.max(0.01, Number(it.cbm) || 0.05),
+          weightKg: Number(it.weightKg) || 0,
+          cbm: Number(it.cbm) || 0,
           categoryTag: it.categoryTag,
           declaredValue: Number(it.declaredValue) || undefined,
           currency: 'BDT'
@@ -1858,8 +1858,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             description: sourcingItemDetails.trim() || 'Commercial Sourcing Cargo',
             packagingType: 'carton',
             quantity: Math.max(1, Math.round(Number(sourcingQuantity) || 1)),
-            weightKg: Math.max(0.1, Number(orderTotals.totalWeight) || 10),
-            cbm: Math.max(0.01, Number(orderTotals.totalCbm) || 0.1),
+            weightKg: Number(orderTotals.totalWeight) || (Number(grossWeightKgInput) || 0),
+            cbm: Number(orderTotals.totalCbm) || 0,
             categoryTag: 'Commercial' as const,
             currency: 'BDT'
           }
@@ -1886,8 +1886,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             serviceLevel: newServiceLevel,
             carrierName: newCarrier || (newMode === 'air' ? 'GoShipping Air Priority' : 'GoShipping Ocean Line'),
             voyageOrFlightNumber: newVoyage || (newMode === 'air' ? 'Flight CX-068' : 'Vessel GOSH-VOYAGE'),
-            totalWeightKg: Math.max(0.1, Number(orderTotals.totalWeight) || 10),
-            totalCbm: Math.max(0.01, Number(orderTotals.totalCbm) || 0.1),
+            totalWeightKg: Number(orderTotals.totalWeight) || (Number(grossWeightKgInput) || 0),
+            totalCbm: Number(orderTotals.totalCbm) || 0,
             totalPieces: Math.max(1, Math.round(Number(orderTotals.totalPieces) || 1)),
             notes: orderRemarks.trim() || deliveryNotes.trim() || deliveryInstructions.trim(),
             items: cargoItemsPayload
@@ -4682,28 +4682,22 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Gross Cargo Weight (KG) (Col V) *
+                          Gross Cargo Weight (KG) <span className="text-slate-400 font-normal">(Optional — Enter in BD)</span>
                         </label>
                         <input
                           type="number"
                           step="any"
-                          min="0.1"
+                          min="0"
                           value={grossWeightKgInput}
                           onFocus={(e) => e.target.select()}
                           onChange={(e) => {
                             const val = e.target.value;
                             setGrossWeightKgInput(val);
                             if (orderItems.length > 0 && val !== '') {
-                              updateOrderItem(orderItems[0].id, 'weightKg', parseFloat(val) || 0.1);
+                              updateOrderItem(orderItems[0].id, 'weightKg', parseFloat(val) || 0);
                             }
                           }}
-                          onBlur={() => {
-                            if (!grossWeightKgInput || Number(grossWeightKgInput) <= 0) {
-                              setGrossWeightKgInput(10);
-                            }
-                          }}
-                          placeholder="10"
-                          required={orderScope === 'both' || orderScope === 'freight'}
+                          placeholder="e.g. Leave blank if in China"
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
                       </div>
@@ -4927,7 +4921,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <div className="py-0.5 flex items-center justify-between">
                         <span className="text-slate-500">Int'l Freight Charge</span>
                         <span className="font-semibold text-slate-900 font-mono">
-                          ৳{dynamicFinanceTotals.intlFreightBdt.toLocaleString()}
+                          {dynamicFinanceTotals.intlFreightBdt > 0 ? `৳${dynamicFinanceTotals.intlFreightBdt.toLocaleString()}` : <span className="text-slate-400 font-normal italic">Pending BD weight</span>}
                         </span>
                       </div>
                     )}
