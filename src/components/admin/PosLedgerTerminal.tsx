@@ -2985,21 +2985,28 @@ function doPost(e) {
       )}
       {/* 5B. ADD PARTIAL PAYMENT / INSTALLMENT ENTRY MODAL */}
       {showPaymentModal && paymentTargetRecord && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header — Clean Light Design */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center justify-center font-bold text-base shadow-2xs">
                   ৳
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white font-['Manrope']">
+                  <h3 className="text-sm font-bold text-slate-900 font-['Manrope']">
                     Record Partial Payment
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Order: <strong className="text-white">{paymentTargetRecord.orderId}</strong> · {paymentTargetRecord.customerName}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-slate-500">
+                    <span>Order:</span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-900 font-mono font-semibold text-[10px]">
+                      {paymentTargetRecord.orderId}
+                    </span>
+                    <span>·</span>
+                    <span className="font-medium text-slate-700 truncate max-w-[190px]">
+                      {paymentTargetRecord.customerName}
+                    </span>
+                  </div>
                 </div>
               </div>
               <button
@@ -3008,55 +3015,81 @@ function doPost(e) {
                   setShowPaymentModal(false);
                   setPaymentTargetRecord(null);
                 }}
-                className="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            {/* Financial Status Summary Pill */}
-            <div className="bg-slate-100/90 px-5 py-3 border-b border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
-              <div>
-                <span className="text-[10px] text-slate-500 uppercase font-mono block">Total Billed</span>
-                <span className="font-bold text-slate-900 font-mono">৳{Number(paymentTargetRecord.totalBillBdt).toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-500 uppercase font-mono block">Already Paid</span>
-                <span className="font-bold text-emerald-700 font-mono">৳{Number(paymentTargetRecord.purchaseCostPaidBdt).toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-500 uppercase font-mono block">Balance Due</span>
-                <span className="font-bold text-rose-600 font-mono">৳{Number(paymentTargetRecord.purchaseCostDueBdt).toLocaleString()}</span>
+            {/* Financial Status Summary Strip */}
+            <div className="p-4 pb-0 bg-white">
+              <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-3 grid grid-cols-3 divide-x divide-slate-200/70 text-center">
+                <div className="px-1">
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block">Total Billed</span>
+                  <span className="font-bold text-slate-900 font-mono text-xs block mt-0.5">
+                    ৳{Number(paymentTargetRecord.totalBillBdt).toLocaleString()}
+                  </span>
+                </div>
+                <div className="px-1">
+                  <span className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider block">Already Paid</span>
+                  <span className="font-bold text-emerald-600 font-mono text-xs block mt-0.5">
+                    ৳{Number(paymentTargetRecord.purchaseCostPaidBdt).toLocaleString()}
+                  </span>
+                </div>
+                <div className="px-1">
+                  <span className="text-[10px] text-rose-600 font-semibold uppercase tracking-wider block">Balance Due</span>
+                  <span className="font-bold text-rose-600 font-mono text-xs block mt-0.5">
+                    ৳{Number(paymentTargetRecord.purchaseCostDueBdt).toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Payment Form */}
-            <form onSubmit={handleRecordPartialPayment} className="p-5 space-y-3.5 text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700 flex items-center justify-between">
-                  <span>Payment Amount (৳) *</span>
-                  <span className="text-[10px] text-slate-400 font-mono font-normal">Auto-converts to paid total</span>
-                </label>
-                <input
-                  type="number"
-                  step="any"
-                  min={1}
-                  required
-                  autoFocus
-                  value={paymentAmountInput}
-                  onChange={(e) => setPaymentAmountInput(e.target.value)}
-                  placeholder="e.g. 10000"
-                  className="w-full h-9 px-3 rounded-lg border border-slate-300 text-sm font-mono font-extrabold text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+            <form onSubmit={handleRecordPartialPayment} className="p-4 space-y-3.5 text-xs bg-white">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-700 text-xs">
+                    Payment Amount (৳) <span className="text-rose-500">*</span>
+                  </label>
+                  {paymentTargetRecord.purchaseCostDueBdt > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentAmountInput(String(paymentTargetRecord.purchaseCostDueBdt))}
+                      className="text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                    >
+                      <span>Pay Full Due: ৳{Number(paymentTargetRecord.purchaseCostDueBdt).toLocaleString()}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-slate-400 font-mono font-bold text-sm pointer-events-none select-none">
+                    ৳
+                  </span>
+                  <input
+                    type="number"
+                    step="any"
+                    min={1}
+                    required
+                    autoFocus
+                    value={paymentAmountInput}
+                    onChange={(e) => setPaymentAmountInput(e.target.value)}
+                    placeholder="e.g. 5000"
+                    className="w-full h-10 pl-8 pr-3 rounded-xl border border-slate-300 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Payment Method *</label>
+                  <label className="font-semibold text-slate-700 text-[11px]">
+                    Payment Method <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={paymentMethodInput}
                     onChange={(e) => setPaymentMethodInput(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs bg-white"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs cursor-pointer"
                   >
                     <option value="bKash">bKash Merchant</option>
                     <option value="Nagad">Nagad</option>
@@ -3068,11 +3101,11 @@ function doPost(e) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Milestone / Stage</label>
+                  <label className="font-semibold text-slate-700 text-[11px]">Milestone / Stage</label>
                   <select
                     value={paymentMilestoneInput}
                     onChange={(e) => setPaymentMilestoneInput(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs bg-white"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs cursor-pointer"
                   >
                     <option value="Order Confirmation Advance">Order Advance</option>
                     <option value="China Warehouse Arrival">China Warehouse Arrival</option>
@@ -3086,43 +3119,47 @@ function doPost(e) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">TrxID / Reference (Optional)</label>
+                  <label className="font-semibold text-slate-700 text-[11px]">
+                    TrxID / Reference <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={paymentTrxIdInput}
                     onChange={(e) => setPaymentTrxIdInput(e.target.value)}
                     placeholder="e.g. BK-98302184"
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Remarks / Collector Note (Optional)</label>
+                  <label className="font-semibold text-slate-700 text-[11px]">
+                    Collector Note <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={paymentNoteInput}
                     onChange={(e) => setPaymentNoteInput(e.target.value)}
                     placeholder="Collected by delivery agent"
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+              <div className="flex items-center justify-end gap-2.5 pt-4 mt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
                     setShowPaymentModal(false);
                     setPaymentTargetRecord(null);
                   }}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer text-xs font-medium"
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer text-xs font-semibold transition-colors shadow-2xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingPayment}
-                  className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-50 text-xs shadow-2xs flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold cursor-pointer disabled:opacity-50 text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5"
                 >
                   {isSubmittingPayment ? (
                     <>

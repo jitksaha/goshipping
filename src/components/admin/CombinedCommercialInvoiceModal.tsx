@@ -870,33 +870,48 @@ export default function CombinedCommercialInvoiceModal({
         </div>
       </div>
 
-      {/* QUICK PAYMENT RECORDING MODAL (POPUP) */}
+      {/* QUICK PAYMENT RECORDING MODAL (POPUP) — Clean Light Design */}
       {showPaymentModal && (
-        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden">
-            <div className="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">
+        <div className="fixed inset-0 z-60 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200/90 max-w-md w-full overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 flex items-center justify-center font-bold text-base shadow-2xs">
                   ৳
                 </div>
-                <h3 className="text-sm font-bold">Record Partial Payment / Installment</h3>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 font-['Manrope']">
+                    Record Partial Payment
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Record installment / collection against invoice
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPaymentModal(false)}
-                className="text-slate-400 hover:text-white cursor-pointer"
+                className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
+                title="Close"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleRecordPayment} className="p-5 space-y-3.5 text-xs">
+            <form onSubmit={handleRecordPayment} className="p-4 space-y-3.5 text-xs bg-white">
               <div className="space-y-1">
-                <label className="font-bold text-slate-700">Apply Payment to Order</label>
+                <label className="font-semibold text-slate-700 text-[11px]">Apply Payment to Order</label>
                 <select
                   value={selectedOrderForPayment}
-                  onChange={(e) => setSelectedOrderForPayment(e.target.value)}
-                  className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                  onChange={(e) => {
+                    setSelectedOrderForPayment(e.target.value);
+                    const target = selectedRecords.find((r) => r.id === e.target.value);
+                    if (target && target.purchaseCostDueBdt > 0) {
+                      setPaymentAmountInput(String(target.purchaseCostDueBdt));
+                    }
+                  }}
+                  className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs cursor-pointer"
                 >
                   {selectedRecords.map((r) => (
                     <option key={r.id} value={r.id}>
@@ -906,9 +921,53 @@ export default function CombinedCommercialInvoiceModal({
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Amount Received (৳) *</label>
+              {/* Quick Due Pill for selected order */}
+              {(() => {
+                const cur = selectedRecords.find((r) => r.id === selectedOrderForPayment);
+                if (!cur) return null;
+                return (
+                  <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-2.5 grid grid-cols-3 divide-x divide-slate-200/70 text-center">
+                    <div className="px-1">
+                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block">Total Billed</span>
+                      <span className="font-bold text-slate-900 font-mono text-xs block mt-0.5">৳{Number(cur.totalBillBdt).toLocaleString()}</span>
+                    </div>
+                    <div className="px-1">
+                      <span className="text-[10px] text-emerald-700 font-semibold uppercase tracking-wider block">Already Paid</span>
+                      <span className="font-bold text-emerald-600 font-mono text-xs block mt-0.5">৳{Number(cur.purchaseCostPaidBdt).toLocaleString()}</span>
+                    </div>
+                    <div className="px-1">
+                      <span className="text-[10px] text-rose-600 font-semibold uppercase tracking-wider block">Balance Due</span>
+                      <span className="font-bold text-rose-600 font-mono text-xs block mt-0.5">৳{Number(cur.purchaseCostDueBdt).toLocaleString()}</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-700 text-xs">
+                    Amount Received (৳) <span className="text-rose-500">*</span>
+                  </label>
+                  {(() => {
+                    const cur = selectedRecords.find((r) => r.id === selectedOrderForPayment);
+                    if (cur && cur.purchaseCostDueBdt > 0) {
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentAmountInput(String(cur.purchaseCostDueBdt))}
+                          className="text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-2 py-0.5 rounded-md transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <span>Pay Full Due: ৳{Number(cur.purchaseCostDueBdt).toLocaleString()}</span>
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-slate-400 font-mono font-bold text-sm pointer-events-none select-none">
+                    ৳
+                  </span>
                   <input
                     type="number"
                     step="any"
@@ -917,16 +976,20 @@ export default function CombinedCommercialInvoiceModal({
                     value={paymentAmountInput}
                     onChange={(e) => setPaymentAmountInput(e.target.value)}
                     placeholder="e.g. 5000"
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono font-bold text-emerald-700"
+                    className="w-full h-10 pl-8 pr-3 rounded-xl border border-slate-300 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs"
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Payment Method *</label>
+                  <label className="font-semibold text-slate-700 text-[11px]">
+                    Payment Method <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={paymentMethodInput}
                     onChange={(e) => setPaymentMethodInput(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs cursor-pointer"
                   >
                     <option value="bKash">bKash Merchant</option>
                     <option value="Nagad">Nagad</option>
@@ -936,61 +999,74 @@ export default function CombinedCommercialInvoiceModal({
                     <option value="Upay">Upay</option>
                   </select>
                 </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-700 text-[11px]">Milestone / Purpose</label>
+                  <select
+                    value={paymentMilestoneInput}
+                    onChange={(e) => setPaymentMilestoneInput(e.target.value)}
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs cursor-pointer"
+                  >
+                    <option value="Commercial Invoice Payment">Commercial Invoice Payment</option>
+                    <option value="Order Confirmation Advance">Order Advance</option>
+                    <option value="China Warehouse Arrival">China Warehouse Arrival</option>
+                    <option value="Dispatched from China">Dispatched from China</option>
+                    <option value="Arrived Bangladesh HSIA">Arrived Bangladesh HSIA</option>
+                    <option value="Final Delivery Handover">Final Delivery Clearance</option>
+                    <option value="General Installment">General Installment</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Milestone / Purpose</label>
-                  <select
-                    value={paymentMilestoneInput}
-                    onChange={(e) => setPaymentMilestoneInput(e.target.value)}
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
-                  >
-                    <option value="Commercial Invoice Payment">Commercial Invoice Payment</option>
-                    <option value="Order Confirmation Advance">Order Confirmation Advance</option>
-                    <option value="China Warehouse Arrival">China Warehouse Arrival</option>
-                    <option value="Arrived Bangladesh HSIA">Arrived Bangladesh HSIA</option>
-                    <option value="Final Delivery Handover">Final Delivery Handover</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">TrxID / Reference</label>
+                  <label className="font-semibold text-slate-700 text-[11px]">
+                    TrxID / Reference <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
                     value={paymentTrxIdInput}
                     onChange={(e) => setPaymentTrxIdInput(e.target.value)}
                     placeholder="e.g. BK-9948201"
-                    className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-700 text-[11px]">
+                    Note / Remark <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentNoteInput}
+                    onChange={(e) => setPaymentNoteInput(e.target.value)}
+                    placeholder="Customer paid via agent"
+                    className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors shadow-2xs"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Note / Remark</label>
-                <input
-                  type="text"
-                  value={paymentNoteInput}
-                  onChange={(e) => setPaymentNoteInput(e.target.value)}
-                  placeholder="Customer paid via agent"
-                  className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+              <div className="flex items-center justify-end gap-2.5 pt-4 mt-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowPaymentModal(false)}
-                  className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 cursor-pointer text-xs font-semibold transition-colors shadow-2xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={recordingPayment}
-                  className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold cursor-pointer disabled:opacity-50 text-xs shadow-sm hover:shadow transition-all flex items-center gap-1.5"
                 >
-                  {recordingPayment ? 'Recording...' : 'Record Payment →'}
+                  {recordingPayment ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      <span>Recording...</span>
+                    </>
+                  ) : (
+                    <span>Record Payment →</span>
+                  )}
                 </button>
               </div>
             </form>
