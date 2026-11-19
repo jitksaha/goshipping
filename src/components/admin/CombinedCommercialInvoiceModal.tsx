@@ -32,6 +32,8 @@ interface CombinedCommercialInvoiceModalProps {
   onInvoiceSaved?: (invoice: any) => void;
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
   onPaymentRecorded?: () => void;
+  canEdit?: boolean;
+  canPrint?: boolean;
 }
 
 export default function CombinedCommercialInvoiceModal({
@@ -40,7 +42,9 @@ export default function CombinedCommercialInvoiceModal({
   selectedRecords,
   onInvoiceSaved,
   showToast,
-  onPaymentRecorded
+  onPaymentRecorded,
+  canEdit = true,
+  canPrint = true
 }: CombinedCommercialInvoiceModalProps) {
   if (!isOpen || selectedRecords.length === 0) return null;
 
@@ -48,6 +52,20 @@ export default function CombinedCommercialInvoiceModal({
   const [isSaved, setIsSaved] = useState(false);
   const [savedInvoiceNumber, setSavedInvoiceNumber] = useState<string | null>(null);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Prevent browser Ctrl+P/Cmd+P when printing is restricted to admin
+  useEffect(() => {
+    if (!canPrint) {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+          e.preventDefault();
+          showToast('Invoice printing & official PDF download is restricted to GoShipping Operations Admin.', 'info');
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [canPrint, showToast]);
 
   // Auto-generate invoice number based on current year and sequence
   const initialInvoiceNum = useMemo(() => {
@@ -171,6 +189,10 @@ export default function CombinedCommercialInvoiceModal({
   // Handle Quick Payment Submit
   const handleRecordPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canEdit) {
+      showToast('Permission denied. Admin role required to record payments.', 'error');
+      return;
+    }
     const amount = Number(paymentAmountInput);
     if (isNaN(amount) || amount <= 0) {
       showToast('Please enter a valid payment amount', 'error');
@@ -400,47 +422,67 @@ export default function CombinedCommercialInvoiceModal({
               <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
                 ({invoiceNumber}) · {clientName}
               </span>
+              {!canEdit && (
+                <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 font-semibold hidden md:inline">
+                  Customer View (Read-Only)
+                </span>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* Record Partial Payment Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
-                setShowPaymentModal(true);
-              }}
-              className="h-8 px-2.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <span>+ Record Payment</span>
-            </button>
+            {/* Record Partial Payment Button (Admin / Impersonate Only) */}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
+                  setShowPaymentModal(true);
+                }}
+                className="h-8 px-2.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <span>+ Record Payment</span>
+              </button>
+            )}
 
-            {/* Primary Action: Download PDF Invoice */}
-            <button
-              type="button"
-              disabled={isGeneratingPdf}
-              onClick={handleDownloadPDF}
-              className="h-8 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors disabled:opacity-60"
-            >
-              {isGeneratingPdf ? (
-                <>
-                  <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-                  </svg>
-                  <span>Generating PDF...</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  <span>Download PDF</span>
-                </>
-              )}
-            </button>
+            {/* Primary Action: Download PDF Invoice (Only if canPrint) */}
+            {canPrint ? (
+              <button
+                type="button"
+                disabled={isGeneratingPdf}
+                onClick={handleDownloadPDF}
+                className="h-8 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors disabled:opacity-60"
+              >
+                {isGeneratingPdf ? (
+                  <>
+                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    <span>Generating PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    <span>Download PDF</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <div
+                className="h-8 px-2.5 rounded-lg bg-slate-100 text-slate-500 border border-slate-200/80 text-[11px] font-medium flex items-center gap-1.5 cursor-not-allowed select-none"
+                title="Commercial Invoice printing & official copy download is reserved for GoShipping Operations Admin"
+              >
+                <svg className="w-3.5 h-3.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span>Print Restricted (Admin Only)</span>
+              </div>
+            )}
 
             <div className="h-5 w-px bg-slate-200/80 mx-0.5" />
 
@@ -757,18 +799,20 @@ export default function CombinedCommercialInvoiceModal({
                       </td>
                     </tr>
 
-                    {/* Shipping / Other Charges (Editable) */}
+                    {/* Shipping / Other Charges (Editable if canEdit) */}
                     <tr className="bg-sky-50/20">
                       <td className="py-1.5 px-3 text-slate-700 font-sans text-[11px]">
                         <div className="flex items-center gap-1.5">
                           <span>Shipping / Other Charges:</span>
-                          <span className="no-print text-[8.5px] px-1 py-0.2 rounded bg-sky-100 text-sky-800 font-bold uppercase">
-                            Edit
-                          </span>
+                          {canEdit && (
+                            <span className="no-print text-[8.5px] px-1 py-0.2 rounded bg-sky-100 text-sky-800 font-bold uppercase">
+                              Edit
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="py-1 px-3 text-right">
-                        {isGeneratingPdf ? (
+                        {!canEdit || isGeneratingPdf ? (
                           <span className="font-mono font-bold text-sky-800 text-xs">
                             ৳{shippingCharges.toLocaleString()}
                           </span>
@@ -788,18 +832,20 @@ export default function CombinedCommercialInvoiceModal({
                       </td>
                     </tr>
 
-                    {/* Manual Discount (Editable) */}
+                    {/* Manual Discount (Editable if canEdit) */}
                     <tr className="bg-amber-50/20">
                       <td className="py-1.5 px-3 text-slate-700 font-sans text-[11px]">
                         <div className="flex items-center gap-1.5">
                           <span>Discount / Adjustment:</span>
-                          <span className="no-print text-[8.5px] px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
-                            Manual
-                          </span>
+                          {canEdit && (
+                            <span className="no-print text-[8.5px] px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
+                              Manual
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="py-1 px-3 text-right">
-                        {isGeneratingPdf ? (
+                        {!canEdit || isGeneratingPdf ? (
                           <span className="font-mono font-bold text-amber-700 text-xs">
                             - ৳{discountBdt.toLocaleString()}
                           </span>
@@ -830,25 +876,27 @@ export default function CombinedCommercialInvoiceModal({
                       </td>
                     </tr>
 
-                    {/* Paid / Advance Received (Editable) */}
+                    {/* Paid / Advance Received (Editable if canEdit) */}
                     <tr className="bg-emerald-50/20">
                       <td className="py-1.5 px-3 text-emerald-800 font-sans font-medium text-[11px]">
                         <div className="flex items-center justify-between">
                           <span>Paid / Advance:</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
-                              setShowPaymentModal(true);
-                            }}
-                            className="no-print text-[9.5px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
-                          >
-                            + Add Entry
-                          </button>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
+                                setShowPaymentModal(true);
+                              }}
+                              className="no-print text-[9.5px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+                            >
+                              + Add Entry
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="py-1 px-3 text-right">
-                        {isGeneratingPdf ? (
+                        {!canEdit || isGeneratingPdf ? (
                           <span className="font-mono font-bold text-emerald-700 text-xs">
                             ৳{advancePaidBdt.toLocaleString()}
                           </span>

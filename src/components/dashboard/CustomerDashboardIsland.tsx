@@ -23,6 +23,12 @@ interface UserProps {
   companyName?: string;
   address?: string;
   binNumber?: string;
+  impersonatedBy?: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
 }
 
 interface Props {
@@ -177,6 +183,33 @@ function StatusIconBadge({ status }: { status: string }) {
 
 export default function CustomerDashboardIsland({ initialTab = 'overview', user, userEmail = '' }: Props) {
   const [tab, setTab] = useState(initialTab);
+  const [currentUser, setCurrentUser] = useState<UserProps | undefined>(user);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Determine if the active session belongs to admin/staff or an admin impersonating (viewing as) the user
+  const isAdminOrStaff = useMemo(() => {
+    const active = currentUser || user;
+    if (!active) return false;
+    return Boolean(
+      active.role === 'super_admin' ||
+      active.role === 'ops_manager' ||
+      active.role === 'warehouse_staff' ||
+      active.role === 'sales_team' ||
+      active.impersonatedBy ||
+      user?.impersonatedBy
+    );
+  }, [currentUser, user]);
+
   const [shipments, setShipments] = useState<ShipmentRecord[]>([]);
   const [quotes, setQuotes] = useState<QuoteRecord[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<QuoteRecord | null>(null);
@@ -1445,10 +1478,10 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                   onClick={() => {
                     const invoiceData = {
                       invoiceNumber: previewDoc.docNumber,
-                      customerName: profileCompany || user.companyName || user.fullName,
+                      customerName: profileCompany || currentUser?.companyName || user?.companyName || currentUser?.fullName || user?.fullName || 'Customer',
                       destination: previewDoc.shipment?.destCity || 'Dhaka, Bangladesh',
                       origin: previewDoc.shipment?.originCity || 'Guangzhou / Yiwu, China',
-                      recipient: user.fullName || profileCompany,
+                      recipient: currentUser?.fullName || user?.fullName || profileCompany || 'Customer',
                       trackingNumber: previewDoc.shipment?.trackingNumber || previewDoc.docNumber,
                       issueDate: previewDoc.date || new Date().toISOString().split('T')[0],
                       dueDate: previewDoc.date || new Date().toISOString().split('T')[0],
@@ -1885,35 +1918,60 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
 
       {/* Floating Action Bar for Selected Consignments */}
       {selectedShipmentIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-slate-800 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl border border-slate-800 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200 flex-wrap sm:flex-nowrap justify-center">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-[#EA1D2C] text-white flex items-center justify-center font-bold text-xs">
               {selectedShipmentIds.length}
             </span>
-            <span className="text-xs font-semibold">
+            <span className="text-xs font-semibold whitespace-nowrap">
               {selectedShipmentIds.length} Consignment{selectedShipmentIds.length > 1 ? 's' : ''} Selected
             </span>
+            {!isAdminOrStaff && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 whitespace-nowrap hidden sm:inline">
+                Read-Only
+              </span>
+            )}
+            {isAdminOrStaff && (currentUser?.impersonatedBy || user?.impersonatedBy) && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-semibold whitespace-nowrap hidden sm:inline">
+                Admin Masquerade
+              </span>
+            )}
           </div>
 
-          <div className="h-4 w-px bg-slate-700" />
+          <div className="h-4 w-px bg-slate-700 hidden sm:block" />
 
           <button
             type="button"
             onClick={() => setShowInvoiceModal(true)}
-            className="h-8 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+            className="h-8 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs whitespace-nowrap"
           >
-            <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="6 9 6 2 18 2 18 9" />
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-              <rect x="6" y="14" width="12" height="8" />
-            </svg>
-            <span>Print Combined Commercial Invoice</span>
+            {isAdminOrStaff ? (
+              <>
+                <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                <span>Print / Manage Commercial Invoice</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                <span>View Combined Commercial Invoice</span>
+              </>
+            )}
           </button>
 
           <button
             type="button"
             onClick={() => setSelectedShipmentIds([])}
-            className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="text-xs text-slate-400 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
           >
             Deselect All
           </button>
@@ -1926,6 +1984,8 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
           isOpen={showInvoiceModal}
           onClose={() => setShowInvoiceModal(false)}
           selectedRecords={selectedPosRecords}
+          canEdit={isAdminOrStaff}
+          canPrint={isAdminOrStaff}
           showToast={(msg, type) => {
             console.log(`[Invoice] (${type || 'info'}): ${msg}`);
           }}
