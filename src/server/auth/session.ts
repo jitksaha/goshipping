@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import bcrypt from 'bcryptjs';
-import { eq, or } from 'drizzle-orm';
+import { eq, or, like } from 'drizzle-orm';
 import { db } from '../db/client';
 import * as schema from '../db/schema';
 
@@ -173,14 +173,17 @@ export function registerAccount(user: AuthUser, password?: string): void {
 export function verifyAccountPassword(identifier: string, password: string): boolean {
   const normalized = identifier.toLowerCase().trim();
   const phoneDigits = normalized.replace(/\D/g, '');
+  const last10Digits = phoneDigits.slice(-10);
 
   // Find account to resolve primary email key if user entered phone number
-  const acc = getAllAccounts().find(
-    (a) =>
-      a.email.toLowerCase() === normalized ||
-      a.id === normalized ||
-      (phoneDigits.length >= 6 && a.phone && a.phone.replace(/\D/g, '') === phoneDigits)
-  );
+  const acc = getAllAccounts().find((a) => {
+    if (a.email.toLowerCase() === normalized || a.id === normalized) return true;
+    if (phoneDigits.length >= 6) {
+      if (a.phone && a.phone.replace(/\D/g, '').endsWith(last10Digits)) return true;
+      if (a.email.includes(last10Digits)) return true;
+    }
+    return false;
+  });
   const emailKey = acc ? acc.email.toLowerCase() : normalized;
 
   // Allow configured password or legacy fallback for primary super admin
@@ -318,14 +321,28 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /**
- * Look up an account by email, checking MySQL database first, with fallback to predefined accounts
+ * Look up an account by email, phone, or client ID, checking MySQL database first, with fallback to predefined accounts
  */
 export async function findAccountByEmail(identifier: string): Promise<AuthUser | null> {
   const normalized = identifier.toLowerCase().trim();
   const phoneDigits = normalized.replace(/\D/g, '');
+  const last10Digits = phoneDigits.slice(-10);
+  const generatedEmail = phoneDigits.length >= 6 ? `client.${phoneDigits}@goshipping.client` : '';
 
   // 1. Query MySQL database users table if reachable
   try {
+    const conditions = [eq(schema.users.email, normalized)];
+    if (phoneDigits.length >= 6) {
+      conditions.push(eq(schema.users.phone, normalized));
+      if (generatedEmail) {
+        conditions.push(eq(schema.users.email, generatedEmail));
+      }
+      if (last10Digits.length >= 6) {
+        conditions.push(like(schema.users.phone, `%${last10Digits}%`));
+        conditions.push(like(schema.users.email, `%${last10Digits}%`));
+      }
+    }
+
     const dbUsers = await db
       .select({
         id: schema.users.id,
@@ -337,11 +354,7 @@ export async function findAccountByEmail(identifier: string): Promise<AuthUser |
         phone: schema.users.phone
       })
       .from(schema.users)
-      .where(
-        phoneDigits.length >= 6
-          ? or(eq(schema.users.email, normalized), eq(schema.users.phone, normalized))
-          : eq(schema.users.email, normalized)
-      )
+      .where(or(...conditions))
       .limit(1);
 
     if (dbUsers.length > 0) {
@@ -361,11 +374,15 @@ export async function findAccountByEmail(identifier: string): Promise<AuthUser |
   }
 
   // 2. Query in-memory user store
-  const inMemory = getAllAccounts().find(
-    (a) =>
-      a.email.toLowerCase() === normalized ||
-      (phoneDigits.length >= 6 && a.phone && a.phone.replace(/\D/g, '') === phoneDigits)
-  );
+  const inMemory = getAllAccounts().find((a) => {
+    if (a.email.toLowerCase() === normalized || a.id === normalized) return true;
+    if (generatedEmail && a.email.toLowerCase() === generatedEmail) return true;
+    if (phoneDigits.length >= 6) {
+      if (a.phone && a.phone.replace(/\D/g, '').endsWith(last10Digits)) return true;
+      if (a.email.includes(last10Digits)) return true;
+    }
+    return false;
+  });
   return inMemory || null;
 }
 

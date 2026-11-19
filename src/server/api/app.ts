@@ -152,7 +152,7 @@ app.post('/auth/login', async (c) => {
       return c.json({ error: 'Invalid credentials or user not found' }, 401);
     }
 
-    const isValidPassword = verifyAccountPassword(email, password);
+    const isValidPassword = verifyAccountPassword(account.email, password) || verifyAccountPassword(email, password);
     if (!isValidPassword) {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
     }
@@ -236,7 +236,7 @@ app.post('/auth/admin-login', async (c) => {
       }, 403);
     }
 
-    const isValidPassword = verifyAccountPassword(email, password);
+    const isValidPassword = verifyAccountPassword(account.email, password) || verifyAccountPassword(email, password);
     if (!isValidPassword) {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
     }
