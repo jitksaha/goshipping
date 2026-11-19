@@ -11,6 +11,7 @@ import type { ShipmentRecord } from '../../server/services/shipment.service';
 import type { QuoteRecord } from '../../server/services/quote.service';
 import type { PosLedgerRecord } from '../../server/services/posLedger.service';
 import CombinedCommercialInvoiceModal from '../admin/CombinedCommercialInvoiceModal';
+import { downloadInvoicePDF, SETTLEMENT_BANKS } from '../../lib/invoicePdf';
 
 interface UserProps {
   id: string;
@@ -1441,10 +1442,38 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.print()}
-                  className="px-5 py-2 rounded-lg bg-slate-900 hover:bg-black text-white text-xs font-bold transition-colors"
+                  onClick={() => {
+                    const invoiceData = {
+                      invoiceNumber: previewDoc.docNumber,
+                      customerName: profileCompany || user.companyName || user.fullName,
+                      destination: previewDoc.shipment?.destCity || 'Dhaka, Bangladesh',
+                      origin: previewDoc.shipment?.originCity || 'Guangzhou / Yiwu, China',
+                      recipient: user.fullName || profileCompany,
+                      trackingNumber: previewDoc.shipment?.trackingNumber || previewDoc.docNumber,
+                      issueDate: previewDoc.date || new Date().toISOString().split('T')[0],
+                      dueDate: previewDoc.date || new Date().toISOString().split('T')[0],
+                      status: 'paid',
+                      mode: previewDoc.shipment?.mode || 'air',
+                      weightKg: previewDoc.shipment?.totalWeightKg || 1,
+                      baseFreight: previewDoc.amount || 0,
+                      terminalHandling: 0,
+                      customsDuty: 0,
+                      fuelSurcharge: 0,
+                      vatTax: 0,
+                      totalBDT: previewDoc.amount || 0,
+                      totalUSD: Math.round((previewDoc.amount || 0) / 122),
+                      paymentMethod: 'Bank Wire / Mobile Financial Services'
+                    };
+                    downloadInvoicePDF(invoiceData as any, SETTLEMENT_BANKS[0]);
+                  }}
+                  className="px-5 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
-                  Print / Save as PDF ⎙
+                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span>Download PDF Invoice</span>
                 </button>
               </div>
             </div>

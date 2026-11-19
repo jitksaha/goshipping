@@ -1,4 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+import { downloadInvoicePDF, SETTLEMENT_BANKS, type InvoiceRecordData } from '../../lib/invoicePdf';
 import type { PosLedgerRecord } from '../../server/services/posLedger.service';
 
 interface CustomerSummary {
@@ -44,6 +47,7 @@ export default function CombinedCommercialInvoiceModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedInvoiceNumber, setSavedInvoiceNumber] = useState<string | null>(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // Auto-generate invoice number based on current year and sequence
   const initialInvoiceNum = useMemo(() => {
@@ -224,7 +228,94 @@ export default function CombinedCommercialInvoiceModal({
     }
   };
 
-  // Handle Print Action
+  // Direct PDF Generation & Download (No browser print popups, no URL/date headers)
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPdf(true);
+    // Give 120ms for DOM re-render so editable input boxes become clean formatted text
+    await new Promise((r) => setTimeout(r, 120));
+
+    try {
+      const element = document.getElementById('printable-commercial-invoice');
+      if (!element) throw new Error('Invoice printable element not found');
+
+      const canvas = await html2canvas(element, {
+        scale: 2.5, // 2.5x high-res retina output for crisp text and lines
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        ignoreElements: (el) => el.classList.contains('no-print')
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pageHeight;
+      }
+
+      const cleanInvoiceId = (invoiceNumber || 'INV-2026').replace(/[^a-zA-Z0-9_-]/g, '_');
+      pdf.save(`GoShipping_Commercial_Invoice_${cleanInvoiceId}.pdf`);
+      showToast(`Invoice ${invoiceNumber} PDF downloaded directly!`, 'success');
+    } catch (err: any) {
+      console.error('PDF generation error:', err);
+      // Fallback to pure vector jsPDF
+      try {
+        handleDownloadVectorPDF();
+      } catch (fallbackErr) {
+        showToast('Failed to download invoice PDF', 'error');
+      }
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  // Pure Vector PDF (Mushak 6.3 Standard)
+  const handleDownloadVectorPDF = () => {
+    const fallbackInvoice: InvoiceRecordData = {
+      invoiceNumber,
+      customerName: clientName,
+      destination: 'Dhaka Hub (HSIA / Chittagong)',
+      origin: 'Guangzhou / Yiwu CFS, China',
+      recipient: contactPerson || clientName,
+      trackingNumber: orderCodes || primaryRecord.orderId || 'GOSH-CARGO',
+      issueDate,
+      dueDate: issueDate,
+      status: balanceDueBdt <= 0 ? 'paid' : 'pending',
+      mode: shippingMethod.toLowerCase().includes('sea') ? 'sea' : 'air',
+      weightKg: totalWeightKg,
+      baseFreight: shippingCharges,
+      terminalHandling: 0,
+      customsDuty: 0,
+      fuelSurcharge: 0,
+      vatTax: 0,
+      totalBDT: grandTotalBdt,
+      totalUSD: Math.round(grandTotalBdt / 122),
+      paymentMethod
+    };
+    downloadInvoicePDF(fallbackInvoice, SETTLEMENT_BANKS[0]);
+    showToast(`Vector Tax Invoice ${invoiceNumber} downloaded!`, 'success');
+  };
+
+  // Handle Print Action (Fallback / Hardware Print)
   const handlePrint = () => {
     window.print();
   };
@@ -369,18 +460,59 @@ export default function CombinedCommercialInvoiceModal({
               )}
             </button>
 
-            {/* Print Button */}
+            {/* Download PDF Button (Primary Action) */}
+            <button
+              type="button"
+              disabled={isGeneratingPdf}
+              onClick={handleDownloadPDF}
+              className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors disabled:opacity-60"
+              title="Download professional PDF invoice directly without browser print popups"
+            >
+              {isGeneratingPdf ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                  <span>Generating PDF...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span>Download PDF Invoice</span>
+                </>
+              )}
+            </button>
+
+            {/* Direct Vector PDF Option */}
+            <button
+              type="button"
+              onClick={handleDownloadVectorPDF}
+              className="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+              title="Download pure vector Mushak 6.3 PDF"
+            >
+              <svg className="w-3.5 h-3.5 text-slate-500 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span>Vector PDF</span>
+            </button>
+
+            {/* System Print (Fallback Icon) */}
             <button
               type="button"
               onClick={handlePrint}
-              className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+              className="h-9 w-9 rounded-lg border border-slate-300 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center justify-center cursor-pointer shadow-2xs transition-colors"
+              title="Print via system printer dialog"
             >
-              <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <polyline points="6 9 6 2 18 2 18 9" />
                 <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                 <rect x="6" y="14" width="12" height="8" />
               </svg>
-              <span>Print Invoice</span>
             </button>
 
             {/* Close Button */}
@@ -712,17 +844,23 @@ export default function CombinedCommercialInvoiceModal({
                         </div>
                       </td>
                       <td className="py-1 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="text-slate-400">৳</span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="any"
-                            value={shippingCharges}
-                            onChange={(e) => setShippingCharges(Number(e.target.value) || 0)}
-                            className="w-24 text-right h-7 px-1.5 font-mono font-bold text-sky-800 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
-                          />
-                        </div>
+                        {isGeneratingPdf ? (
+                          <span className="font-mono font-bold text-sky-800 text-xs">
+                            ৳{shippingCharges.toLocaleString()}
+                          </span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="text-slate-400">৳</span>
+                            <input
+                              type="number"
+                              min={0}
+                              step="any"
+                              value={shippingCharges}
+                              onChange={(e) => setShippingCharges(Number(e.target.value) || 0)}
+                              className="w-24 text-right h-7 px-1.5 font-mono font-bold text-sky-800 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                            />
+                          </div>
+                        )}
                       </td>
                     </tr>
 
@@ -737,18 +875,24 @@ export default function CombinedCommercialInvoiceModal({
                         </div>
                       </td>
                       <td className="py-1 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="text-amber-600">- ৳</span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="any"
-                            value={discountBdt}
-                            onChange={(e) => setDiscountBdt(Number(e.target.value) || 0)}
-                            placeholder="0"
-                            className="w-24 text-right h-7 px-1.5 font-mono font-bold text-amber-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-                          />
-                        </div>
+                        {isGeneratingPdf ? (
+                          <span className="font-mono font-bold text-amber-700 text-xs">
+                            - ৳{discountBdt.toLocaleString()}
+                          </span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="text-amber-600">- ৳</span>
+                            <input
+                              type="number"
+                              min={0}
+                              step="any"
+                              value={discountBdt}
+                              onChange={(e) => setDiscountBdt(Number(e.target.value) || 0)}
+                              placeholder="0"
+                              className="w-24 text-right h-7 px-1.5 font-mono font-bold text-amber-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                            />
+                          </div>
+                        )}
                       </td>
                     </tr>
 
@@ -780,17 +924,23 @@ export default function CombinedCommercialInvoiceModal({
                         </div>
                       </td>
                       <td className="py-1 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className="text-emerald-600">৳</span>
-                          <input
-                            type="number"
-                            min={0}
-                            step="any"
-                            value={advancePaidBdt}
-                            onChange={(e) => setAdvancePaidBdt(Number(e.target.value) || 0)}
-                            className="w-24 text-right h-7 px-1.5 font-mono font-bold text-emerald-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                          />
-                        </div>
+                        {isGeneratingPdf ? (
+                          <span className="font-mono font-bold text-emerald-700 text-xs">
+                            ৳{advancePaidBdt.toLocaleString()}
+                          </span>
+                        ) : (
+                          <div className="flex items-center justify-end gap-1">
+                            <span className="text-emerald-600">৳</span>
+                            <input
+                              type="number"
+                              min={0}
+                              step="any"
+                              value={advancePaidBdt}
+                              onChange={(e) => setAdvancePaidBdt(Number(e.target.value) || 0)}
+                              className="w-24 text-right h-7 px-1.5 font-mono font-bold text-emerald-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                          </div>
+                        )}
                       </td>
                     </tr>
 
