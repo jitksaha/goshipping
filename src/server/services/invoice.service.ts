@@ -60,123 +60,17 @@ export interface InvoiceRecord {
   updatedAt: string;
 }
 
-let initialInvoices: InvoiceRecord[] = [
-  {
-    id: 'inv-1080',
-    invoiceNumber: 'GOS-INV-00001',
-    shipmentId: 'shp-9812-dac',
-    trackingNumber: 'GOSH-2026-9812',
-    customerId: 'usr-customer-01',
-    customerName: 'Apex Textiles Ltd',
-    customerEmail: 'client@apextextiles.com',
-    customerPhone: '+880 1711 000000',
-    recipientName: 'Apex Fashion & Retail Hub',
-    recipientPhone: '+880 1711-002233',
-    recipientAddress: 'Plot 14, Sector 7, Uttara Model Town, Dhaka-1230, Bangladesh',
-    origin: 'Guangzhou, China',
-    destination: 'Dhaka, Bangladesh',
-    mode: 'air',
-    totalWeightKg: 850.5,
-    items: [
-      {
-        itemId: 'itm-01',
-        itemCode: '#AF-9812A',
-        description: 'Air Freight LD3 ULD Container (Interlock Cotton Knit Fabrics & Accessories)',
-        packagingType: 'air_uld',
-        arrivedQuantity: 24,
-        totalQuantity: 24,
-        weightKg: 450.0,
-        cbm: 2.8,
-        ratePerKg: 750,
-        amountBDT: 337500
-      },
-      {
-        itemId: 'itm-02',
-        itemCode: '#AF-9812B',
-        description: 'Reinforced Industrial Palletized Cartons (Electronic Testing Sensors)',
-        packagingType: 'pallet',
-        arrivedQuantity: 18,
-        totalQuantity: 18,
-        weightKg: 400.5,
-        cbm: 1.45,
-        ratePerKg: 750,
-        amountBDT: 300375
-      }
-    ],
-    baseFreight: 637875,
-    terminalHandling: 2500,
-    customsDuty: 31894,
-    fuelSurcharge: 2200,
-    subtotal: 674469,
-    vatTax: 101170,
-    totalBDT: 775639,
-    totalUSD: 6573,
-    status: 'paid',
-    issueDate: '24/10/2026',
-    dueDate: '31/10/2026',
-    paymentMethod: 'Bank Wire (EFT / RTGS)',
-    bankId: 'scb-bd',
-    notes: 'Mushak 6.3 Tax Compliant invoice for full consignment clearance at HSIA Dhaka.',
-    createdAt: '2026-10-24T10:00:00Z',
-    updatedAt: '2026-10-25T11:00:00Z'
-  },
-  {
-    id: 'inv-1081',
-    invoiceNumber: 'GOS-INV-00002',
-    shipmentId: 'shp-4411-ctg',
-    trackingNumber: 'GOSH-2026-4411',
-    customerId: 'usr-customer-02',
-    customerName: 'Standard Composite Mills Ltd',
-    customerEmail: 'procurement@standardmills.com',
-    customerPhone: '+880 1819 223344',
-    recipientName: 'Standard Composite Chittagong Mill Receiving Yard',
-    recipientPhone: '+880 1819-223344',
-    recipientAddress: 'Chittagong Port Access Road, North Patenga, Chittagong',
-    origin: 'Shenzhen, China',
-    destination: 'Chittagong, Bangladesh',
-    mode: 'sea',
-    totalWeightKg: 18450,
-    items: [
-      {
-        itemId: 'itm-03',
-        itemCode: '#SEA-40HQ-88',
-        description: '40ft High Cube Full Container Load (Circular Weaving Looms & Accessories)',
-        packagingType: '40ft_hq',
-        arrivedQuantity: 1,
-        totalQuantity: 1,
-        weightKg: 18450,
-        cbm: 68.4,
-        ratePerKg: 240,
-        amountBDT: 4428000
-      }
-    ],
-    baseFreight: 4428000,
-    terminalHandling: 8500,
-    customsDuty: 221400,
-    fuelSurcharge: 1500,
-    subtotal: 4659400,
-    vatTax: 698910,
-    totalBDT: 5358310,
-    totalUSD: 45409,
-    status: 'pending',
-    issueDate: '22/10/2026',
-    dueDate: '29/10/2026',
-    paymentMethod: 'Bank Wire (EFT / RTGS)',
-    bankId: 'scb-bd',
-    notes: 'Advance freight and customs duty payment collection for 40HQ FCL container.',
-    createdAt: '2026-10-22T08:30:00Z',
-    updatedAt: '2026-10-22T08:30:00Z'
-  }
-];
+// Live operational invoices store
+let initialInvoices: InvoiceRecord[] = [];
 
 function loadInvoicesFromDisk(): InvoiceRecord[] {
-  if (globalThis.__goshipping_invoices && globalThis.__goshipping_invoices.length > 0) {
+  if (globalThis.__goshipping_invoices) {
     return globalThis.__goshipping_invoices;
   }
   try {
     if (fs.existsSync(INVOICE_STORE_PATH)) {
       const data = JSON.parse(fs.readFileSync(INVOICE_STORE_PATH, 'utf-8'));
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         globalThis.__goshipping_invoices = data;
         return data;
       }
@@ -184,7 +78,7 @@ function loadInvoicesFromDisk(): InvoiceRecord[] {
   } catch (err) {
     console.error('Failed reading .invoices_store.json:', err);
   }
-  globalThis.__goshipping_invoices = [...initialInvoices];
+  globalThis.__goshipping_invoices = [];
   return globalThis.__goshipping_invoices;
 }
 

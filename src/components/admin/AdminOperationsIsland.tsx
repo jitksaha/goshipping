@@ -966,12 +966,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       }
     }
 
-    if (combined.length > 0) return combined;
-    return [
-      { id: 'usr-customer-01', fullName: 'Farhan Ahmed', companyName: 'Apex Textiles Ltd', email: 'farhan@apextextiles.com', phone: '+880 1711-223344', role: 'customer', address: 'Export Processing Zone, Savar, Dhaka 1349, Bangladesh' },
-      { id: 'usr-customer-02', fullName: 'Shakil Mahmud', companyName: 'Standard Composite Mills', email: 'shakil@standardcomposite.com', phone: '+880 1819-334455', role: 'customer', address: 'Industrial Area, Baizid Bostami Road, Chittagong, Bangladesh' },
-      { id: 'usr-customer-03', fullName: 'Tasnim Hasan', companyName: 'Meghna Knitwear Cargo', email: 'tasnim@meghnaknit.com', phone: '+880 1912-445566', role: 'customer', address: 'Plot 14, Sector 7, Uttara Model Town, Dhaka 1230, Bangladesh' }
-    ];
+    return combined;
   }, [users, customers]);
 
   const filteredWarehouses = useMemo(() => {
@@ -5430,44 +5425,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         {/* ========================================================= */}
         {(activeTab === 'invoices' || activeTab === 'invoice') && (() => {
           // Compute invoices from shipments
-          const derivedInvoices = (shipments.length > 0 ? shipments : [
-            {
-              id: 'ship-mock-1',
-              trackingNumber: 'GOSH-2026-9812',
-              clientName: 'Apex Textiles Ltd',
-              originCity: 'Guangzhou',
-              originCountry: 'China',
-              destinationCity: 'Dhaka',
-              serviceType: 'air',
-              weightKg: 850.5,
-              currentStatus: 'awaiting_customs',
-              createdAt: '2026-10-24T10:00:00Z',
-            },
-            {
-              id: 'ship-mock-2',
-              trackingNumber: 'GOSH-2026-4411',
-              clientName: 'Standard Composite Mills Ltd',
-              originCity: 'Shenzhen',
-              originCountry: 'China',
-              destinationCity: 'Chittagong',
-              serviceType: 'sea',
-              weightKg: 18450,
-              currentStatus: 'dispatched_from_china',
-              createdAt: '2026-10-22T08:30:00Z',
-            },
-            {
-              id: 'ship-mock-3',
-              trackingNumber: 'GOSH-2026-7733',
-              clientName: 'Dhaka Green Energy Solutions',
-              originCity: 'Yiwu',
-              originCountry: 'China',
-              destinationCity: 'Dhaka',
-              serviceType: 'road',
-              weightKg: 4050,
-              currentStatus: 'out_for_delivery',
-              createdAt: '2026-10-20T14:15:00Z',
-            }
-          ] as any[]).map((s, idx) => {
+          const derivedInvoices = (shipments || []).map((s: any, idx: number) => {
             const invoiceNum = `INV-2026-${(1080 + idx).toString()}`;
             const weight = Number(s.weightKg) || 50;
             const isAir = s.serviceType === 'air';

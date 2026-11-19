@@ -74,17 +74,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
         secure: false,
         maxAge: 30 * 24 * 60 * 60,
       });
-    } else if (pathname.startsWith('/dashboard')) {
-      const defaultCustomer = DEFAULT_ACCOUNTS[4]; // Apex Textiles Ltd Customer
-      const { sessionId } = await createSession(defaultCustomer, context.request.headers.get('user-agent') || 'dev');
-      currentUser = defaultCustomer;
-      context.cookies.set('goshipping_session', sessionId, {
-        path: '/',
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: false,
-        maxAge: 30 * 24 * 60 * 60,
-      });
     }
   }
 

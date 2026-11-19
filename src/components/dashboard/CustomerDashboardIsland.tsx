@@ -1296,9 +1296,9 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
       {(tab === 'request-quote' || tab === 'calculator') && (
         <div>
           <QuoteCalculatorIsland
-            defaultGuestName={profileName || user?.fullName || 'Apex Textiles Ltd'}
-            defaultGuestEmail={profileEmail || user?.email || 'client@apextextiles.com'}
-            defaultGuestPhone={profilePhone || '+880 1711 000000'}
+            defaultGuestName={profileName || user?.fullName || ''}
+            defaultGuestEmail={profileEmail || user?.email || ''}
+            defaultGuestPhone={profilePhone || user?.phone || ''}
             onQuoteCreated={() => loadData()}
             onViewQuotes={() => switchTab('quotes')}
           />
@@ -1415,7 +1415,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Consignee / Importer</span>
-                  <div className="font-bold text-slate-900">{profileCompany || 'Apex Textiles Ltd'}</div>
+                  <div className="font-bold text-slate-900">{profileCompany || user?.companyName || user?.fullName || 'Verified Consignee'}</div>
                   <div className="text-slate-600">{profileAddress}</div>
                   <div className="font-mono text-[11px] text-slate-500">BIN: {profileBin}</div>
                 </div>

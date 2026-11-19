@@ -21,14 +21,7 @@ declare global {
 }
 
 function getInitialTestimonials(): TestimonialRecord[] {
-  return TESTIMONIALS.map((t, index) => ({
-    ...t,
-    avatarUrl: '',
-    displayOrder: index,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }));
+  return [];
 }
 
 function loadTestimonialsFromFile(): TestimonialRecord[] {
@@ -36,14 +29,14 @@ function loadTestimonialsFromFile(): TestimonialRecord[] {
     if (fs.existsSync(STORE_PATH)) {
       const content = fs.readFileSync(STORE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch (err) {
     console.error('[TestimonialService] Failed to load testimonials from store:', err);
   }
-  return getInitialTestimonials();
+  return [];
 }
 
 function saveTestimonialsToFile(data: TestimonialRecord[]): void {

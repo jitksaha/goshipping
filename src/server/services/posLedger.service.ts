@@ -115,98 +115,7 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
 }
 
 function getInitialRecords(): PosLedgerRecord[] {
-  const today = new Date().toISOString().split('T')[0];
-  const items: Array<Omit<PosLedgerRecord, 'id' | 'totalPurchaseRmb' | 'purchaseCostBdt' | 'purchaseCostDueBdt' | 'internationalFreightBdt' | 'totalBillBdt' | 'paymentStatus' | 'createdAt' | 'updatedAt'>> = [
-    {
-      orderId: 'GOS-00001',
-      orderDate: today,
-      cnDate: today,
-      bdDate: '',
-      customerName: 'Sourov Ahmed',
-      mobileNo: '+880 1711 234567',
-      importerClient: 'HTI',
-      shippingMark: 'HTI-BD-01',
-      websiteOrderNo: 'WEB-8849',
-      itemDetails: 'Women Silk Scarf Accessories (Taobao Order)',
-      chinaCourierTracking: 'SF14092847192',
-      currentStatus: 'Received in CN Hub',
-      supplierName: 'Taobao',
-      quantity: 3,
-      unitPriceRmb: 4.0,
-      rmbRateBdt: 19.5,
-      purchaseCostPaidBdt: 0,
-      serviceType: 'Sourcing Only',
-      cnWeightKg: 0.8,
-      bdWeightKg: 0.8,
-      shippingRatePerKgBdt: 850,
-      bdCourierName: 'Steadfast',
-      bdTrackingNo: '',
-      remark: 'Initial sample from spreadsheet'
-    },
-    {
-      orderId: 'GOS-00002',
-      orderDate: today,
-      cnDate: today,
-      bdDate: '',
-      customerName: 'Mahmudul Hasan (GadgetXpress)',
-      mobileNo: '+880 1819 887766',
-      importerClient: 'GX-BD',
-      shippingMark: 'GX-DAC-402',
-      websiteOrderNo: 'WEB-9012',
-      itemDetails: 'TWS Wireless Earbuds + Smart Watch Bands',
-      chinaCourierTracking: 'ZTO9823471829',
-      currentStatus: 'In Transit DAC Flight',
-      supplierName: '1688 Factory',
-      quantity: 50,
-      unitPriceRmb: 28.5,
-      rmbRateBdt: 19.8,
-      purchaseCostPaidBdt: 15000,
-      serviceType: 'Air Cargo',
-      cnWeightKg: 12.5,
-      bdWeightKg: 12.5,
-      shippingRatePerKgBdt: 950,
-      bdCourierName: 'Pathao Courier',
-      bdTrackingNo: 'PT-993847',
-      remark: 'Urgent restocking air shipment'
-    },
-    {
-      orderId: 'GOS-00003',
-      orderDate: today,
-      cnDate: today,
-      bdDate: '',
-      customerName: 'Tanvir Rahman (Apex Apparels)',
-      mobileNo: '+880 1712 998811',
-      importerClient: 'APX',
-      shippingMark: 'APX-CTG-09',
-      websiteOrderNo: 'WEB-7731',
-      itemDetails: 'Garments Zipper Rolls & Metal Buttons',
-      chinaCourierTracking: 'SF7729104812',
-      currentStatus: 'Customs Clearance DAC',
-      supplierName: 'Alibaba Verified',
-      quantity: 120,
-      unitPriceRmb: 15.0,
-      rmbRateBdt: 19.5,
-      purchaseCostPaidBdt: 35100,
-      serviceType: 'Door-to-Door',
-      cnWeightKg: 35.0,
-      bdWeightKg: 35.0,
-      shippingRatePerKgBdt: 750,
-      bdCourierName: 'In-house Trucking',
-      bdTrackingNo: 'GOSH-TRK-88',
-      remark: 'Commercial customs clearance included'
-    }
-  ];
-
-  return items.map((item, idx) => {
-    const calc = autoCalculatePosFields(item);
-    return {
-      ...item,
-      ...calc,
-      id: `pos-${idx + 1}-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-  });
+  return [];
 }
 
 /**
@@ -237,7 +146,8 @@ function loadFromFile(): PosLedgerRecord[] {
     if (fs.existsSync(STORE_PATH)) {
       const content = fs.readFileSync(STORE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
+        if (parsed.length === 0) return [];
         let hasMigrations = false;
         const normalized = parsed.map((item, idx) => {
           const cleanOrderId = normalizeOrderId(item.orderId, idx + 1);
@@ -259,7 +169,7 @@ function loadFromFile(): PosLedgerRecord[] {
   } catch (err) {
     console.error('[PosLedgerService] Failed to load store:', err);
   }
-  return getInitialRecords();
+  return [];
 }
 
 function saveToFile(data: PosLedgerRecord[]): void {

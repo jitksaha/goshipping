@@ -615,17 +615,6 @@ export const DEFAULT_ACCOUNTS = [
     fullName: 'Nafis Chowdhury',
     role: 'sales_team' as UserRole,
     status: 'active'
-  },
-  {
-    id: 'usr-customer-01',
-    email: 'client@apextextiles.com',
-    fullName: 'Apex Textiles Ltd',
-    role: 'customer' as UserRole,
-    status: 'active',
-    companyName: 'Apex Textiles Ltd',
-    phone: '',
-    address: '',
-    binNumber: ''
   }
 ];
 
@@ -687,4 +676,3 @@ memoryPasswords.set('admin@goshipping.com', 'password');
 memoryPasswords.set('ops@goshipping.com', 'password');
 memoryPasswords.set('warehouse@goshipping.com', 'password');
 memoryPasswords.set('sales@goshipping.com', 'password');
-memoryPasswords.set('client@apextextiles.com', 'password');

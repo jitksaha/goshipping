@@ -61,77 +61,8 @@ export interface QuoteRecord {
   updatedAt: string;
 }
 
-let initialQuotes: QuoteRecord[] = [
-  {
-    id: 'qte-4401',
-    quoteNumber: 'QTE-2026-4401',
-    customerId: 'usr-customer-01',
-    guestName: 'Apex Textiles Ltd',
-    guestEmail: 'client@apextextiles.com',
-    guestPhone: '+880 1711 000000',
-    originCountry: 'China',
-    originCity: 'Guangzhou',
-    destCountry: 'Bangladesh',
-    destCity: 'Dhaka',
-    mode: 'air',
-    serviceType: 'door_to_door',
-    cargoDescription: '500 Pcs Commercial Electronics & Precision Accessories in Export Cartons',
-    packagingType: 'carton',
-    quantity: 25,
-    totalWeightKg: 480.0,
-    totalCbm: 2.8,
-    status: 'priced',
-    targetShipmentDate: '2026-11-05T00:00:00Z',
-    validityDate: '2026-11-01T23:59:59Z',
-    assignedStaffName: 'Nafis Chowdhury',
-    assignedStaffId: 'usr-sales-01',
-    createdAt: '2026-10-23T10:00:00Z',
-    updatedAt: '2026-10-24T11:30:00Z',
-    revisions: [
-      {
-        id: 'rev-01',
-        quoteId: 'qte-4401',
-        revisionNumber: 1,
-        baseFreightCharge: 262300.0,
-        fuelSurcharge: 34160.0,
-        customsClearanceFee: 18300.0,
-        handlingFee: 9150.0,
-        insuranceFee: 5490.0,
-        otherFees: 0.0,
-        totalAmount: 329400.0,
-        currency: 'BDT',
-        validityDate: '2026-11-01T23:59:59Z',
-        transitTimeDays: '3 - 5 business days',
-        notes: 'Includes airline direct export handling from Guangzhou BAI Hub, customs clearance at HSIA Dhaka, and local bonded delivery.',
-        createdAt: '2026-10-24T11:30:00Z'
-      }
-    ]
-  },
-  {
-    id: 'qte-3920',
-    quoteNumber: 'QTE-2026-3920',
-    customerId: 'usr-customer-01',
-    guestName: 'Beximco Pharma Hub',
-    guestEmail: 'supplychain@beximco.org',
-    guestPhone: '+880 1819 112233',
-    originCountry: 'China',
-    originCity: 'Shenzhen',
-    destCountry: 'Bangladesh',
-    destCity: 'Chittagong',
-    mode: 'sea',
-    serviceType: 'port_to_port',
-    cargoDescription: 'Standard Industrial Machinery Components & Electronic Hardware in Sealed Wooden Crates',
-    packagingType: 'drum',
-    quantity: 40,
-    totalWeightKg: 8200.0,
-    totalCbm: 18.0,
-    status: 'under_review',
-    targetShipmentDate: '2026-11-15T00:00:00Z',
-    createdAt: '2026-10-24T09:15:00Z',
-    updatedAt: '2026-10-24T09:15:00Z',
-    revisions: []
-  }
-];
+// Live operational quotes store
+let initialQuotes: QuoteRecord[] = [];
 
 export class QuoteService {
   static async listQuotes(params?: { customerId?: string; status?: string }): Promise<QuoteRecord[]> {
