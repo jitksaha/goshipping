@@ -1,7 +1,6 @@
 ---
 import PublicLayout from '../../layouts/PublicLayout.astro';
 import LiveTrackingIsland from '../../components/marketing/LiveTrackingIsland';
-import QuoteCalculatorIsland from '../../components/marketing/QuoteCalculatorIsland';
 import { getSiteOrigin } from '../../server/utils/domain';
 
 const queryCode = Astro.url.searchParams.get('code') || '';
@@ -56,10 +55,5 @@ const trackingSchema = {
   <section class="py-8 sm:py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-12">
     <!-- Live Tracking React Island -->
     <LiveTrackingIsland client:load initialTrackingNumber={queryCode} pollIntervalMs={12000} />
-
-    <!-- Quotation Hook -->
-    <div class="pt-4 sm:pt-8">
-      <QuoteCalculatorIsland client:visible />
-    </div>
   </section>
 </PublicLayout>

@@ -1390,18 +1390,15 @@ export default function LiveTrackingIsland({
                           </div>
 
                           {/* Location */}
-                          <div className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                            <svg className="w-3.5 h-3.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                              <circle cx="12" cy="10" r="3" />
-                            </svg>
-                            <span>{evt.locationName}</span>
-                          </div>
-
-                          {/* Description */}
-                          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pt-0.5">
-                            {evt.description}
-                          </p>
+                          {evt.locationName && (
+                            <div className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                <circle cx="12" cy="10" r="3" />
+                              </svg>
+                              <span>{evt.locationName}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
