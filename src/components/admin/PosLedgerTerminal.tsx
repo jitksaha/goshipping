@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { PosLedgerRecord } from '../../server/services/posLedger.service';
 import { downloadPosReceiptPDF } from '../../lib/posReceiptPdf';
 import { normalizeStatusCode } from '../../server/services/tracking-status';
+import CombinedCommercialInvoiceModal from './CombinedCommercialInvoiceModal';
 
 interface PosStats {
   totalOrders: number;
@@ -18,6 +19,10 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const [records, setRecords] = useState<PosLedgerRecord[]>([]);
   const [stats, setStats] = useState<PosStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Multi-Order Checkbox Selection for Batch Printing & Invoicing
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [showCombinedInvoiceModal, setShowCombinedInvoiceModal] = useState(false);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +51,27 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const [isRetryingFailed, setIsRetryingFailed] = useState(false);
   const [showDetailedReport, setShowDetailedReport] = useState(true);
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+
+  // Auto-detect customer filter from Users tab navigation
+  useEffect(() => {
+    try {
+      const filterCustomer = sessionStorage.getItem('goshipping_filter_customer');
+      if (filterCustomer) {
+        setSearchQuery(filterCustomer);
+        sessionStorage.removeItem('goshipping_filter_customer');
+        showToast(`Showing orders for ${filterCustomer}`, 'info');
+      }
+    } catch {}
+
+    const handleFilterEvent = (e: any) => {
+      if (e.detail?.customer) {
+        setSearchQuery(e.detail.customer);
+        showToast(`Showing orders for ${e.detail.customer}`, 'info');
+      }
+    };
+    window.addEventListener('goshipping:filter_orders', handleFilterEvent);
+    return () => window.removeEventListener('goshipping:filter_orders', handleFilterEvent);
+  }, []);
 
   const failedSyncsCount = useMemo(() => {
     return records.filter((r) => r.sheetSyncStatus === 'failed').length;
@@ -834,6 +860,42 @@ function doPost(e) {
     });
   }, [records, stageFilter, financialFilter]);
 
+  // Checkbox Selection Helpers
+  const isAllSelected = useMemo(() => {
+    if (displayedRecords.length === 0) return false;
+    return displayedRecords.every((r) => selectedOrderIds.includes(r.id));
+  }, [displayedRecords, selectedOrderIds]);
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(displayedRecords.map((r) => r.id));
+    }
+  };
+
+  const handleToggleSelectOrder = (id: string) => {
+    setSelectedOrderIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const selectedRecords = useMemo(() => {
+    return records.filter((r) => selectedOrderIds.includes(r.id));
+  }, [records, selectedOrderIds]);
+
+  const selectedTotals = useMemo(() => {
+    const totalBillBdt = selectedRecords.reduce((acc, r) => acc + (Number(r.totalBillBdt) || 0), 0);
+    const totalPaidBdt = selectedRecords.reduce((acc, r) => acc + (Number(r.purchaseCostPaidBdt) || 0), 0);
+    const totalDueBdt = Math.max(0, totalBillBdt - totalPaidBdt);
+    return {
+      count: selectedRecords.length,
+      totalBillBdt: Math.round(totalBillBdt),
+      totalPaidBdt: Math.round(totalPaidBdt),
+      totalDueBdt: Math.round(totalDueBdt)
+    };
+  }, [selectedRecords]);
+
   // Pure SVG mini-sparkline renderer
   const renderSparkline = (points: number[], strokeColor: string, fillColor: string) => {
     if (!points || points.length < 2) points = [10, 20, 15, 30, 25, 40];
@@ -1247,6 +1309,26 @@ function doPost(e) {
 
           {/* Right: Icon-Only Quick Action Buttons */}
           <div className="flex items-center gap-1.5 self-end lg:self-auto shrink-0">
+            {/* Print Combined Commercial Invoice Button */}
+            <button
+              type="button"
+              disabled={selectedOrderIds.length === 0}
+              onClick={() => setShowCombinedInvoiceModal(true)}
+              className={`h-9 px-3 rounded-lg border flex items-center gap-1.5 font-bold text-xs transition-colors cursor-pointer shadow-2xs ${
+                selectedOrderIds.length > 0
+                  ? 'bg-[#EA1D2C] hover:bg-[#D41523] text-white border-transparent'
+                  : 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+              }`}
+              title={selectedOrderIds.length > 0 ? "Print combined commercial invoice for selected orders" : "Select one or more orders to print combined invoice"}
+            >
+              <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              <span>Print Invoice {selectedOrderIds.length > 0 ? `(${selectedOrderIds.length})` : ''}</span>
+            </button>
+
             {/* Import CSV Button (Icon Only) */}
             <button
               type="button"
@@ -1337,7 +1419,18 @@ function doPost(e) {
           <table className="w-full text-left text-xs border-collapse min-w-[1260px]">
             <thead>
               <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-[10px] uppercase font-mono tracking-wider font-bold">
-                <th className="py-3 px-4 sticky left-0 bg-slate-100 z-10 border-r border-slate-200 min-w-[150px]">
+                {/* Column 0: Checkbox (Select All) */}
+                <th className="py-3 px-3 sticky left-0 bg-slate-100 z-20 border-r border-slate-200 w-11 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 text-[#EA1D2C] focus:ring-[#EA1D2C] cursor-pointer align-middle"
+                    title="Select all orders"
+                    aria-label="Select all orders"
+                  />
+                </th>
+                <th className="py-3 px-4 sticky left-11 bg-slate-100 z-10 border-r border-slate-200 min-w-[150px]">
                   Order &amp; Date
                 </th>
                 <th className="py-3 px-4 border-r border-slate-200 min-w-[210px]">
@@ -1366,7 +1459,7 @@ function doPost(e) {
             <tbody className="divide-y divide-slate-200/80 text-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-xs text-slate-500">
+                  <td colSpan={9} className="py-16 text-center text-xs text-slate-500">
                     <div className="inline-flex items-center gap-2">
                       <svg className="w-4 h-4 animate-spin text-[#EA1D2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -1378,7 +1471,7 @@ function doPost(e) {
                 </tr>
               ) : displayedRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-16 text-center text-xs text-slate-500">
+                  <td colSpan={9} className="py-16 text-center text-xs text-slate-500">
                     <div className="space-y-1">
                       <p className="font-semibold text-slate-700">No orders found matching the active filter.</p>
                       {(stageFilter !== 'all' || financialFilter !== 'all') && (
@@ -1398,9 +1491,24 @@ function doPost(e) {
                 </tr>
               ) : (
                 displayedRecords.map((r, idx) => (
-                  <tr key={r.id || idx} className="hover:bg-slate-50/90 transition-colors">
-                    {/* Column 1: Order ID & Date (Sticky Left) */}
-                    <td className="py-3 px-4 sticky left-0 bg-white hover:bg-slate-50 z-10 border-r border-slate-200 font-mono font-bold text-slate-900 shadow-[1px_0_3px_rgba(0,0,0,0.03)]">
+                  <tr key={r.id || idx} className={`hover:bg-slate-50/90 transition-colors ${selectedOrderIds.includes(r.id) ? 'bg-red-50/35' : ''}`}>
+                    {/* Column 0: Row Selection Checkbox */}
+                    <td className={`py-3 px-3 sticky left-0 z-20 border-r border-slate-200 text-center w-11 transition-colors ${
+                      selectedOrderIds.includes(r.id) ? 'bg-red-50/80' : 'bg-white hover:bg-slate-50'
+                    }`}>
+                      <input
+                        type="checkbox"
+                        checked={selectedOrderIds.includes(r.id)}
+                        onChange={() => handleToggleSelectOrder(r.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#EA1D2C] focus:ring-[#EA1D2C] cursor-pointer align-middle"
+                        aria-label={`Select order ${r.orderId}`}
+                      />
+                    </td>
+
+                    {/* Column 1: Order ID & Date (Sticky Left-11) */}
+                    <td className={`py-3 px-4 sticky left-11 z-10 border-r border-slate-200 font-mono font-bold text-slate-900 shadow-[1px_0_3px_rgba(0,0,0,0.03)] transition-colors ${
+                      selectedOrderIds.includes(r.id) ? 'bg-red-50/80' : 'bg-white hover:bg-slate-50'
+                    }`}>
                       <button
                         type="button"
                         onClick={() => openEditDrawer(r)}
@@ -1693,12 +1801,23 @@ function doPost(e) {
           </div>
         ) : (
           displayedRecords.map((r, idx) => (
-            <div key={r.id || idx} className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
-              {/* Card Header: Order ID + Status */}
+            <div key={r.id || idx} className={`bg-white rounded-xl border p-4 shadow-2xs space-y-3 transition-colors ${
+              selectedOrderIds.includes(r.id) ? 'border-red-300 bg-red-50/25 ring-1 ring-red-200' : 'border-slate-200/90'
+            }`}>
+              {/* Card Header: Checkbox + Order ID + Status */}
               <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
-                <div>
-                  <div className="font-mono font-bold text-slate-900 text-xs">{r.orderId}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{r.orderDate} · {r.serviceType}</div>
+                <div className="flex items-start gap-2.5">
+                  <input
+                    type="checkbox"
+                    checked={selectedOrderIds.includes(r.id)}
+                    onChange={() => handleToggleSelectOrder(r.id)}
+                    className="w-4 h-4 mt-0.5 rounded border-slate-300 text-[#EA1D2C] focus:ring-[#EA1D2C] cursor-pointer"
+                    aria-label={`Select order ${r.orderId}`}
+                  />
+                  <div>
+                    <div className="font-mono font-bold text-slate-900 text-xs">{r.orderId}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">{r.orderDate} · {r.serviceType}</div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -1852,6 +1971,52 @@ function doPost(e) {
           ))
         )}
       </div>
+
+      {/* Floating Batch Invoicing & Print Dock */}
+      {selectedOrderIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200 w-[92%] max-w-xl justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <div className="truncate">
+              <span className="text-xs font-bold text-white block sm:inline">
+                {selectedOrderIds.length} {selectedOrderIds.length === 1 ? 'order' : 'orders'} selected
+              </span>
+              <span className="hidden sm:inline text-slate-400 text-xs mx-1.5">·</span>
+              <span className="text-xs font-mono text-emerald-400 font-extrabold block sm:inline">
+                ৳{selectedTotals.totalBillBdt.toLocaleString()}
+              </span>
+              {selectedTotals.totalDueBdt > 0 && (
+                <span className="text-[11px] font-mono text-rose-400 font-bold ml-1.5 hidden sm:inline">
+                  (Due: ৳{selectedTotals.totalDueBdt.toLocaleString()})
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowCombinedInvoiceModal(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+            >
+              <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              <span>Print Invoice</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedOrderIds([])}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium cursor-pointer transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 4. POS FAST-ENTRY MODAL / DRAWER */}
       {showPosDrawer && (
@@ -2689,6 +2854,23 @@ function doPost(e) {
           </div>
         </div>
       )}
+      {/* 6. COMBINED COMMERCIAL INVOICE PRINT MODAL */}
+      <CombinedCommercialInvoiceModal
+        isOpen={showCombinedInvoiceModal}
+        onClose={() => setShowCombinedInvoiceModal(false)}
+        selectedRecords={selectedRecords}
+        onInvoiceSaved={(invoice) => {
+          // Update local orders with the invoice number
+          setRecords((prev) =>
+            prev.map((r) =>
+              selectedOrderIds.includes(r.id)
+                ? { ...r, invoiceNumber: invoice.invoiceNumber }
+                : r
+            )
+          );
+        }}
+        showToast={showToast}
+      />
     </div>
   );
 }

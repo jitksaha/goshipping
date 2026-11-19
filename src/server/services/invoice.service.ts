@@ -1,4 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { ShipmentService, ShipmentRecord } from './shipment.service';
+
+const INVOICE_STORE_PATH = path.resolve(process.cwd(), '.invoices_store.json');
+
+declare global {
+  var __goshipping_invoices: InvoiceRecord[] | undefined;
+}
 
 export interface InvoiceItem {
   itemId: string;
@@ -157,6 +165,34 @@ let initialInvoices: InvoiceRecord[] = [
   }
 ];
 
+function loadInvoicesFromDisk(): InvoiceRecord[] {
+  if (globalThis.__goshipping_invoices && globalThis.__goshipping_invoices.length > 0) {
+    return globalThis.__goshipping_invoices;
+  }
+  try {
+    if (fs.existsSync(INVOICE_STORE_PATH)) {
+      const data = JSON.parse(fs.readFileSync(INVOICE_STORE_PATH, 'utf-8'));
+      if (Array.isArray(data) && data.length > 0) {
+        globalThis.__goshipping_invoices = data;
+        return data;
+      }
+    }
+  } catch (err) {
+    console.error('Failed reading .invoices_store.json:', err);
+  }
+  globalThis.__goshipping_invoices = [...initialInvoices];
+  return globalThis.__goshipping_invoices;
+}
+
+function saveInvoicesToDisk(records: InvoiceRecord[]) {
+  globalThis.__goshipping_invoices = records;
+  try {
+    fs.writeFileSync(INVOICE_STORE_PATH, JSON.stringify(records, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed writing .invoices_store.json:', err);
+  }
+}
+
 export class InvoiceService {
   static async listInvoices(params?: {
     shipmentId?: string;
@@ -164,7 +200,7 @@ export class InvoiceService {
     status?: string;
     search?: string;
   }): Promise<InvoiceRecord[]> {
-    let list = [...initialInvoices];
+    let list = [...loadInvoicesFromDisk()];
 
     if (params?.shipmentId) {
       list = list.filter((i) => i.shipmentId === params.shipmentId);
@@ -190,7 +226,8 @@ export class InvoiceService {
   }
 
   static async getById(idOrNumber: string): Promise<InvoiceRecord | null> {
-    const inv = initialInvoices.find(
+    const list = loadInvoicesFromDisk();
+    const inv = list.find(
       (i) => i.id === idOrNumber || i.invoiceNumber.toUpperCase() === idOrNumber.toUpperCase()
     );
     return inv || null;
@@ -200,8 +237,9 @@ export class InvoiceService {
    * Helper to generate next sequential Invoice number in GOS-INV-XXXXX brand format (e.g. GOS-INV-00001, GOS-INV-00023)
    */
   static generateNextInvoiceNumber(): string {
+    const list = loadInvoicesFromDisk();
     let maxSeq = 0;
-    for (const inv of initialInvoices) {
+    for (const inv of list) {
       if (!inv.invoiceNumber) continue;
       const match = inv.invoiceNumber.match(/(\d+)$/);
       if (match) {
@@ -213,6 +251,112 @@ export class InvoiceService {
     }
     const nextSeq = maxSeq + 1;
     return `GOS-INV-${String(nextSeq).padStart(5, '0')}`;
+  }
+
+  /**
+   * Creates a consolidated commercial invoice for multiple selected orders/consignments
+   */
+  static async createCommercialInvoice(data: {
+    invoiceNumber?: string;
+    customerName: string;
+    companyName?: string;
+    customerPhone?: string;
+    customerAddress?: string;
+    shippingMark?: string;
+    mode?: 'air' | 'sea' | 'road' | 'hand_carry';
+    orderIds?: string[];
+    trackingNumber?: string;
+    totalWeightKg?: number;
+    items?: Array<{
+      itemId?: string;
+      itemCode?: string;
+      description: string;
+      packagingType?: string;
+      arrivedQuantity: number;
+      totalQuantity: number;
+      weightKg: number;
+      cbm?: number;
+      ratePerKg?: number;
+      amountBDT: number;
+    }>;
+    baseFreight?: number;
+    terminalHandling?: number;
+    customsDuty?: number;
+    fuelSurcharge?: number;
+    subtotal?: number;
+    vatTax?: number;
+    totalBDT: number;
+    status?: 'pending' | 'paid';
+    issueDate?: string;
+    dueDate?: string;
+    paymentMethod?: string;
+    notes?: string;
+  }): Promise<InvoiceRecord> {
+    const invoices = loadInvoicesFromDisk();
+    const id = `inv-${Date.now().toString(36)}`;
+    const invoiceNumber = data.invoiceNumber?.trim() ? data.invoiceNumber.trim().toUpperCase() : InvoiceService.generateNextInvoiceNumber();
+    const now = new Date();
+    const issueDate = data.issueDate || now.toLocaleDateString('en-GB');
+    const dueDate = data.dueDate || new Date(now.getTime() + 7 * 86400000).toLocaleDateString('en-GB');
+
+    const totalWeightKg = Number(data.totalWeightKg) || 10;
+    const baseFreight = Number(data.baseFreight) || (data.items?.reduce((a, b) => a + (b.amountBDT || 0), 0) || 0);
+    const subtotal = data.subtotal !== undefined ? Number(data.subtotal) : baseFreight;
+    const totalBDT = Number(data.totalBDT) || subtotal;
+    const totalUSD = Math.round(totalBDT / 118);
+
+    const displayName = data.companyName && data.companyName !== data.customerName
+      ? `${data.customerName} (${data.companyName})`
+      : data.customerName;
+
+    const newInvoice: InvoiceRecord = {
+      id,
+      invoiceNumber,
+      shipmentId: data.orderIds?.length ? data.orderIds.join(', ') : 'combined-consignments',
+      trackingNumber: data.trackingNumber || (data.orderIds?.length ? data.orderIds.join(', ') : invoiceNumber),
+      customerId: 'usr-customer-combined',
+      customerName: displayName,
+      customerPhone: data.customerPhone || '',
+      recipientName: data.customerName,
+      recipientPhone: data.customerPhone || '',
+      recipientAddress: data.customerAddress || 'Dhaka, Bangladesh',
+      origin: 'China (Guangzhou / Yiwu)',
+      destination: 'Dhaka, Bangladesh',
+      mode: data.mode || 'air',
+      totalWeightKg,
+      items: (data.items || []).map((it, idx) => ({
+        itemId: it.itemId || `itm-${idx + 1}`,
+        itemCode: it.itemCode,
+        description: it.description,
+        packagingType: it.packagingType || 'air_cargo',
+        arrivedQuantity: it.arrivedQuantity,
+        totalQuantity: it.totalQuantity,
+        weightKg: it.weightKg,
+        cbm: it.cbm,
+        ratePerKg: it.ratePerKg,
+        amountBDT: it.amountBDT
+      })),
+      baseFreight,
+      terminalHandling: Number(data.terminalHandling) || 0,
+      customsDuty: Number(data.customsDuty) || 0,
+      fuelSurcharge: Number(data.fuelSurcharge) || 0,
+      subtotal,
+      vatTax: Number(data.vatTax) || 0,
+      totalBDT,
+      totalUSD,
+      status: data.status || 'pending',
+      issueDate,
+      dueDate,
+      paymentMethod: data.paymentMethod || 'Bank Wire / bKash',
+      bankId: 'scb-bd',
+      notes: data.notes || (data.orderIds?.length ? `Combined commercial invoice for orders: ${data.orderIds.join(', ')}` : ''),
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString()
+    };
+
+    invoices.unshift(newInvoice);
+    saveInvoicesToDisk(invoices);
+    return newInvoice;
   }
 
   static async createInvoice(data: {
@@ -342,7 +486,9 @@ export class InvoiceService {
       updatedAt: now.toISOString()
     };
 
-    initialInvoices.unshift(newInvoice);
+    const invoices = loadInvoicesFromDisk();
+    invoices.unshift(newInvoice);
+    saveInvoicesToDisk(invoices);
 
     // Update the shipment's items to reflect their arrived state!
     const arrivedMap = new Map<string, { arrivedQty: number; arrivedWeight: number }>();
@@ -382,13 +528,15 @@ export class InvoiceService {
     idOrNumber: string,
     status: 'pending' | 'paid'
   ): Promise<InvoiceRecord | null> {
-    const inv = initialInvoices.find(
+    const invoices = loadInvoicesFromDisk();
+    const inv = invoices.find(
       (i) => i.id === idOrNumber || i.invoiceNumber.toUpperCase() === idOrNumber.toUpperCase()
     );
     if (!inv) return null;
 
     inv.status = status;
     inv.updatedAt = new Date().toISOString();
+    saveInvoicesToDisk(invoices);
 
     // Sync with shipment payment status
     const shipment = await ShipmentService.getById(inv.shipmentId);

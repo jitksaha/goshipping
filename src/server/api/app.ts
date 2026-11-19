@@ -1282,7 +1282,44 @@ app.post('/invoices', async (c) => {
   }
 
   const body = await c.req.json().catch(() => null);
-  if (!body || !body.shipmentId || !Array.isArray(body.selectedItems) || body.selectedItems.length === 0) {
+  if (!body) {
+    return c.json({ error: 'Invoice data required.' }, 400);
+  }
+
+  // Combined commercial invoice for multi-orders (e.g. from POS Orders ledger)
+  if (body.isCombined || body.orderIds) {
+    const invoice = await InvoiceService.createCommercialInvoice(body);
+    await AuditService.logAction({
+      userId: user.id,
+      userName: user.fullName,
+      action: 'INVOICE_GENERATED',
+      entityType: 'invoice',
+      entityId: invoice.id,
+      details: { invoiceNumber: invoice.invoiceNumber, orderIds: body.orderIds, totalBDT: invoice.totalBDT }
+    });
+
+    // Mark orders as invoiced in POS ledger if orderIds provided
+    if (Array.isArray(body.orderIds) && body.orderIds.length > 0) {
+      try {
+        const { PosLedgerService } = await import('./services/posLedger.service');
+        const posOrders = await PosLedgerService.getAllRecords();
+        for (const r of posOrders) {
+          if (body.orderIds.includes(r.id) || body.orderIds.includes(r.orderId)) {
+            await PosLedgerService.updateRecord(r.id, {
+              ...r,
+              invoiceNumber: invoice.invoiceNumber
+            } as any);
+          }
+        }
+      } catch (posErr) {
+        console.error('Failed syncing invoiceNumber to POS ledger orders:', posErr);
+      }
+    }
+
+    return c.json({ success: true, invoice });
+  }
+
+  if (!body.shipmentId || !Array.isArray(body.selectedItems) || body.selectedItems.length === 0) {
     return c.json({ error: 'Shipment ID and at least one arrived product must be selected.' }, 400);
   }
 

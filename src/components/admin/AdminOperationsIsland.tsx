@@ -315,6 +315,7 @@ interface UserRowActionMenuProps {
   onEdit: (u: any) => void;
   onToggleStatus: (id: string, status: string) => void;
   onDelete: (id: string, name: string) => void;
+  onViewOrders?: (customerName: string) => void;
   openUpward?: boolean;
 }
 
@@ -324,6 +325,7 @@ function UserRowActionMenu({
   onEdit,
   onToggleStatus,
   onDelete,
+  onViewOrders,
   openUpward = false
 }: UserRowActionMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -389,6 +391,28 @@ function UserRowActionMenu({
                 <span className="block text-[10px] text-slate-400">Masquerade session</span>
               </div>
             </button>
+
+            {/* View Orders & Invoicing */}
+            {onViewOrders && (user.role === 'customer' || !['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(user.role || '')) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onViewOrders(user.companyName || user.fullName);
+                }}
+                className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer group"
+              >
+                <svg className="w-3.5 h-3.5 text-[#EA1D2C] shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+                <div>
+                  <span className="block text-xs font-semibold text-slate-900 group-hover:text-[#EA1D2C] transition-colors">View Orders &amp; Invoice</span>
+                  <span className="block text-[10px] text-slate-400">Filter orders &amp; invoice</span>
+                </div>
+              </button>
+            )}
 
             {/* 2. Edit Profile */}
             <button
@@ -6547,18 +6571,54 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </td>
 
                         <td className="py-2.5 px-3">
-                          <span className="font-medium text-slate-800 block text-xs truncate">
-                            {u.companyName || u.fullName}
-                          </span>
+                          {isCustomer ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const target = u.companyName || u.fullName;
+                                if (target) {
+                                  try { sessionStorage.setItem('goshipping_filter_customer', target); } catch {}
+                                  setActiveTab('orders');
+                                  showToast(`Filtered orders for ${target}`, 'info');
+                                }
+                              }}
+                              className="font-medium text-slate-900 hover:text-[#EA1D2C] hover:underline cursor-pointer block text-xs truncate text-left"
+                              title="Click to view and invoice all orders for this customer"
+                            >
+                              {u.companyName || u.fullName}
+                            </button>
+                          ) : (
+                            <span className="font-medium text-slate-800 block text-xs truncate">
+                              {u.companyName || u.fullName}
+                            </span>
+                          )}
                           <span className="text-slate-400 font-mono text-[11px] block truncate">
                             {u.phone || 'No phone recorded'}
                           </span>
                         </td>
 
                         <td className="py-2.5 px-3 whitespace-nowrap">
-                          <span className="font-mono font-medium text-slate-900 text-xs">
-                            {u.activeShipmentsCount ?? 0} active
-                          </span>
+                          {isCustomer ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const target = u.companyName || u.fullName;
+                                if (target) {
+                                  try { sessionStorage.setItem('goshipping_filter_customer', target); } catch {}
+                                  setActiveTab('orders');
+                                  showToast(`Filtered orders for ${target}`, 'info');
+                                }
+                              }}
+                              className="font-mono font-medium text-slate-900 hover:text-[#EA1D2C] hover:underline cursor-pointer text-xs block text-left"
+                              title="Click to filter orders in Orders ledger"
+                            >
+                              {u.activeShipmentsCount ?? 0} active
+                            </button>
+                          ) : (
+                            <span className="font-mono font-medium text-slate-900 text-xs">
+                              {u.activeShipmentsCount ?? 0} active
+                            </span>
+                          )}
                           <span className="text-slate-400 block text-[10px]">
                             {u.totalQuotesCount ?? 0} quotes
                           </span>
@@ -6586,6 +6646,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             onEdit={openEditUserModal}
                             onToggleStatus={handleToggleUserStatus}
                             onDelete={handleDeleteUser}
+                            onViewOrders={(custName) => {
+                              try { sessionStorage.setItem('goshipping_filter_customer', custName); } catch {}
+                              setActiveTab('orders');
+                              showToast(`Filtered orders for ${custName}`, 'info');
+                            }}
                             openUpward={idx >= Math.max(0, filteredUsers.length - 2)}
                           />
                         </td>
