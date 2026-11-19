@@ -8,9 +8,18 @@ export const ALL: APIRoute = async (context) => {
   // delegate cleanly to Astro's context.cookies so the browser receives ONE authoritative cookie
   const setCookieHeader = response.headers.get('set-cookie');
   if (setCookieHeader) {
+    const rawHost =
+      context.request.headers.get('x-forwarded-host') ||
+      context.request.headers.get('x-original-host') ||
+      context.request.headers.get('host') ||
+      context.url.hostname;
+    const hostname = rawHost.split(':')[0].toLowerCase();
+    const isGoshippingDomain = hostname.includes('goshipping.com.bd');
+    const cookieDomain = isGoshippingDomain ? '.goshipping.com.bd' : undefined;
+
     const isLogout = setCookieHeader.includes('goshipping_session=;') || setCookieHeader.includes('Max-Age=0');
     if (isLogout) {
-      context.cookies.delete('goshipping_session', { path: '/' });
+      context.cookies.delete('goshipping_session', { path: '/', domain: cookieDomain });
     } else {
       const sessionMatch = setCookieHeader.match(/goshipping_session=([^;]+)/);
       if (sessionMatch && sessionMatch[1]) {
@@ -20,6 +29,7 @@ export const ALL: APIRoute = async (context) => {
           httpOnly: true,
           sameSite: 'lax',
           secure: isSecure,
+          domain: cookieDomain,
           maxAge: 30 * 24 * 60 * 60, // 30 days
         });
       }

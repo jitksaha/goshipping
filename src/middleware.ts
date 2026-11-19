@@ -1,5 +1,5 @@
 import { defineMiddleware } from 'astro:middleware';
-import { validateSession, createSession, DEFAULT_ACCOUNTS } from './server/auth/session';
+import { validateSession, createSession, DEFAULT_ACCOUNTS, type AuthUser } from './server/auth/session';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // If prerendering static routes, pass through directly
@@ -25,8 +25,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isGoshippingDomain = hostname.includes('goshipping.com.bd');
   const cookieDomain = isGoshippingDomain ? '.goshipping.com.bd' : undefined;
 
-  // 1. Extract session from cookie (Astro cookie jar + raw cookie header fallback)
+  // 1. Extract session from cookie (Astro cookie jar + raw cookie header fallback) or URL auth token
   let sessionCookie = context.cookies.get('goshipping_session')?.value;
+  const urlAuthToken = url.searchParams.get('auth_token') || url.searchParams.get('impersonate_token');
+  if (urlAuthToken) {
+    sessionCookie = urlAuthToken;
+  }
   if (!sessionCookie) {
     const rawCookie = context.request.headers.get('cookie') || '';
     const match = rawCookie.match(/(?:^|;\s*)goshipping_session=([^;]+)/);
@@ -35,7 +39,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-  let currentUser = null;
+  let currentUser: AuthUser | null = null;
 
   if (sessionCookie) {
     const session = await validateSession(sessionCookie);
@@ -107,13 +111,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if (!currentUser) {
         return context.redirect(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
       }
-      if (currentUser.role !== 'super_admin') {
+      // If currently impersonating a customer, allow them to view customer dashboard directly
+      if (currentUser.role !== 'super_admin' && !currentUser.impersonatedBy) {
         const dest = isGoshippingDomain ? 'https://goshipping.com.bd/dashboard?error=unauthorized_admin' : '/dashboard?error=unauthorized_admin';
         return context.redirect(dest);
       }
     } else if (pathname.startsWith('/dashboard')) {
-      const dest = isGoshippingDomain ? 'https://goshipping.com.bd/dashboard' : '/dashboard';
-      return context.redirect(dest);
+      if (!currentUser) {
+        return context.redirect(`/admin/login?redirect=${encodeURIComponent(pathname)}`);
+      }
+      // Allow rendering customer dashboard directly on admin host when logged in/impersonating!
     } else {
       // Any customer marketing pages requested on admin subdomain redirect to primary domain
       if (isGoshippingDomain) {

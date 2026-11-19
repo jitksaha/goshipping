@@ -2503,13 +2503,16 @@ app.post('/admin/impersonate/:id', async (c) => {
     details: { targetEmail: targetUser.email, targetRole: targetUser.role }
   });
 
+  const rawHost = c.req.header('x-forwarded-host') || c.req.header('host') || '';
+  const isGoshippingDomain = rawHost.includes('goshipping.com.bd');
+  const domainAttr = isGoshippingDomain ? '; Domain=.goshipping.com.bd' : '';
   const isSecure = isRequestSecure(c);
-  const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}`;
+  const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
   c.header('Set-Cookie', cookieString);
 
   return c.json({
     success: true,
-    redirectUrl: targetUser.role === 'customer' ? '/dashboard' : '/admin',
+    redirectUrl: targetUser.role === 'customer' ? `/dashboard?auth_token=${sessionId}` : '/admin',
     message: `Now viewing portal as ${targetUser.fullName}`
   });
 });
@@ -2545,13 +2548,17 @@ app.post('/auth/exit-impersonation', async (c) => {
     entityId: currentUser?.id || 'unknown'
   });
 
+  const rawHost = c.req.header('x-forwarded-host') || c.req.header('host') || '';
+  const isGoshippingDomain = rawHost.includes('goshipping.com.bd');
+  const domainAttr = isGoshippingDomain ? '; Domain=.goshipping.com.bd' : '';
   const isSecure = isRequestSecure(c);
-  const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}`;
+  const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
   c.header('Set-Cookie', cookieString);
 
+  const redirectUrl = isGoshippingDomain ? 'https://admin.goshipping.com.bd/admin?tab=users' : '/admin?tab=users';
   return c.json({
     success: true,
-    redirectUrl: '/admin?tab=users',
+    redirectUrl,
     message: 'Returned to Administrative Control'
   });
 });

@@ -2355,10 +2355,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   // USER MANAGEMENT HANDLERS (Ghost Login, Suspend, CRUD)
   // =========================================================
   const handleImpersonateUser = async (userId: string, userName: string) => {
-    if (!confirm(`Are you sure you want to log in as "${userName}"? You will view the portal directly through this user's profile without needing their password.`)) {
-      return;
-    }
     try {
+      showToast(`Logging into customer portal as "${userName}" (Passwordless)...`, 'info');
       const res = await fetch(`/api/admin/impersonate/${userId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -2367,7 +2365,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       if (!res.ok) throw new Error(data.error || 'Failed to impersonate user');
       window.location.href = data.redirectUrl || '/dashboard';
     } catch (err: any) {
-      alert(err.message || 'Impersonation failed');
+      showToast(err.message || 'Passwordless login failed', 'error');
     }
   };
 

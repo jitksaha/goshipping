@@ -44,7 +44,7 @@ declare global {
   var __goshipping_sessions: Map<string, SessionData> | undefined;
   var __goshipping_accounts: AuthUser[] | undefined;
   var __goshipping_passwords: Map<string, string> | undefined;
-  var __goshipping_otps: Map<string, { code: string; expiresAt: number }> | undefined;
+  var __goshipping_otps: Map<string, { code: string; expiresAt: number; attempts: number }> | undefined;
 }
 
 const memorySessions: Map<string, SessionData> =
