@@ -790,10 +790,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       paymentStatus = 'Partial';
     }
 
-    // Profit estimate: ~15% on freight + ~5% on purchase sourcing
-    const profitEstimateBdt = Math.round(((intlFreightBdt * 0.15) + (purchaseCostBdt * 0.05)) * 100) / 100;
-
-    return { totalRmb, purchaseCostBdt, intlFreightBdt, totalBillBdt, dueBdt, paymentStatus, profitEstimateBdt };
+    return { totalRmb, purchaseCostBdt, intlFreightBdt, totalBillBdt, dueBdt, paymentStatus };
   }, [orderScope, sourcingQuantity, sourcingUnitPriceRmb, sourcingRmbRateBdt, grossWeightKgInput, orderTotals.chargeableWeight, orderTotals.totalWeight, freightRatePerKgBdt, newMode, advancePaidBdt]);
 
   const [submittingConsignment, setSubmittingConsignment] = useState(false);
@@ -4659,13 +4656,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       <span className="font-bold text-xs text-[#EA1D2C]">Balance Due</span>
                       <span className="font-bold text-sm text-[#EA1D2C] font-mono">
                         ৳{dynamicFinanceTotals.dueBdt.toLocaleString()}
-                      </span>
-                    </div>
-
-                    <div className="py-0.5 flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">Est. Profit Margin</span>
-                      <span className="font-bold text-emerald-700 font-mono">
-                        +৳{dynamicFinanceTotals.profitEstimateBdt.toLocaleString()} (~15%)
                       </span>
                     </div>
                   </div>

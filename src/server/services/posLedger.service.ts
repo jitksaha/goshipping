@@ -38,7 +38,7 @@ export interface PosLedgerRecord {
   bdCourierName?: string;
   bdTrackingNo?: string;
   remark?: string;
-  profitEstimateBdt: number;
+  profitEstimateBdt?: number;
   sheetSyncStatus?: 'synced' | 'failed' | 'pending';
   sheetSyncedAt?: string;
   sheetSyncError?: string;
@@ -59,7 +59,6 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
   internationalFreightBdt: number;
   totalBillBdt: number;
   paymentStatus: 'Due' | 'Paid' | 'Partial';
-  profitEstimateBdt: number;
 } {
   const qty = Number(input.quantity) || 0;
   const unitRmb = Number(input.unitPriceRmb) || 0;
@@ -86,23 +85,19 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
     paymentStatus = 'Due';
   }
 
-  // Estimated profit: freight margin + sourcing commission (~5%)
-  const profitEstimateBdt = Math.round(((intlFreightBdt * 0.15) + (purchaseCostBdt * 0.05)) * 100) / 100;
-
   return {
     totalPurchaseRmb: totalRmb,
     purchaseCostBdt,
     purchaseCostDueBdt: purchaseDueBdt,
     internationalFreightBdt: intlFreightBdt,
     totalBillBdt,
-    paymentStatus,
-    profitEstimateBdt
+    paymentStatus
   };
 }
 
 function getInitialRecords(): PosLedgerRecord[] {
   const today = new Date().toISOString().split('T')[0];
-  const items: Array<Omit<PosLedgerRecord, 'id' | 'totalPurchaseRmb' | 'purchaseCostBdt' | 'purchaseCostDueBdt' | 'internationalFreightBdt' | 'totalBillBdt' | 'paymentStatus' | 'profitEstimateBdt' | 'createdAt' | 'updatedAt'>> = [
+  const items: Array<Omit<PosLedgerRecord, 'id' | 'totalPurchaseRmb' | 'purchaseCostBdt' | 'purchaseCostDueBdt' | 'internationalFreightBdt' | 'totalBillBdt' | 'paymentStatus' | 'createdAt' | 'updatedAt'>> = [
     {
       orderId: 'GOS-00001',
       orderDate: today,
@@ -427,7 +422,6 @@ export class PosLedgerService {
       bdCourierName: payload.bdCourierName || 'Steadfast',
       bdTrackingNo: payload.bdTrackingNo || '',
       remark: payload.remark || '',
-      profitEstimateBdt: calc.profitEstimateBdt,
       sheetSyncStatus: 'pending',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -469,8 +463,7 @@ export class PosLedgerService {
         paymentStatus: record.paymentStatus,
         bdCourierName: record.bdCourierName,
         bdTrackingNo: record.bdTrackingNo,
-        remark: record.remark,
-        profitEstimateBdt: String(record.profitEstimateBdt)
+        remark: record.remark
       });
     } catch {}
 
@@ -571,8 +564,7 @@ export class PosLedgerService {
         paymentStatus: updated.paymentStatus,
         bdCourierName: updated.bdCourierName,
         bdTrackingNo: updated.bdTrackingNo,
-        remark: updated.remark,
-        profitEstimateBdt: String(updated.profitEstimateBdt)
+        remark: updated.remark
       }).where(eq(posLedger.id, existing.id));
     } catch {}
 
@@ -635,7 +627,6 @@ export class PosLedgerService {
     let totalBilledBdt = 0;
     let totalCollectedBdt = 0;
     let totalDueBdt = 0;
-    let totalProfitBdt = 0;
     let totalWeightKg = 0;
 
     for (const r of memoryLedger) {
@@ -645,7 +636,6 @@ export class PosLedgerService {
       totalBilledBdt += Number(r.totalBillBdt) || 0;
       totalCollectedBdt += Number(r.purchaseCostPaidBdt) || 0;
       totalDueBdt += Number(r.purchaseCostDueBdt) || 0;
-      totalProfitBdt += Number(r.profitEstimateBdt) || 0;
       totalWeightKg += Number(r.bdWeightKg || r.cnWeightKg) || 0;
     }
 
@@ -657,13 +647,12 @@ export class PosLedgerService {
       totalBilledBdt: Math.round(totalBilledBdt),
       totalCollectedBdt: Math.round(totalCollectedBdt),
       totalDueBdt: Math.round(totalDueBdt),
-      totalProfitBdt: Math.round(totalProfitBdt),
       totalWeightKg: Math.round(totalWeightKg * 10) / 10
     };
   }
 
   /**
-   * Export to 1:1 Google Sheet CSV (29 Columns matching GoShipping Sheet1 A-AC)
+   * Export to 1:1 Google Sheet CSV (28 Columns matching GoShipping Sheet1 A-AB)
    */
   static exportToCsv(): string {
     const headers = [
@@ -694,8 +683,7 @@ export class PosLedgerService {
       'Total Bill (BDT) [Auto]',
       'Payment Status [Auto]',
       'BD Tracking No',
-      'Remark / Customer Update',
-      'Profit Estimate (BDT) [Auto]'
+      'Remark / Customer Update'
     ];
 
     const escape = (val: any) => `"${String(val ?? '').replace(/"/g, '""')}"`;
@@ -728,8 +716,7 @@ export class PosLedgerService {
       escape(r.totalBillBdt.toFixed(2)),
       escape(r.paymentStatus),
       escape(r.bdCourierName ? `${r.bdCourierName}: ${r.bdTrackingNo || ''}` : (r.bdTrackingNo || '')),
-      escape(r.remark),
-      escape(r.profitEstimateBdt.toFixed(2))
+      escape(r.remark)
     ].join(','));
 
     return [headers.map(escape).join(','), ...rows].join('\n');

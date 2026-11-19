@@ -3,7 +3,7 @@
  * GoShipping Official POS Ledger & Order Synchronization Script
  * Target Spreadsheet: https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0
  * Sheet / Tab Name: "Sheet1" (or "All-in-One")
- * Total Columns: 29 (Columns A to AC)
+ * Total Columns: 28 (Columns A to AB)
  * =========================================================================
  *
  * HOW TO DEPLOY:
@@ -48,8 +48,7 @@ var HEADERS = [
   "Total Bill (BDT) [Auto]",           // 25 (Y)
   "Payment Status [Auto]",             // 26 (Z)
   "BD Tracking No",                    // 27 (AA)
-  "Remark / Customer Update",          // 28 (AB)
-  "Profit Estimate (BDT) [Auto]"       // 29 (AC)
+  "Remark / Customer Update"           // 28 (AB)
 ];
 
 /**
@@ -157,8 +156,8 @@ function doPost(e) {
       mobile = "'" + mobile;
     }
 
-    // Build the 29-column row array (matching GoShipping 2026 Spreadsheet A to AC)
-    var rowValues = (data.rowValues && data.rowValues.length === 29) ? data.rowValues : [
+    // Build the 28-column row array (matching GoShipping 2026 Spreadsheet A to AB)
+    var rowValues = (data.rowValues && data.rowValues.length >= 28) ? data.rowValues.slice(0, 28) : [
       data.orderId || '',
       data.orderDate || '',
       data.cnDate || '',
@@ -186,8 +185,7 @@ function doPost(e) {
       Number(data.totalBillBdt) || 0,
       data.paymentStatus || 'Due',
       data.bdTrackingNo || '',
-      data.remark || '',
-      Number(data.profitEstimateBdt) || 0
+      data.remark || ''
     ];
 
     if (targetRow > 0) {

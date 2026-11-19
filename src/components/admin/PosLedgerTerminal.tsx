@@ -10,7 +10,6 @@ interface PosStats {
   totalBilledBdt: number;
   totalCollectedBdt: number;
   totalDueBdt: number;
-  totalProfitBdt: number;
   totalWeightKg: number;
 }
 
@@ -155,16 +154,13 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
       paymentStatus = 'Partial';
     }
 
-    const profitEstimateBdt = Math.round(((intlFreightBdt * 0.15) + (purchaseCostBdt * 0.05)) * 100) / 100;
-
     return {
       totalRmb,
       purchaseCostBdt,
       purchaseDueBdt,
       intlFreightBdt,
       totalBillBdt,
-      paymentStatus,
-      profitEstimateBdt
+      paymentStatus
     };
   }, [formData]);
 
@@ -550,10 +546,10 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   };
 
   const copyHeadersToClipboard = () => {
-    const headersTab = "Order ID\tOrder Date\tCN Date\tChina Courier Tracking (SF/ZTO)\tCustomer Name\tCurrent Status\tMobile No\tImporter / Client\tShipping Mark\tWebsite Order No\tItem / Product Details\tSupplier / Shop Name\tQuantity (Pcs)\tUnit Price (RMB)\tTotal Purchase (RMB) [Auto]\tRMB Rate (BDT)\tPurchase Cost (BDT) [Auto]\tPurchase Cost Paid     [ Customer ]\tPurchase Cost Due [Auto]\tService Type\tBD Date\tBD Weight (KG)\tShipping Rate / KG (BDT)\tInternational Freight (BDT) [Auto]\tTotal Bill (BDT) [Auto]\tPayment Status [Auto]\tBD Tracking No\tRemark / Customer Update\tProfit Estimate (BDT) [Auto]";
+    const headersTab = "Order ID\tOrder Date\tCN Date\tChina Courier Tracking (SF/ZTO)\tCustomer Name\tCurrent Status\tMobile No\tImporter / Client\tShipping Mark\tWebsite Order No\tItem / Product Details\tSupplier / Shop Name\tQuantity (Pcs)\tUnit Price (RMB)\tTotal Purchase (RMB) [Auto]\tRMB Rate (BDT)\tPurchase Cost (BDT) [Auto]\tPurchase Cost Paid     [ Customer ]\tPurchase Cost Due [Auto]\tService Type\tBD Date\tBD Weight (KG)\tShipping Rate / KG (BDT)\tInternational Freight (BDT) [Auto]\tTotal Bill (BDT) [Auto]\tPayment Status [Auto]\tBD Tracking No\tRemark / Customer Update";
     navigator.clipboard.writeText(headersTab);
     setCopiedHeaders(true);
-    showToast('29 Column Titles copied! Paste directly in cell A1 of Google Sheets', 'success');
+    showToast('28 Column Titles copied! Paste directly in cell A1 of Google Sheets', 'success');
     setTimeout(() => setCopiedHeaders(false), 3000);
   };
 
@@ -562,7 +558,7 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
  * =========================================================================
  * GoShipping Official POS Ledger & Order Synchronization Script 2026
  * Target Spreadsheet: https://docs.google.com/spreadsheets/d/1K7JQIwYXmKjy6CsLufuV-2Adljqg2qhJSwUQOboJUwQ/edit?gid=0#gid=0
- * Sheet Tab Name: "Sheet1" (Cols A to AC: 29 Columns)
+ * Sheet Tab Name: "Sheet1" (Cols A to AB: 28 Columns)
  * =========================================================================
  */
 var HEADERS = [
@@ -593,8 +589,7 @@ var HEADERS = [
   "Total Bill (BDT) [Auto]",           // 25 (Y)
   "Payment Status [Auto]",             // 26 (Z)
   "BD Tracking No",                    // 27 (AA)
-  "Remark / Customer Update",          // 28 (AB)
-  "Profit Estimate (BDT) [Auto]"       // 29 (AC)
+  "Remark / Customer Update"           // 28 (AB)
 ];
 
 function setupSheet() {
@@ -713,8 +708,7 @@ function doPost(e) {
       Number(data.totalBillBdt) || 0,
       data.paymentStatus || 'Due',
       data.bdTrackingNo || '',
-      data.remark || '',
-      Number(data.profitEstimateBdt) || 0
+      data.remark || ''
     ];
     
     if (targetRow > 0) {
@@ -909,8 +903,8 @@ function doPost(e) {
             {renderSparkline(analytics.revenuePoints, '#10B981', 'rgba(16, 185, 129, 0.12)')}
           </div>
           <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-100">
-            <span className="text-emerald-700 font-mono font-bold">Net: ৳{(stats?.totalProfitBdt || 0).toLocaleString()}</span>
-            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">~15% Margin</span>
+            <span className="text-slate-600 font-mono font-medium">Orders: <strong className="text-slate-900 font-bold">{stats?.totalOrders || 0}</strong></span>
+            <span className="text-[10px] font-bold text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">Freight: ৳{(stats?.totalFreightBdt || 0).toLocaleString()}</span>
           </div>
         </div>
 
@@ -1320,9 +1314,6 @@ function doPost(e) {
                     <td className="py-3 px-4 border-r border-slate-200 text-right font-mono">
                       <div className="font-extrabold text-slate-900 text-sm">
                         ৳{Number(r.totalBillBdt).toLocaleString()}
-                      </div>
-                      <div className="text-[10px] text-emerald-600 font-semibold">
-                        Margin: +৳{Number(r.profitEstimateBdt).toLocaleString()}
                       </div>
                       <div className="mt-1">
                         <button
@@ -1900,7 +1891,7 @@ function doPost(e) {
                 </div>
               </div>
 
-              {/* Section 3: Live Real-time POS Calculator (RMB + BDT + Freight + Profit) */}
+              {/* Section 3: Live Real-time POS Calculator (RMB + BDT + Freight) */}
               <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/80 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-900 block">
@@ -2486,8 +2477,7 @@ function doPost(e) {
                     "M: Quantity (Pcs)", "N: Unit Price (RMB)", "O: Total Purchase RMB [Auto]", "P: RMB Rate (BDT)",
                     "Q: Purchase Cost BDT [Auto]", "R: Purchase Cost Paid", "S: Purchase Cost Due [Auto]", "T: Service Type",
                     "U: BD Date", "V: BD Weight (KG)", "W: Shipping Rate / KG", "X: Int'l Freight [Auto]",
-                    "Y: Total Bill [Auto]", "Z: Payment Status [Auto]", "AA: BD Tracking No", "AB: Remark / Update",
-                    "AC: Profit Estimate [Auto]"
+                    "Y: Total Bill [Auto]", "Z: Payment Status [Auto]", "AA: BD Tracking No", "AB: Remark / Update"
                   ].map((col, idx) => (
                     <div key={idx} className="px-2 py-1 rounded bg-slate-50 border border-slate-200 text-slate-700 truncate">
                       {col}

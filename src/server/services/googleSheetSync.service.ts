@@ -37,8 +37,7 @@ export const GOOGLE_SHEET_HEADERS_29 = [
   'Total Bill (BDT) [Auto]',           // 25 (Y)
   'Payment Status [Auto]',             // 26 (Z)
   'BD Tracking No',                    // 27 (AA)
-  'Remark / Customer Update',          // 28 (AB)
-  'Profit Estimate (BDT) [Auto]'       // 29 (AC)
+  'Remark / Customer Update'           // 28 (AB)
 ] as const;
 
 const DEFAULT_WEBHOOK_URL =
@@ -142,8 +141,7 @@ export function formatRecordForSheet(record: PosLedgerRecord & { oldOrderId?: st
     Number(record.totalBillBdt || 0),
     record.paymentStatus || 'Due',
     record.bdTrackingNo || '',
-    record.remark || '',
-    Number(record.profitEstimateBdt || 0)
+    record.remark || ''
   ];
 
   return {
@@ -176,8 +174,7 @@ export function formatRecordForSheet(record: PosLedgerRecord & { oldOrderId?: st
     bdCourierName: record.bdCourierName || '',
     bdTrackingNo: record.bdTrackingNo || '',
     remark: record.remark || '',
-    profitEstimateBdt: Number(record.profitEstimateBdt || 0),
-    // Pre-aligned 29 values for Columns A to AC
+    // Pre-aligned 28 values for Columns A to AB
     rowValues,
     oldOrderId: (record as any).oldOrderId || undefined,
     previousOrderId: (record as any).previousOrderId || (record as any).oldOrderId || undefined,
