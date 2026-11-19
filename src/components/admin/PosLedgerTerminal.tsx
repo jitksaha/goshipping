@@ -43,6 +43,7 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   const [isRetryingFailed, setIsRetryingFailed] = useState(false);
   const [showDetailedReport, setShowDetailedReport] = useState(true);
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
   const failedSyncsCount = useMemo(() => {
     return records.filter((r) => r.sheetSyncStatus === 'failed').length;
@@ -370,6 +371,41 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
       showToast(`Downloaded official PDF receipt for ${rec.orderId}`, 'success');
     } catch {
       showToast('Failed to generate PDF receipt', 'error');
+    }
+  };
+
+  const handleCopyTrackingLink = async (rec: PosLedgerRecord) => {
+    const code = (rec.bdTrackingNo && rec.bdTrackingNo.toUpperCase().startsWith('GOSH-'))
+      ? rec.bdTrackingNo.trim()
+      : (rec.orderId || rec.bdTrackingNo || rec.id);
+
+    const baseUrl = typeof window !== 'undefined' && window.location.origin.includes('admin.')
+      ? 'https://goshipping.com.bd'
+      : (typeof window !== 'undefined' ? window.location.origin : 'https://goshipping.com.bd');
+
+    const trackingUrl = `${baseUrl}/tracking?code=${encodeURIComponent(code)}`;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(trackingUrl);
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = trackingUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      setCopiedOrderId(rec.id);
+      showToast(`Copied tracking link: ${trackingUrl}`, 'success');
+      setTimeout(() => {
+        setCopiedOrderId((prev) => (prev === rec.id ? null : prev));
+      }, 2000);
+    } catch {
+      showToast('Could not copy link to clipboard', 'error');
     }
   };
 
@@ -1133,7 +1169,7 @@ function doPost(e) {
                 <th className="py-3 px-4 border-r border-slate-200 text-center min-w-[100px]">
                   Sheet Sync
                 </th>
-                <th className="py-3 px-4 text-right sticky right-0 bg-slate-100 z-10 min-w-[140px]">
+                <th className="py-3 px-4 text-right sticky right-0 bg-slate-100 z-10 min-w-[175px]">
                   Actions
                 </th>
               </tr>
@@ -1368,6 +1404,29 @@ function doPost(e) {
                           </svg>
                         </button>
 
+                        {/* Copy Public Tracking Link */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyTrackingLink(r)}
+                          className={`p-1.5 rounded-lg border cursor-pointer shadow-2xs transition-colors ${
+                            copiedOrderId === r.id
+                              ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                              : 'border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 text-slate-700 hover:text-blue-600'
+                          }`}
+                          title={copiedOrderId === r.id ? 'Tracking Link Copied!' : 'Copy Public Tracking Link'}
+                        >
+                          {copiedOrderId === r.id ? (
+                            <svg className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                          )}
+                        </button>
+
                         {/* Edit Button */}
                         <button
                           type="button"
@@ -1514,6 +1573,27 @@ function doPost(e) {
                       <line x1="16" y1="13" x2="8" y2="13" />
                       <line x1="16" y1="17" x2="8" y2="17" />
                     </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyTrackingLink(r)}
+                    className={`p-1.5 rounded-lg border text-xs shadow-2xs transition-colors ${
+                      copiedOrderId === r.id
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                        : 'border-slate-200 bg-white hover:bg-blue-50 hover:border-blue-200 text-slate-700 hover:text-blue-600'
+                    }`}
+                    title={copiedOrderId === r.id ? 'Tracking Link Copied!' : 'Copy Tracking Link'}
+                  >
+                    {copiedOrderId === r.id ? (
+                      <svg className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    ) : (
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                    )}
                   </button>
                   <button
                     type="button"
