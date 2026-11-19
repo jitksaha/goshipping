@@ -232,12 +232,84 @@ export function normalizeStatusCode(input: string | undefined): TrackingStatusCo
     return clean as TrackingStatusCode;
   }
 
-  // Legacy mappings
-  if (clean === 'order_created') return 'purchased';
-  if (clean === 'warehouse_received') return 'cn_warehouse_received';
-  if (clean === 'in_transit') return 'dispatched_from_china';
-  if (clean === 'customs_clearance') return 'awaiting_customs';
-  if (clean === 'exception') return 'awaiting_customs';
+  // 1. Delivered / Completed
+  if (clean.includes('delivered') || clean.includes('completed') || clean.includes('pod_received')) {
+    return 'delivered';
+  }
 
-  return 'cn_warehouse_received';
+  // 2. Out for delivery / Courier dispatch
+  if (clean.includes('out_for_delivery') || clean.includes('courier') || clean.includes('last_mile') || clean.includes('dispatch_unit')) {
+    return 'out_for_delivery';
+  }
+
+  // 3. Payment received
+  if (clean.includes('payment_received') || clean === 'paid') {
+    return 'payment_received';
+  }
+
+  // 4. BD Warehouse / Dhaka Sorting Hub
+  if (
+    clean.includes('bd_warehouse') ||
+    clean.includes('bd_hub') ||
+    clean.includes('dhaka_warehouse') ||
+    clean.includes('sorting_hub') ||
+    clean.includes('received_in_bd')
+  ) {
+    return 'bd_warehouse_received';
+  }
+
+  // 5. Customs Clearance / HSIA / Awaiting Customs / Port Inspection
+  if (
+    clean.includes('customs') ||
+    clean.includes('clearance') ||
+    clean.includes('appraisal') ||
+    clean.includes('exception')
+  ) {
+    return 'awaiting_customs';
+  }
+
+  // 6. Arrived Airport / DAC / Flight Touchdown
+  if (
+    clean.includes('arrived') &&
+    (clean.includes('airport') || clean.includes('dac') || clean.includes('hsia') || clean.includes('dhaka'))
+  ) {
+    return 'arrived_dhaka_airport';
+  }
+
+  // 7. Dispatched from China / In Transit / International Freight / Cargo Flight
+  if (
+    clean.includes('dispatched') ||
+    clean.includes('in_transit') ||
+    clean.includes('flight') ||
+    clean.includes('vessel') ||
+    clean.includes('shipped') ||
+    clean.includes('linehaul')
+  ) {
+    return 'dispatched_from_china';
+  }
+
+  // 8. CN Warehouse Received / China Hub
+  if (
+    clean.includes('cn_warehouse') ||
+    clean.includes('cn_hub') ||
+    clean.includes('received_in_cn') ||
+    clean.includes('guangzhou_hub') ||
+    clean.includes('warehouse_received') ||
+    clean.includes('cn_received')
+  ) {
+    return 'cn_warehouse_received';
+  }
+
+  // 9. Purchased / Processing / Order Created
+  if (
+    clean.includes('purchased') ||
+    clean.includes('processing') ||
+    clean.includes('order_created') ||
+    clean.includes('pending') ||
+    clean.includes('booked')
+  ) {
+    return 'purchased';
+  }
+
+  return 'purchased';
 }

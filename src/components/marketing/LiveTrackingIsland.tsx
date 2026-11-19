@@ -503,7 +503,7 @@ export default function LiveTrackingIsland({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Enter Tracking Code, AWB, B/L, Account Email, or Phone Number..."
+              placeholder="Enter Order ID (e.g. GOS-00005), Phone Number, Mark, or Tracking Code..."
               className="w-full h-11 pl-10 pr-4 text-xs font-mono font-medium rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:bg-white focus:border-[#EA1D2C] focus:ring-2 focus:ring-[#EA1D2C]/20 transition-none outline-none"
             />
           </div>

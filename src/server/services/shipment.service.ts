@@ -9,6 +9,7 @@ import {
 import { formatBstDateTime } from '../utils/date';
 import { RealtimeService } from './realtime.service';
 import { getAllAccounts } from '../auth/session';
+import { PosLedgerService, PosLedgerRecord } from './posLedger.service';
 
 export function normalizePhoneDigits(phone?: string | null): string {
   if (!phone) return '';
@@ -24,11 +25,373 @@ export function isPhoneMatch(query: string, target?: string | null): boolean {
   if (qDigits === tDigits) return true;
 
   // In Bangladesh: standard 10 or 11 digits: e.g. 01711002233 vs 8801711002233
+  // Also compare last 9 digits (ignoring leading 0 or country code)
+  const qLast9 = qDigits.slice(-9);
+  const tLast9 = tDigits.slice(-9);
+  if (qLast9.length === 9 && tLast9.length === 9 && qLast9 === tLast9) return true;
+
   const qLast10 = qDigits.slice(-10);
   const tLast10 = tDigits.slice(-10);
   if (qLast10.length === 10 && tLast10.length === 10 && qLast10 === tLast10) return true;
 
   return tDigits.endsWith(qDigits) || qDigits.endsWith(tDigits) || tDigits.includes(qDigits) || qDigits.includes(tDigits);
+}
+
+export function isOrderIdMatch(query: string, targetOrderId?: string | null): boolean {
+  if (!targetOrderId) return false;
+  const qClean = query.trim().toUpperCase();
+  const tClean = targetOrderId.trim().toUpperCase();
+
+  if (qClean === tClean) return true;
+
+  // Compare without non-alphanumeric chars: GOS-00005 vs GOS00005
+  const qAlnum = qClean.replace(/[^A-Z0-9]/g, '');
+  const tAlnum = tClean.replace(/[^A-Z0-9]/g, '');
+  if (qAlnum && tAlnum && qAlnum === tAlnum) return true;
+
+  // Check numeric tail: e.g. "00005" or "5" against "GOS-00005"
+  const qNumMatch = qClean.match(/(\d+)$/);
+  const tNumMatch = tClean.match(/(\d+)$/);
+  if (qNumMatch && tNumMatch) {
+    const qNum = parseInt(qNumMatch[1], 10);
+    const tNum = parseInt(tNumMatch[1], 10);
+    if (!isNaN(qNum) && !isNaN(tNum) && qNum === tNum) {
+      if (/^\d+$/.test(qClean) || qClean.startsWith('GOS') || qClean.startsWith('POS')) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+export function isShippingMarkMatch(query: string, targetMark?: string | null): boolean {
+  if (!targetMark) return false;
+  const q = query.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const t = targetMark.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!q || !t || q.length < 3) return false;
+  return q === t || t.includes(q) || q.includes(t);
+}
+
+export function isCourierTrackingMatch(query: string, trackingNo?: string | null): boolean {
+  if (!trackingNo) return false;
+  const q = query.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const t = trackingNo.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!q || !t || q.length < 4) return false;
+  return q === t || t.includes(q);
+}
+
+export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRecord {
+  const normStatus = normalizeStatusCode(record.currentStatus);
+  const statusDef = TRACKING_STATUSES[normStatus] || TRACKING_STATUSES.purchased;
+
+  let mode: 'air' | 'sea' | 'road' | 'hand_carry' = 'air';
+  const stLower = (record.serviceType || '').toLowerCase();
+  if (stLower.includes('sea') || stLower.includes('ocean')) {
+    mode = 'sea';
+  } else if (stLower.includes('road') || stLower.includes('truck')) {
+    mode = 'road';
+  }
+
+  const weight = Number(record.bdWeightKg) || Number(record.cnWeightKg) || 1.0;
+  const pieces = Number(record.quantity) || 1;
+  const trackingNumber = record.orderId || `GOS-${record.id}`;
+
+  const orderDateIso = record.orderDate
+    ? new Date(record.orderDate).toISOString()
+    : new Date(record.createdAt || Date.now()).toISOString();
+  const cnDateIso = record.cnDate
+    ? new Date(record.cnDate).toISOString()
+    : orderDateIso;
+  const bdDateIso = record.bdDate
+    ? new Date(record.bdDate).toISOString()
+    : new Date(record.updatedAt || Date.now()).toISOString();
+  const nowIso = new Date().toISOString();
+
+  // Find physical index for standard 8 stages
+  const activePhysicalIdx = PHYSICAL_STAGES.indexOf(normStatus);
+  const maxStageIdx = activePhysicalIdx >= 0 ? activePhysicalIdx : 0;
+
+  const events: ShipmentEvent[] = [];
+
+  // Stage 1: purchased
+  const stage1Time = orderDateIso;
+  events.push({
+    id: `evt-${record.id}-purchased`,
+    shipmentId: record.id,
+    status: 'purchased',
+    statusCode: 'purchased',
+    statusLabel: TRACKING_STATUSES.purchased.label,
+    title: 'PURCHASED',
+    description: record.supplierName
+      ? `Procured from ${record.supplierName} and assigned to consolidation manifest.`
+      : TRACKING_STATUSES.purchased.defaultDescription,
+    locationName: `${record.supplierName || 'China'} Supplier Warehouse, China`,
+    eventTime: stage1Time,
+    occurredAtBst: formatBstDateTime(stage1Time),
+    source: 'admin',
+    visibility: 'public',
+    eventVersion: 1
+  });
+
+  // Stage 2: cn_warehouse_received
+  if (maxStageIdx >= 1) {
+    const stage2Time = cnDateIso;
+    events.push({
+      id: `evt-${record.id}-cn-rcvd`,
+      shipmentId: record.id,
+      status: 'cn_warehouse_received',
+      statusCode: 'cn_warehouse_received',
+      statusLabel: TRACKING_STATUSES.cn_warehouse_received.label,
+      title: 'CN WAREHOUSE RECEIVED',
+      description: record.chinaCourierTracking
+        ? `Cargo received from domestic carrier ${record.chinaCourierTracking}. Weighed (${weight} KG) and palletized.`
+        : TRACKING_STATUSES.cn_warehouse_received.defaultDescription,
+      locationName: 'GoShipping Guangzhou Logistics Center, China',
+      eventTime: stage2Time,
+      occurredAtBst: formatBstDateTime(stage2Time),
+      lat: 23.3924,
+      lng: 113.2988,
+      source: 'warehouse',
+      visibility: 'public',
+      eventVersion: 2
+    });
+  }
+
+  // Stage 3: dispatched_from_china
+  if (maxStageIdx >= 2) {
+    const stage3Time = new Date(new Date(cnDateIso).getTime() + 24 * 3600000).toISOString();
+    events.push({
+      id: `evt-${record.id}-dispatched`,
+      shipmentId: record.id,
+      status: 'dispatched_from_china',
+      statusCode: 'dispatched_from_china',
+      statusLabel: TRACKING_STATUSES.dispatched_from_china.label,
+      title: 'DISPATCHED FROM CHINA',
+      description:
+        mode === 'air'
+          ? 'Export customs cleared and departed Guangzhou Baiyun (CAN) via scheduled flight.'
+          : 'Export customs cleared and departed Shenzhen Maritime Port via container vessel.',
+      locationName: mode === 'air' ? 'Guangzhou Baiyun Airport (CAN), China' : 'Shenzhen Shekou Port, China',
+      eventTime: stage3Time,
+      occurredAtBst: formatBstDateTime(stage3Time),
+      source: 'carrier_api',
+      visibility: 'public',
+      eventVersion: 3
+    });
+  }
+
+  // Stage 4: arrived_dhaka_airport
+  if (maxStageIdx >= 3) {
+    const stage4Time = bdDateIso;
+    events.push({
+      id: `evt-${record.id}-arrived-dac`,
+      shipmentId: record.id,
+      status: 'arrived_dhaka_airport',
+      statusCode: 'arrived_dhaka_airport',
+      statusLabel: TRACKING_STATUSES.arrived_dhaka_airport.label,
+      title: 'ARRIVED DHAKA AIRPORT',
+      description: 'Cargo flight touched down at Dhaka Hazrat Shahjalal International Airport (HSIA). Transferred to Cargo Village.',
+      locationName: 'HSIA Cargo Village, Dhaka, Bangladesh',
+      eventTime: stage4Time,
+      occurredAtBst: formatBstDateTime(stage4Time),
+      lat: 23.8433,
+      lng: 90.4029,
+      source: 'carrier_api',
+      visibility: 'public',
+      eventVersion: 4
+    });
+  }
+
+  // Stage 5: awaiting_customs
+  if (maxStageIdx >= 4) {
+    const stage5Time = new Date(new Date(bdDateIso).getTime() + 12 * 3600000).toISOString();
+    events.push({
+      id: `evt-${record.id}-customs`,
+      shipmentId: record.id,
+      status: 'awaiting_customs',
+      statusCode: 'awaiting_customs',
+      statusLabel: TRACKING_STATUSES.awaiting_customs.label,
+      title: 'AWAITING CUSTOMS CLEARANCE',
+      description: 'Bill of Entry submitted to NBR Customs. Document assessment and duty valuation in progress.',
+      locationName: 'Dhaka Custom House, HSIA, Bangladesh',
+      eventTime: stage5Time,
+      occurredAtBst: formatBstDateTime(stage5Time),
+      lat: 23.8433,
+      lng: 90.4029,
+      source: 'admin',
+      visibility: 'public',
+      eventVersion: 5
+    });
+  }
+
+  // Stage 6: bd_warehouse_received
+  if (maxStageIdx >= 5) {
+    const stage6Time = new Date(new Date(bdDateIso).getTime() + 24 * 3600000).toISOString();
+    events.push({
+      id: `evt-${record.id}-bd-warehouse`,
+      shipmentId: record.id,
+      status: 'bd_warehouse_received',
+      statusCode: 'bd_warehouse_received',
+      statusLabel: TRACKING_STATUSES.bd_warehouse_received.label,
+      title: 'BD WAREHOUSE RECEIVED',
+      description: 'Customs cleared and securely received at GoShipping Dhaka sorting terminal for sorting and dispatch.',
+      locationName: 'GoShipping Central Sorting Terminal, Dhaka',
+      eventTime: stage6Time,
+      occurredAtBst: formatBstDateTime(stage6Time),
+      source: 'warehouse',
+      visibility: 'public',
+      eventVersion: 6
+    });
+  }
+
+  // Independent milestone: payment_received (if paid)
+  if (record.paymentStatus === 'Paid') {
+    events.push({
+      id: `evt-${record.id}-payment`,
+      shipmentId: record.id,
+      status: 'payment_received',
+      statusCode: 'payment_received',
+      statusLabel: TRACKING_STATUSES.payment_received.label,
+      title: 'PAYMENT RECEIVED',
+      description: 'Freight tariffs, duties, and local delivery charges settled in full.',
+      locationName: 'GoShipping Corporate Finance & Billing Desk, Dhaka',
+      eventTime: record.updatedAt || nowIso,
+      occurredAtBst: formatBstDateTime(record.updatedAt || nowIso),
+      source: 'admin',
+      visibility: 'public',
+      eventVersion: 7
+    });
+  }
+
+  // Stage 7: out_for_delivery
+  if (maxStageIdx >= 6) {
+    const stage7Time = new Date(new Date(bdDateIso).getTime() + 36 * 3600000).toISOString();
+    events.push({
+      id: `evt-${record.id}-out-delivery`,
+      shipmentId: record.id,
+      status: 'out_for_delivery',
+      statusCode: 'out_for_delivery',
+      statusLabel: TRACKING_STATUSES.out_for_delivery.label,
+      title: 'OUT FOR DELIVERY',
+      description: record.bdCourierName
+        ? `Consignment handed over to ${record.bdCourierName}${record.bdTrackingNo ? ` (Tracking: ${record.bdTrackingNo})` : ''} for doorstep delivery.`
+        : TRACKING_STATUSES.out_for_delivery.defaultDescription,
+      locationName: 'Dhaka Metropolitan Urban Dispatch Unit',
+      eventTime: stage7Time,
+      occurredAtBst: formatBstDateTime(stage7Time),
+      source: 'driver',
+      visibility: 'public',
+      eventVersion: 8
+    });
+  }
+
+  // Stage 8: delivered
+  if (maxStageIdx >= 7) {
+    const stage8Time = new Date(new Date(bdDateIso).getTime() + 48 * 3600000).toISOString();
+    events.push({
+      id: `evt-${record.id}-delivered`,
+      shipmentId: record.id,
+      status: 'delivered',
+      statusCode: 'delivered',
+      statusLabel: TRACKING_STATUSES.delivered.label,
+      title: 'DELIVERED',
+      description: 'Package successfully delivered and received with consignee confirmation.',
+      locationName: 'Consignee Delivery Address, Bangladesh',
+      eventTime: stage8Time,
+      occurredAtBst: formatBstDateTime(stage8Time),
+      source: 'driver',
+      visibility: 'public',
+      eventVersion: 9
+    });
+  }
+
+  // Reverse events so newest is first
+  events.reverse();
+
+  // Progress
+  const physicalProgress = calculatePhysicalProgress(normStatus, events);
+
+  // Clean customer display name
+  const cleanCustomerName = (record.customerName || 'Valued Importer').replace(/\s*\([^)]*\)/g, '').trim();
+
+  // Item image
+  let productImage = '/assets/products/cotton-fabrics.svg';
+  const itemLower = (record.itemDetails || '').toLowerCase();
+  if (
+    itemLower.includes('watch') ||
+    itemLower.includes('sensor') ||
+    itemLower.includes('electronics') ||
+    itemLower.includes('earbuds') ||
+    itemLower.includes('module')
+  ) {
+    productImage = '/assets/products/electronics.svg';
+  }
+
+  return {
+    id: record.id,
+    trackingNumber,
+    productName: record.itemDetails || 'Commercial Cargo Consignment',
+    productImage,
+    customerId: `cust-${record.mobileNo.replace(/\D/g, '') || record.id}`,
+    customerName: cleanCustomerName,
+    customerPhone: record.mobileNo,
+    recipientName: cleanCustomerName,
+    recipientPhone: record.mobileNo,
+    recipientAddress: record.importerClient ? `${record.importerClient}, Dhaka, Bangladesh` : 'Dhaka, Bangladesh',
+    originCountry: 'China',
+    originCity: 'Guangzhou',
+    originAddress: 'GoShipping Guangzhou Logistics Center, China',
+    originLat: 23.3924,
+    originLng: 113.2988,
+    destCountry: 'Bangladesh',
+    destCity: 'Dhaka',
+    destAddress: 'Cargo Village, Hazrat Shahjalal International Airport, Dhaka',
+    destLat: 23.8433,
+    destLng: 90.4029,
+    mode,
+    serviceLevel: 'express',
+    status: normStatus,
+    statusCode: normStatus,
+    statusLabel: statusDef.label,
+    paymentStatus: record.paymentStatus === 'Paid' ? 'payment_received' : 'pending',
+    eventVersion: events.length,
+    currentLocation: events[0]?.locationName || statusDef.defaultLocation,
+    currentLat: events[0]?.lat,
+    currentLng: events[0]?.lng,
+    totalWeightKg: weight,
+    totalCbm: Math.max(0.01, Math.round((weight / 167) * 100) / 100),
+    totalPieces: pieces,
+    carrierName: record.bdCourierName ? `${record.bdCourierName} / GoShipping Lines` : 'GoShipping Express Linehaul',
+    carrierWaybillNumber: record.chinaCourierTracking || record.bdTrackingNo || undefined,
+    voyageOrFlightNumber: mode === 'air' ? 'Flight GS-701 (CAN-DAC)' : 'Vessel GS OCEAN-12',
+    billOfLadingNumber: record.shippingMark ? `MARK-${record.shippingMark}` : `BL-${trackingNumber}`,
+    departureTime: cnDateIso,
+    estimatedDelivery: new Date(new Date(orderDateIso).getTime() + 7 * 86400000).toISOString(),
+    actualDelivery: normStatus === 'delivered' ? bdDateIso : undefined,
+    bookingReference: record.websiteOrderNo || record.shippingMark || undefined,
+    notes: record.remark || undefined,
+    items: [
+      {
+        id: `itm-${record.id}`,
+        shipmentId: record.id,
+        itemCode: record.shippingMark ? `#${record.shippingMark}` : `#ITM-${pieces}`,
+        description: record.itemDetails || 'Commercial Cargo Items',
+        imageUrl: productImage,
+        packagingType: 'carton',
+        quantity: pieces,
+        weightKg: weight,
+        cbm: Math.max(0.01, Math.round((weight / 167) * 100) / 100),
+        categoryTag: 'Commercial',
+        currency: 'BDT'
+      }
+    ],
+    events,
+    physicalProgress,
+    createdAt: record.createdAt || nowIso,
+    updatedAt: record.updatedAt || nowIso,
+    lastUpdatedBst: formatBstDateTime(record.updatedAt || nowIso)
+  };
 }
 
 export interface ShipmentItem {
@@ -891,7 +1254,28 @@ export class ShipmentService {
     mode?: string;
     query?: string;
   }): Promise<ShipmentRecord[]> {
-    let results = [...initialShipments];
+    let posShipments: ShipmentRecord[] = [];
+    try {
+      const posRecords = await PosLedgerService.listRecords();
+      posShipments = posRecords.map(convertPosRecordToShipment);
+    } catch (e) {
+      console.error('[ShipmentService] listShipments posRecords error:', e);
+    }
+
+    const seen = new Set<string>();
+    const all: ShipmentRecord[] = [];
+    for (const p of posShipments) {
+      seen.add(p.trackingNumber.toUpperCase());
+      all.push(p);
+    }
+    for (const s of initialShipments) {
+      if (!seen.has(s.trackingNumber.toUpperCase())) {
+        seen.add(s.trackingNumber.toUpperCase());
+        all.push(s);
+      }
+    }
+
+    let results = all;
 
     if (params?.customerId) {
       const cId = params.customerId;
@@ -917,6 +1301,7 @@ export class ShipmentService {
           s.originCity.toLowerCase().includes(q) ||
           s.destCity.toLowerCase().includes(q) ||
           s.productName.toLowerCase().includes(q) ||
+          s.customerName.toLowerCase().includes(q) ||
           s.carrierName.toLowerCase().includes(q) ||
           s.voyageOrFlightNumber.toLowerCase().includes(q)
       );
@@ -942,14 +1327,33 @@ export class ShipmentService {
     const digitsOnly = normalizePhoneDigits(raw);
 
     const isEmail = cleanLower.includes('@');
+
+    // 1. Fetch all POS ledger records
+    let posRecords: PosLedgerRecord[] = [];
+    try {
+      posRecords = await PosLedgerService.listRecords();
+    } catch (e) {
+      console.error('[ShipmentService] Failed to load POS ledger records:', e);
+    }
+
     // Check if query is directly a known tracking number or carrier waybill before guessing phone number
-    const isDirectTracking = initialShipments.some(
-      (s) =>
-        s.trackingNumber.toUpperCase() === cleanUpper ||
-        s.id.toLowerCase() === cleanLower ||
-        (s.carrierWaybillNumber && s.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
-        (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper)
-    );
+    const isDirectTracking =
+      initialShipments.some(
+        (s) =>
+          s.trackingNumber.toUpperCase() === cleanUpper ||
+          s.id.toLowerCase() === cleanLower ||
+          (s.carrierWaybillNumber && s.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
+          (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper)
+      ) ||
+      posRecords.some(
+        (r) =>
+          isOrderIdMatch(raw, r.orderId) ||
+          (r.id && r.id.toLowerCase() === cleanLower) ||
+          isShippingMarkMatch(raw, r.shippingMark) ||
+          isCourierTrackingMatch(raw, r.chinaCourierTracking) ||
+          isCourierTrackingMatch(raw, r.bdTrackingNo)
+      );
+
     const isPhone = !isDirectTracking && !isEmail && digitsOnly.length >= 6 && /^[\d\s+\-()]{6,}$/.test(raw);
     const searchType: 'tracking_code' | 'email' | 'phone' = isEmail ? 'email' : isPhone ? 'phone' : 'tracking_code';
 
@@ -971,55 +1375,115 @@ export class ShipmentService {
       }
     }
 
-    const matchedShipments = initialShipments.filter((s) => {
-      // 1. Direct tracking number / identifiers match
+    const matchedShipments: ShipmentRecord[] = [];
+    const addedIds = new Set<string>();
+
+    // 2. Search POS ledger records first (they are live operational orders)
+    for (const record of posRecords) {
+      let matches = false;
+
+      // Phone query
+      if (isPhone) {
+        if (isPhoneMatch(raw, record.mobileNo)) {
+          matches = true;
+        }
+      }
+
+      // Order ID / Tracking query
+      if (!isEmail && (isOrderIdMatch(raw, record.orderId) || (record.id && record.id.toLowerCase() === cleanLower))) {
+        matches = true;
+      }
+
+      // Shipping mark
+      if (!isEmail && !isPhone && isShippingMarkMatch(raw, record.shippingMark)) {
+        matches = true;
+      }
+
+      // Courier tracking (China SF/ZTO or BD Courier)
+      if (
+        !isEmail &&
+        !isPhone &&
+        (isCourierTrackingMatch(raw, record.chinaCourierTracking) || isCourierTrackingMatch(raw, record.bdTrackingNo))
+      ) {
+        matches = true;
+      }
+
+      // Customer name or Importer name partial match
+      if (!isEmail && !isPhone && raw.length >= 4) {
+        if (
+          record.customerName?.toLowerCase().includes(cleanLower) ||
+          record.importerClient?.toLowerCase().includes(cleanLower)
+        ) {
+          matches = true;
+        }
+      }
+
+      if (matches && !addedIds.has(record.orderId || record.id)) {
+        addedIds.add(record.orderId || record.id);
+        matchedShipments.push(convertPosRecordToShipment(record));
+      }
+    }
+
+    // 3. Search initialShipments
+    for (const s of initialShipments) {
+      if (addedIds.has(s.trackingNumber) || addedIds.has(s.id)) continue;
+
+      let matches = false;
+
+      // Direct tracking number / identifiers match
       if (
         s.trackingNumber.toUpperCase() === cleanUpper ||
         s.id.toLowerCase() === cleanLower ||
         (s.carrierWaybillNumber && s.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
         (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper)
       ) {
-        return true;
+        matches = true;
       }
 
-      // 2. Partial tracking number match (if query is not email and not phone, min 4 chars)
+      // Partial tracking number match
       if (!isEmail && !isPhone && raw.length >= 4) {
         if (s.trackingNumber.toUpperCase().includes(cleanUpper)) {
-          return true;
+          matches = true;
         }
       }
 
-      // 3. Email match
+      // Email match
       if (isEmail) {
-        if (s.customerEmail && s.customerEmail.toLowerCase() === cleanLower) return true;
-        if (s.recipientEmail && s.recipientEmail.toLowerCase() === cleanLower) return true;
-        if (matchedAccountIds.has(s.customerId)) return true;
+        if (s.customerEmail && s.customerEmail.toLowerCase() === cleanLower) matches = true;
+        if (s.recipientEmail && s.recipientEmail.toLowerCase() === cleanLower) matches = true;
+        if (matchedAccountIds.has(s.customerId)) matches = true;
       }
 
-      // 4. Phone match
+      // Phone match
       if (isPhone) {
-        if (isPhoneMatch(raw, s.customerPhone)) return true;
-        if (isPhoneMatch(raw, s.recipientPhone)) return true;
-        if (matchedAccountIds.has(s.customerId)) return true;
+        if (isPhoneMatch(raw, s.customerPhone)) matches = true;
+        if (isPhoneMatch(raw, s.recipientPhone)) matches = true;
+        if (matchedAccountIds.has(s.customerId)) matches = true;
       }
 
-      return false;
-    });
+      if (matches) {
+        addedIds.add(s.trackingNumber);
+        matchedShipments.push(s);
+      }
+    }
 
-    // Fallback: if searchType was tracking_code but didn't match, check phone or email
+    // 4. Fallback: if searchType was tracking_code but didn't match, check phone or email
     if (matchedShipments.length === 0 && !isEmail && digitsOnly.length >= 8) {
-      const phoneFallbackMatches = initialShipments.filter(
-        (s) =>
-          isPhoneMatch(raw, s.customerPhone) ||
-          isPhoneMatch(raw, s.recipientPhone) ||
-          accounts.some(
-            (acc) =>
-              (acc.phone && isPhoneMatch(raw, acc.phone) && acc.id === s.customerId) ||
-              matchedAccountIds.has(s.customerId)
-          )
-      );
-      if (phoneFallbackMatches.length > 0) {
-        return { shipments: phoneFallbackMatches, searchType: 'phone' };
+      for (const record of posRecords) {
+        if (isPhoneMatch(raw, record.mobileNo) && !addedIds.has(record.orderId || record.id)) {
+          addedIds.add(record.orderId || record.id);
+          matchedShipments.push(convertPosRecordToShipment(record));
+        }
+      }
+      for (const s of initialShipments) {
+        if (addedIds.has(s.trackingNumber) || addedIds.has(s.id)) continue;
+        if (isPhoneMatch(raw, s.customerPhone) || isPhoneMatch(raw, s.recipientPhone)) {
+          addedIds.add(s.trackingNumber);
+          matchedShipments.push(s);
+        }
+      }
+      if (matchedShipments.length > 0) {
+        return { shipments: matchedShipments, searchType: 'phone' };
       }
     }
 
@@ -1030,13 +1494,23 @@ export class ShipmentService {
    * Get single shipment by tracking number, id, email, or phone
    */
   static async getByTrackingNumber(trackingNumber: string): Promise<ShipmentRecord | null> {
-    const clean = trackingNumber.trim().toUpperCase();
+    const clean = trackingNumber.trim();
+    if (!clean) return null;
+
+    // Check POS record directly
+    try {
+      const posRec = await PosLedgerService.getById(clean);
+      if (posRec) {
+        return convertPosRecordToShipment(posRec);
+      }
+    } catch {}
+
     const direct = initialShipments.find(
-      (s) => s.trackingNumber.toUpperCase() === clean || s.id.toLowerCase() === trackingNumber.toLowerCase()
+      (s) => s.trackingNumber.toUpperCase() === clean.toUpperCase() || s.id.toLowerCase() === clean.toLowerCase()
     );
     if (direct) return { ...direct };
 
-    const { shipments } = await this.searchShipmentsUnified(trackingNumber);
+    const { shipments } = await this.searchShipmentsUnified(clean);
     return shipments.length > 0 ? { ...shipments[0] } : null;
   }
 
@@ -1045,10 +1519,22 @@ export class ShipmentService {
    */
   static async getById(idOrTracking: string): Promise<ShipmentRecord | null> {
     const clean = idOrTracking.trim();
+    if (!clean) return null;
+
+    try {
+      const posRec = await PosLedgerService.getById(clean);
+      if (posRec) {
+        return convertPosRecordToShipment(posRec);
+      }
+    } catch {}
+
     const found = initialShipments.find(
       (s) => s.id === clean || s.trackingNumber.toUpperCase() === clean.toUpperCase()
     );
-    return found || null;
+    if (found) return { ...found };
+
+    const { shipments } = await this.searchShipmentsUnified(clean);
+    return shipments.length > 0 ? { ...shipments[0] } : null;
   }
 
   /**
@@ -1297,6 +1783,49 @@ export class ShipmentService {
       paymentStatus?: 'pending' | 'payment_received';
     }
   ): Promise<ShipmentRecord | null> {
+    // 1. Check if target is a POS Ledger order
+    try {
+      const posRec = await PosLedgerService.getById(shipmentId);
+      if (posRec) {
+        const normalizedCode = normalizeStatusCode(data.status);
+        const statusDef = TRACKING_STATUSES[normalizedCode];
+
+        const updatedPos = await PosLedgerService.updateRecord(posRec.id, {
+          currentStatus: statusDef.label
+        });
+        if (updatedPos) {
+          const converted = convertPosRecordToShipment(updatedPos);
+
+          RealtimeService.broadcastShipmentUpdate({
+            trackingNumber: converted.trackingNumber,
+            shipmentId: converted.id,
+            status: converted.status,
+            statusCode: converted.statusCode,
+            statusLabel: converted.statusLabel,
+            paymentStatus: converted.paymentStatus,
+            version: converted.eventVersion,
+            updatedAt: converted.updatedAt,
+            latestEvent: {
+              id: converted.events[0]?.id || `evt-${Date.now()}`,
+              statusCode: converted.statusCode,
+              statusLabel: converted.statusLabel,
+              title: data.title || statusDef.label,
+              description: data.description || statusDef.defaultDescription,
+              locationName: data.locationName || statusDef.defaultLocation,
+              eventTime: new Date().toISOString(),
+              occurredAtBst: formatBstDateTime(new Date().toISOString()),
+              source: data.source || 'admin'
+            }
+          }).catch(() => {});
+
+          return converted;
+        }
+      }
+    } catch (e) {
+      console.error('[ShipmentService] Error updating POS status:', e);
+    }
+
+    // 2. Otherwise check initialShipments
     const shipment = initialShipments.find((s) => s.id === shipmentId || s.trackingNumber === shipmentId);
     if (!shipment) return null;
 
