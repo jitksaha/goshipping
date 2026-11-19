@@ -389,31 +389,21 @@ export default function CombinedCommercialInvoiceModal({
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-slate-100 rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-300 my-auto flex flex-col max-h-[95vh]">
-        {/* Top Control Bar (Non-Printable) */}
-        <div className="no-print bg-white px-5 py-3.5 border-b border-slate-200 rounded-t-2xl flex items-center justify-between shrink-0 flex-wrap gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-red-50 text-[#EA1D2C] border border-red-200 flex items-center justify-center font-bold text-sm">
-              <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="6 9 6 2 18 2 18 9" />
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                <rect x="6" y="14" width="12" height="8" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span>Commercial Invoice Desk</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono font-semibold">
-                  Excel-Template Parity
-                </span>
+        {/* Top Control Bar (Non-Printable, Compact) */}
+        <div className="no-print bg-white px-4 py-2.5 border-b border-slate-200/50 rounded-t-2xl flex items-center justify-between shrink-0 gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EA1D2C] shrink-0" />
+            <div className="flex items-baseline gap-2 truncate">
+              <h2 className="text-xs font-bold text-slate-900 truncate">
+                Commercial Invoice
               </h2>
-              <p className="text-[11px] text-slate-500">
-                Consolidating {selectedRecords.length} items for{' '}
-                <span className="font-semibold text-slate-800">{clientName}</span>
-              </p>
+              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                ({invoiceNumber}) · {clientName}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 shrink-0">
             {/* Record Partial Payment Button */}
             <button
               type="button"
@@ -421,108 +411,48 @@ export default function CombinedCommercialInvoiceModal({
                 setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
                 setShowPaymentModal(true);
               }}
-              className="h-9 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+              className="h-8 px-2.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
             >
-              <svg className="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
               <span>+ Record Payment</span>
             </button>
 
-            {/* Save to Invoice Desk Button */}
-            <button
-              type="button"
-              disabled={isSaving || isSaved}
-              onClick={handleSaveToInvoiceDesk}
-              className={`h-9 px-3 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
-                isSaved
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 cursor-default'
-                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400'
-              }`}
-            >
-              {isSaved ? (
-                <>
-                  <svg className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  <span>Hosted ({savedInvoiceNumber})</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                    <polyline points="17 21 17 13 7 13 7 21" />
-                    <polyline points="7 3 7 8 15 8" />
-                  </svg>
-                  <span>{isSaving ? 'Saving...' : 'Save to Desk'}</span>
-                </>
-              )}
-            </button>
-
-            {/* Download PDF Button (Primary Action) */}
+            {/* Primary Action: Download PDF Invoice */}
             <button
               type="button"
               disabled={isGeneratingPdf}
               onClick={handleDownloadPDF}
-              className="h-9 px-4 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors disabled:opacity-60"
-              title="Download professional PDF invoice directly without browser print popups"
+              className="h-8 px-3.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-[11px] font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors disabled:opacity-60"
             >
               {isGeneratingPdf ? (
                 <>
-                  <svg className="w-4 h-4 animate-spin stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                   </svg>
                   <span>Generating PDF...</span>
                 </>
               ) : (
                 <>
-                  <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <svg className="w-3.5 h-3.5 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  <span>Download PDF Invoice</span>
+                  <span>Download PDF</span>
                 </>
               )}
             </button>
 
-            {/* Direct Vector PDF Option */}
-            <button
-              type="button"
-              onClick={handleDownloadVectorPDF}
-              className="h-9 px-3 rounded-lg border border-slate-300 bg-white text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-              title="Download pure vector Mushak 6.3 PDF"
-            >
-              <svg className="w-3.5 h-3.5 text-slate-500 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-              <span>Vector PDF</span>
-            </button>
+            <div className="h-5 w-px bg-slate-200/80 mx-0.5" />
 
-            {/* System Print (Fallback Icon) */}
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="h-9 w-9 rounded-lg border border-slate-300 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 flex items-center justify-center cursor-pointer shadow-2xs transition-colors"
-              title="Print via system printer dialog"
-            >
-              <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="6 9 6 2 18 2 18 9" />
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                <rect x="6" y="14" width="12" height="8" />
-              </svg>
-            </button>
-
-            {/* Close Button */}
+            {/* Popup Close Button */}
             <button
               type="button"
               onClick={onClose}
-              className="h-9 w-9 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center cursor-pointer transition-colors"
+              className="h-8 w-8 rounded-lg border border-slate-200/80 hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center cursor-pointer transition-colors"
               title="Close modal"
+              aria-label="Close modal"
             >
-              <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="18" x2="18" y2="18" />
               </svg>
@@ -531,152 +461,146 @@ export default function CombinedCommercialInvoiceModal({
         </div>
 
         {/* Scrollable Printable Paper Canvas */}
-        <div className="overflow-y-auto p-4 sm:p-6 bg-slate-200/70">
+        <div className="overflow-y-auto p-3 sm:p-5 bg-slate-100">
           <div
             id="printable-commercial-invoice"
-            className="bg-white rounded-xl shadow-md border border-slate-300 p-6 sm:p-8 max-w-[820px] mx-auto text-slate-900 font-sans space-y-6"
+            className="bg-white rounded-xl shadow-xs border border-slate-200/40 p-5 sm:p-6 max-w-[800px] mx-auto text-slate-900 font-sans space-y-4"
           >
-            {/* Header: GoShipping Brand & Invoice Title */}
-            <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5 gap-4">
+            {/* Header: GoShipping Brand & Invoice Title (Compact & Sleek) */}
+            <div className="flex items-start justify-between border-b border-slate-200/40 pb-3 gap-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-[#EA1D2C] inline-block shrink-0" />
-                  <span className="text-2xl font-black tracking-tight text-slate-900 font-['Manrope']">
+                  <span className="w-3.5 h-3.5 rounded-full bg-[#EA1D2C] inline-block shrink-0" />
+                  <span className="text-xl font-black tracking-tight text-slate-900 font-['Manrope']">
                     Go<span className="text-[#EA1D2C]">Shipping</span>
                   </span>
                 </div>
-                <p className="text-xs font-semibold text-slate-700 mt-1">
+                <p className="text-[11px] font-semibold text-slate-700 mt-0.5">
                   China Sourcing &amp; Shipping to Bangladesh
                 </p>
-                <p className="text-[10px] text-slate-500 mt-0.5">
-                  Dhaka Hub: Plot 14, Sector 7, Uttara, Dhaka | Hotline: +880 1711 000000 | billing@goshipping.com.bd
-                </p>
-                <p className="text-[10px] font-mono text-slate-400">
-                  Website: goshipping.com.bd · Cross-Border Trade &amp; Customs Desk
+                <p className="text-[9.5px] text-slate-400 mt-0.5">
+                  Dhaka Hub: Plot 14, Sector 7, Uttara · Hotline: +880 1711 000000 · billing@goshipping.com.bd
                 </p>
               </div>
 
               <div className="text-right shrink-0">
-                <span className="inline-block px-3 py-1 rounded text-xs font-mono font-bold tracking-wider uppercase bg-[#EA1D2C] text-white">
+                <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-[#EA1D2C] text-white">
                   ORDER INVOICE
                 </span>
-                <div className="text-sm font-mono font-extrabold text-slate-900 mt-2">
+                <div className="text-xs font-mono font-bold text-slate-900 mt-1">
                   INVOICE NO: <span className="text-[#EA1D2C]">{invoiceNumber}</span>
                 </div>
-                <div className="text-xs font-medium text-slate-600 mt-0.5">
-                  DATE: <span className="font-mono font-bold text-slate-900">{issueDate}</span>
-                </div>
-                <div className="text-[11px] font-medium text-slate-500">
-                  CURRENCY: <span className="font-bold text-slate-800">BDT (৳)</span>
+                <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                  DATE: <span className="font-bold text-slate-700">{issueDate}</span> · BDT (৳)
                 </div>
               </div>
             </div>
 
-            {/* BILL TO & CUSTOMER IDENTIFICATION */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            {/* BILL TO & CUSTOMER IDENTIFICATION (Soft Borders) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {/* BILL TO BOX */}
-              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 space-y-1.5">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-1 flex items-center justify-between">
+              <div className="rounded-lg border border-slate-200/30 bg-slate-50/20 p-3 space-y-1">
+                <div className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/30 pb-1 flex items-center justify-between">
                   <span>BILL TO</span>
                   <span className="text-emerald-700 font-semibold lowercase">verified consignee</span>
                 </div>
                 <div className="grid grid-cols-3 gap-1 pt-0.5">
-                  <span className="text-slate-500 text-[11px]">Customer Name:</span>
-                  <span className="col-span-2 font-extrabold text-slate-900 text-xs">
+                  <span className="text-slate-400 text-[10.5px]">Customer Name:</span>
+                  <span className="col-span-2 font-bold text-slate-900 text-xs">
                     {clientName}
                   </span>
                 </div>
                 {contactPerson && contactPerson !== clientName && (
                   <div className="grid grid-cols-3 gap-1">
-                    <span className="text-slate-500 text-[11px]">Attn / Person:</span>
-                    <span className="col-span-2 font-semibold text-slate-800 text-[11px]">
+                    <span className="text-slate-400 text-[10.5px]">Attn / Person:</span>
+                    <span className="col-span-2 font-medium text-slate-700 text-[10.5px]">
                       {contactPerson}
                     </span>
                   </div>
                 )}
                 <div className="grid grid-cols-3 gap-1 font-mono">
-                  <span className="text-slate-500 text-[11px]">Phone / WhatsApp:</span>
-                  <span className="col-span-2 font-bold text-slate-900 text-[11px]">
+                  <span className="text-slate-400 text-[10.5px]">Phone / WhatsApp:</span>
+                  <span className="col-span-2 font-bold text-slate-900 text-[10.5px]">
                     {mobileNo}
                   </span>
                 </div>
                 {primaryRecord.importerClient && (
                   <div className="grid grid-cols-3 gap-1 font-mono">
-                    <span className="text-slate-500 text-[11px]">Business / Page:</span>
-                    <span className="col-span-2 font-medium text-slate-800 text-[11px]">
+                    <span className="text-slate-400 text-[10.5px]">Business / Page:</span>
+                    <span className="col-span-2 font-medium text-slate-700 text-[10.5px]">
                       {primaryRecord.importerClient}
                     </span>
                   </div>
                 )}
                 {shippingMark && shippingMark !== 'N/A' && (
                   <div className="grid grid-cols-3 gap-1 font-mono">
-                    <span className="text-slate-500 text-[11px]">Shipping Mark:</span>
-                    <span className="col-span-2 font-bold text-[#EA1D2C] text-[11px]">
+                    <span className="text-slate-400 text-[10.5px]">Shipping Mark:</span>
+                    <span className="col-span-2 font-bold text-[#EA1D2C] text-[10.5px]">
                       {shippingMark}
                     </span>
                   </div>
                 )}
-                <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-200/60">
-                  <span className="text-slate-500 text-[11px]">Delivery Address:</span>
-                  <span className="col-span-2 text-slate-700 text-[11px] leading-relaxed">
+                <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-200/20">
+                  <span className="text-slate-400 text-[10.5px]">Delivery Address:</span>
+                  <span className="col-span-2 text-slate-600 text-[10.5px] leading-relaxed">
                     {deliveryAddress}
                   </span>
                 </div>
               </div>
 
               {/* CONSIGNMENT & ROUTE SPECIFICATION */}
-              <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3.5 space-y-1.5">
-                <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-1 flex items-center justify-between">
+              <div className="rounded-lg border border-slate-200/30 bg-slate-50/20 p-3 space-y-1">
+                <div className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/30 pb-1 flex items-center justify-between">
                   <span>SHIPPING &amp; LOGISTICS ROUTE</span>
                   <span className="text-blue-700 font-bold">{shippingMethod}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                <div className="grid grid-cols-2 gap-2 text-[10.5px] pt-1">
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Origin Hub:</span>
+                    <span className="text-slate-400 block text-[9.5px]">Origin Hub:</span>
                     <span className="font-semibold text-slate-800">Guangzhou / Yiwu, China</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Destination Hub:</span>
+                    <span className="text-slate-400 block text-[9.5px]">Destination Hub:</span>
                     <span className="font-semibold text-slate-800">Dhaka Hub (HSIA / Chittagong)</span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Total Consignments:</span>
+                    <span className="text-slate-400 block text-[9.5px]">Total Consignments:</span>
                     <span className="font-mono font-bold text-slate-900">
                       {selectedRecords.length} Products ({totalPcs} Pcs)
                     </span>
                   </div>
                   <div>
-                    <span className="text-slate-400 block text-[10px]">Total Billed Weight:</span>
+                    <span className="text-slate-400 block text-[9.5px]">Total Billed Weight:</span>
                     <span className="font-mono font-bold text-slate-900">
                       {totalWeightKg > 0 ? `${totalWeightKg} KG` : 'Pending Weight'}
                     </span>
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-500 font-mono pt-1.5 border-t border-slate-200/60 mt-1 truncate" title={orderCodes}>
-                  <span className="text-slate-400">Order IDs:</span> {orderCodes}
+                <div className="text-[9.5px] text-slate-400 font-mono pt-1 border-t border-slate-200/20 mt-0.5 truncate" title={orderCodes}>
+                  <span>Order IDs: {orderCodes}</span>
                 </div>
               </div>
             </div>
 
-            {/* PRODUCT DETAILS TABLE (Matching Excel Format) */}
-            <div className="border border-slate-300 rounded-lg overflow-hidden shadow-2xs">
-              <div className="bg-[#EA1D2C] text-white px-3.5 py-2 font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-between">
+            {/* PRODUCT DETAILS TABLE (Clean Minimal Lines, No Vertical Grid Cages) */}
+            <div className="border border-slate-200/40 rounded-lg overflow-hidden">
+              <div className="bg-[#EA1D2C] text-white px-3 py-1.5 font-mono font-bold text-[11px] uppercase tracking-wider flex items-center justify-between">
                 <span>PRODUCT DETAILS</span>
-                <span className="text-[11px] font-normal">{selectedRecords.length} Selected Line Items</span>
+                <span className="text-[10px] font-normal">{selectedRecords.length} Selected Line Items</span>
               </div>
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-800 text-[10px] font-mono uppercase tracking-wider font-bold border-b border-slate-300">
-                    <th className="py-2.5 px-3 border-r border-slate-200 w-16 text-center">Photo</th>
-                    <th className="py-2.5 px-3 border-r border-slate-200">Product / Details</th>
-                    <th className="py-2.5 px-3 border-r border-slate-200 w-24 text-center">SKU / Model</th>
-                    <th className="py-2.5 px-3 border-r border-slate-200 w-28 text-center">Tracking No.</th>
-                    <th className="py-2.5 px-3 border-r border-slate-200 w-14 text-center">Qty</th>
-                    <th className="py-2.5 px-3 border-r border-slate-200 w-24 text-right">Unit Price (৳)</th>
-                    <th className="py-2.5 px-3 text-right w-28 font-bold">Total (৳)</th>
+                  <tr className="bg-slate-50 text-slate-600 text-[9.5px] font-mono uppercase tracking-wider font-semibold border-b border-slate-200/30">
+                    <th className="py-2 px-2.5 w-14 text-center">Photo</th>
+                    <th className="py-2 px-2.5">Product / Details</th>
+                    <th className="py-2 px-2.5 w-24 text-center">SKU / Model</th>
+                    <th className="py-2 px-2.5 w-28 text-center">Tracking No.</th>
+                    <th className="py-2 px-2.5 w-12 text-center">Qty</th>
+                    <th className="py-2 px-2.5 w-24 text-right">Unit Price (৳)</th>
+                    <th className="py-2 px-2.5 text-right w-24 font-bold">Total (৳)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-[11px] text-slate-800">
+                <tbody className="divide-y divide-slate-100/70 text-[11px] text-slate-800">
                   {selectedRecords.map((r, idx) => {
                     const unitPriceBdt = r.quantity > 0
                       ? Math.round(((Number(r.purchaseCostBdt) || 0) / r.quantity) * 100) / 100
@@ -684,11 +608,11 @@ export default function CombinedCommercialInvoiceModal({
                     const lineTotal = Number(r.purchaseCostBdt) || (unitPriceBdt * r.quantity);
 
                     return (
-                      <tr key={r.id || idx} className={idx % 2 === 1 ? 'bg-slate-50/70' : 'bg-white'}>
+                      <tr key={r.id || idx} className="hover:bg-slate-50/30 transition-colors">
                         {/* Product Photo */}
-                        <td className="py-2.5 px-2 border-r border-slate-200 text-center">
-                          <div className="w-10 h-10 mx-auto rounded border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-400 overflow-hidden">
-                            <svg className="w-5 h-5 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <td className="py-2 px-2 text-center">
+                          <div className="w-9 h-9 mx-auto rounded border border-slate-200/40 bg-slate-50/50 flex items-center justify-center text-slate-400 overflow-hidden">
+                            <svg className="w-4 h-4 stroke-[1.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <rect x="3" y="3" width="18" height="18" rx="2" />
                               <circle cx="8.5" cy="8.5" r="1.5" />
                               <polyline points="21 15 16 10 5 21" />
@@ -697,23 +621,23 @@ export default function CombinedCommercialInvoiceModal({
                         </td>
 
                         {/* Product / Details */}
-                        <td className="py-2.5 px-3 border-r border-slate-200">
+                        <td className="py-2 px-2.5">
                           <div className="font-bold text-slate-900 text-xs">{r.itemDetails}</div>
-                          <div className="text-[10px] text-slate-500 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-amber-800">{r.supplierName}</span>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-amber-800/90">{r.supplierName}</span>
                             <span>·</span>
                             <span>¥{Number(r.unitPriceRmb).toFixed(2)} @ ৳{r.rmbRateBdt}</span>
                           </div>
                         </td>
 
                         {/* SKU / Model */}
-                        <td className="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-medium text-slate-700">
+                        <td className="py-2 px-2.5 text-center font-mono font-medium text-slate-600">
                           {r.shippingMark || 'Standard'}
                         </td>
 
                         {/* Tracking No */}
-                        <td className="py-2.5 px-3 border-r border-slate-200 text-center font-mono">
-                          <div className="font-bold text-slate-900 text-[11px]">{r.orderId}</div>
+                        <td className="py-2 px-2.5 text-center font-mono">
+                          <div className="font-bold text-slate-900 text-[10.5px]">{r.orderId}</div>
                           {r.chinaCourierTracking && (
                             <div className="text-[9px] text-slate-400 truncate max-w-[100px] mx-auto" title={r.chinaCourierTracking}>
                               CN: {r.chinaCourierTracking}
@@ -722,17 +646,17 @@ export default function CombinedCommercialInvoiceModal({
                         </td>
 
                         {/* Qty */}
-                        <td className="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-semibold">
+                        <td className="py-2 px-2.5 text-center font-mono font-semibold">
                           {r.quantity}
                         </td>
 
                         {/* Unit Price (৳) */}
-                        <td className="py-2.5 px-3 border-r border-slate-200 text-right font-mono text-slate-700">
+                        <td className="py-2 px-2.5 text-right font-mono text-slate-700">
                           ৳{unitPriceBdt.toLocaleString()}
                         </td>
 
                         {/* Total (৳) */}
-                        <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900 bg-slate-50/40">
+                        <td className="py-2 px-2.5 text-right font-mono font-bold text-slate-900">
                           ৳{lineTotal.toLocaleString()}
                         </td>
                       </tr>
@@ -742,48 +666,48 @@ export default function CombinedCommercialInvoiceModal({
               </table>
             </div>
 
-            {/* PAYMENT SUMMARY & CUSTOMER OVERALL BALANCE (EXCEL ALIGNED) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-xs pt-1">
+            {/* PAYMENT SUMMARY & CUSTOMER OVERALL BALANCE (Soft Lines) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
               {/* Left Column: Settlement Bank Instructions & Customer Overall Outstanding Due */}
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Highlighted Banner: Customer Total Outstanding Due Across All Active Consignments */}
-                <div className="rounded-lg border-2 border-amber-300 bg-amber-50/80 p-3.5 space-y-2">
-                  <div className="flex items-center justify-between border-b border-amber-200 pb-1.5">
-                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-600 animate-pulse" />
+                <div className="rounded-lg border border-amber-200/50 bg-amber-50/30 p-3 space-y-1.5">
+                  <div className="flex items-center justify-between border-b border-amber-200/40 pb-1">
+                    <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
                       <span>CUSTOMER OVERALL ACCOUNT DUE (সকল অর্ডারের বকেয়া)</span>
                     </span>
-                    <span className="text-[10px] font-bold text-amber-800">
+                    <span className="text-[9.5px] font-bold text-amber-800">
                       {customerSummary ? `${customerSummary.totalOrders} Total Orders` : 'Loading...'}
                     </span>
                   </div>
 
-                  <div className="flex items-baseline justify-between pt-1">
+                  <div className="flex items-baseline justify-between pt-0.5">
                     <div>
-                      <span className="text-[11px] text-amber-950 font-medium block">
-                        Total Outstanding Across All Active Consignments:
+                      <span className="text-[10.5px] text-amber-950 font-medium block">
+                        Total Outstanding Across Consignments:
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono">
+                      <span className="text-[9.5px] text-slate-400 font-mono">
                         Including pending orders &amp; uncollected shipments
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-lg font-black font-mono text-rose-700">
+                      <span className="text-base font-black font-mono text-rose-700">
                         ৳{(customerSummary?.totalDueBdt ?? 0).toLocaleString()}
                       </span>
                     </div>
                   </div>
 
                   {customerSummary && customerSummary.orders.filter((o) => o.purchaseCostDueBdt > 0).length > 0 && (
-                    <div className="text-[10px] font-mono text-slate-600 pt-1.5 border-t border-amber-200/70 space-y-1">
+                    <div className="text-[9.5px] font-mono text-slate-600 pt-1 border-t border-amber-200/40 space-y-0.5">
                       <span className="font-semibold text-slate-700 block">Unsettled Consignments:</span>
-                      <div className="max-h-24 overflow-y-auto space-y-0.5 pr-1">
+                      <div className="max-h-20 overflow-y-auto space-y-0.5 pr-1">
                         {customerSummary.orders
                           .filter((o) => o.purchaseCostDueBdt > 0)
                           .map((o) => (
-                            <div key={o.id} className="flex items-center justify-between text-[10px] bg-white/70 px-2 py-0.5 rounded border border-amber-200/50">
+                            <div key={o.id} className="flex items-center justify-between text-[9px] bg-white/80 px-2 py-0.5 rounded border border-amber-200/30">
                               <span className="font-bold text-slate-800">{o.orderId}</span>
-                              <span className="text-slate-500 truncate max-w-[140px]">{o.itemDetails}</span>
+                              <span className="text-slate-500 truncate max-w-[130px]">{o.itemDetails}</span>
                               <span className="text-rose-600 font-bold">Due: ৳{o.purchaseCostDueBdt.toLocaleString()}</span>
                             </div>
                           ))}
@@ -793,53 +717,53 @@ export default function CombinedCommercialInvoiceModal({
                 </div>
 
                 {/* Settlement Accounts */}
-                <div className="rounded-lg border border-slate-200 p-3.5 space-y-2 bg-slate-50/40">
-                  <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200 pb-1">
+                <div className="rounded-lg border border-slate-200/30 p-3 space-y-1.5 bg-slate-50/15">
+                  <div className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/30 pb-1">
                     OFFICIAL SETTLEMENT BANK &amp; WALLETS
                   </div>
-                  <div className="text-[11px] text-slate-700 space-y-1.5 font-sans">
+                  <div className="text-[10.5px] text-slate-700 space-y-1 font-sans">
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900">1. Standard Chartered Bank:</span>
-                      <span className="font-mono text-[10px] text-slate-700">01-8492049-01</span>
+                      <span className="font-bold text-slate-800">1. Standard Chartered Bank:</span>
+                      <span className="font-mono text-[10px] text-slate-600">01-8492049-01</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900">2. The City Bank PLC:</span>
-                      <span className="font-mono text-[10px] text-slate-700">1102948291001</span>
+                      <span className="font-bold text-slate-800">2. The City Bank PLC:</span>
+                      <span className="font-mono text-[10px] text-slate-600">1102948291001</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900">3. bKash Merchant:</span>
+                      <span className="font-bold text-slate-800">3. bKash Merchant:</span>
                       <span className="font-mono text-[10px] text-[#EA1D2C] font-bold">01711-000000</span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 border-t border-slate-200 pt-1 leading-relaxed">
-                    <strong>Note:</strong> Final shipping and customs charges are calculated based on actual weight measured at Bangladesh entry gateway.
+                  <p className="text-[9.5px] text-slate-400 border-t border-slate-200/20 pt-1 leading-relaxed">
+                    <strong>Note:</strong> Final shipping charges calculated on actual weight at Bangladesh entry gateway.
                   </p>
                 </div>
               </div>
 
-              {/* Right Column: Financial Summary Table (Excel Table Aligned) */}
-              <div className="rounded-lg border border-slate-300 bg-white overflow-hidden self-start shadow-2xs">
-                <div className="bg-slate-900 text-white px-3.5 py-2 font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-between">
+              {/* Right Column: Financial Summary Table (Soft Borders) */}
+              <div className="rounded-lg border border-slate-200/40 bg-white overflow-hidden self-start shadow-2xs">
+                <div className="bg-slate-800 text-white px-3 py-1.5 font-mono font-bold text-[11px] uppercase tracking-wider flex items-center justify-between">
                   <span>PAYMENT SUMMARY</span>
-                  <span className="text-[10px] text-slate-300">AMOUNT (৳)</span>
+                  <span className="text-[9.5px] text-slate-300">AMOUNT (৳)</span>
                 </div>
                 <table className="w-full text-xs font-mono">
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100/60">
                     {/* Products Subtotal */}
                     <tr>
-                      <td className="py-2 px-3.5 text-slate-700 font-sans font-medium">Products Subtotal:</td>
-                      <td className="py-2 px-3.5 text-right font-bold text-slate-900 text-sm">
+                      <td className="py-2 px-3 text-slate-700 font-sans font-medium text-[11px]">Products Subtotal:</td>
+                      <td className="py-2 px-3 text-right font-bold text-slate-900 text-xs">
                         ৳{productsSubtotal.toLocaleString()}
                       </td>
                     </tr>
 
                     {/* Shipping / Other Charges (Editable) */}
-                    <tr className="bg-sky-50/30">
-                      <td className="py-2 px-3.5 text-slate-700 font-sans">
+                    <tr className="bg-sky-50/20">
+                      <td className="py-1.5 px-3 text-slate-700 font-sans text-[11px]">
                         <div className="flex items-center gap-1.5">
                           <span>Shipping / Other Charges:</span>
-                          <span className="no-print text-[9px] px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 font-bold uppercase">
-                            Editable
+                          <span className="no-print text-[8.5px] px-1 py-0.2 rounded bg-sky-100 text-sky-800 font-bold uppercase">
+                            Edit
                           </span>
                         </div>
                       </td>
@@ -857,7 +781,7 @@ export default function CombinedCommercialInvoiceModal({
                               step="any"
                               value={shippingCharges}
                               onChange={(e) => setShippingCharges(Number(e.target.value) || 0)}
-                              className="w-24 text-right h-7 px-1.5 font-mono font-bold text-sky-800 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                              className="w-20 text-right h-6 px-1.5 font-mono font-bold text-sky-800 border border-slate-300/80 rounded bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 text-xs"
                             />
                           </div>
                         )}
@@ -865,11 +789,11 @@ export default function CombinedCommercialInvoiceModal({
                     </tr>
 
                     {/* Manual Discount (Editable) */}
-                    <tr className="bg-amber-50/30">
-                      <td className="py-2 px-3.5 text-slate-700 font-sans">
+                    <tr className="bg-amber-50/20">
+                      <td className="py-1.5 px-3 text-slate-700 font-sans text-[11px]">
                         <div className="flex items-center gap-1.5">
                           <span>Discount / Adjustment:</span>
-                          <span className="no-print text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
+                          <span className="no-print text-[8.5px] px-1 py-0.2 rounded bg-amber-100 text-amber-800 font-bold uppercase">
                             Manual
                           </span>
                         </div>
@@ -889,7 +813,7 @@ export default function CombinedCommercialInvoiceModal({
                               value={discountBdt}
                               onChange={(e) => setDiscountBdt(Number(e.target.value) || 0)}
                               placeholder="0"
-                              className="w-24 text-right h-7 px-1.5 font-mono font-bold text-amber-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                              className="w-20 text-right h-6 px-1.5 font-mono font-bold text-amber-700 border border-slate-300/80 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 text-xs"
                             />
                           </div>
                         )}
@@ -897,18 +821,18 @@ export default function CombinedCommercialInvoiceModal({
                     </tr>
 
                     {/* GRAND TOTAL */}
-                    <tr className="bg-slate-100 font-extrabold border-t-2 border-slate-300">
-                      <td className="py-2 px-3.5 text-slate-900 font-sans text-xs uppercase tracking-wide">
+                    <tr className="bg-slate-50/50 font-bold border-t border-slate-200/40">
+                      <td className="py-2 px-3 text-slate-900 font-sans text-[11px] uppercase tracking-wide">
                         GRAND TOTAL:
                       </td>
-                      <td className="py-2 px-3.5 text-right text-base text-slate-900 font-black">
+                      <td className="py-2 px-3 text-right text-sm text-slate-900 font-extrabold">
                         ৳{grandTotalBdt.toLocaleString()}
                       </td>
                     </tr>
 
                     {/* Paid / Advance Received (Editable) */}
-                    <tr className="bg-emerald-50/40">
-                      <td className="py-2 px-3.5 text-emerald-800 font-sans font-medium">
+                    <tr className="bg-emerald-50/20">
+                      <td className="py-1.5 px-3 text-emerald-800 font-sans font-medium text-[11px]">
                         <div className="flex items-center justify-between">
                           <span>Paid / Advance:</span>
                           <button
@@ -917,7 +841,7 @@ export default function CombinedCommercialInvoiceModal({
                               setPaymentAmountInput(String(balanceDueBdt > 0 ? balanceDueBdt : ''));
                               setShowPaymentModal(true);
                             }}
-                            className="no-print text-[10px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
+                            className="no-print text-[9.5px] text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
                           >
                             + Add Entry
                           </button>
@@ -937,7 +861,7 @@ export default function CombinedCommercialInvoiceModal({
                               step="any"
                               value={advancePaidBdt}
                               onChange={(e) => setAdvancePaidBdt(Number(e.target.value) || 0)}
-                              className="w-24 text-right h-7 px-1.5 font-mono font-bold text-emerald-700 border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                              className="w-20 text-right h-6 px-1.5 font-mono font-bold text-emerald-700 border border-slate-300/80 rounded bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs"
                             />
                           </div>
                         )}
@@ -945,11 +869,11 @@ export default function CombinedCommercialInvoiceModal({
                     </tr>
 
                     {/* BALANCE DUE */}
-                    <tr className={`border-t-2 ${balanceDueBdt > 0 ? 'bg-red-50 text-rose-800 border-red-300' : 'bg-emerald-50 text-emerald-800 border-emerald-300'}`}>
-                      <td className="py-3 px-3.5 font-black font-sans text-xs uppercase tracking-wide">
+                    <tr className={`border-t border-red-200/50 ${balanceDueBdt > 0 ? 'bg-red-50/20 text-rose-800' : 'bg-emerald-50/20 text-emerald-800'}`}>
+                      <td className="py-2.5 px-3 font-bold font-sans text-xs uppercase tracking-wide">
                         {balanceDueBdt > 0 ? 'BALANCE DUE (INVOICE):' : 'INVOICE FULLY PAID:'}
                       </td>
-                      <td className="py-3 px-3.5 text-right font-black text-lg">
+                      <td className="py-2.5 px-3 text-right font-black text-base">
                         ৳{balanceDueBdt.toLocaleString()}
                       </td>
                     </tr>
@@ -957,14 +881,14 @@ export default function CombinedCommercialInvoiceModal({
                 </table>
 
                 {/* Status Badge */}
-                <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-500 font-sans">Payment Status:</span>
-                  <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider text-[10px] ${
+                <div className="px-3 py-1.5 bg-slate-50/20 border-t border-slate-200/30 flex items-center justify-between text-[10.5px]">
+                  <span className="text-slate-400 font-sans">Payment Status:</span>
+                  <span className={`px-2 py-0.2 rounded-full font-bold uppercase tracking-wider text-[9px] ${
                     paymentStatus === 'Paid'
-                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50'
                       : paymentStatus === 'Partial'
-                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                      : 'bg-red-100 text-red-800 border border-red-300'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200/50'
+                      : 'bg-red-50 text-red-700 border border-red-200/50'
                   }`}>
                     {paymentStatus}
                   </span>
@@ -972,48 +896,48 @@ export default function CombinedCommercialInvoiceModal({
               </div>
             </div>
 
-            {/* SHIPPING & PAYMENT TERMS (EXCEL SHEET ROWS 30-33) */}
-            <div className="border border-slate-200 rounded-lg p-3.5 bg-slate-50/50 text-[11px] space-y-2">
-              <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200 pb-1">
+            {/* SHIPPING & PAYMENT TERMS (Soft Border) */}
+            <div className="border border-slate-200/30 rounded-lg p-2.5 bg-slate-50/15 text-[10.5px] space-y-1">
+              <div className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200/30 pb-0.5">
                 SHIPPING &amp; PAYMENT POLICY
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-slate-700">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-600">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Shipping Mode:</span>
-                  <span className="font-semibold text-slate-900">{shippingMethod}</span>
+                  <span className="text-slate-400 block text-[9.5px]">Shipping Mode:</span>
+                  <span className="font-semibold text-slate-800">{shippingMethod}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Est. Delivery:</span>
-                  <span className="font-semibold text-slate-900">Air: 7–14 days* | Sea: 30–45 days*</span>
+                  <span className="text-slate-400 block text-[9.5px]">Est. Delivery:</span>
+                  <span className="font-semibold text-slate-800">Air: 7–14 days* | Sea: 30–45 days*</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Payment Status:</span>
-                  <span className="font-semibold text-slate-900">{paymentStatus}</span>
+                  <span className="text-slate-400 block text-[9.5px]">Payment Status:</span>
+                  <span className="font-semibold text-slate-800">{paymentStatus}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Payment Method:</span>
-                  <span className="font-semibold text-slate-900">{paymentMethod}</span>
+                  <span className="text-slate-400 block text-[9.5px]">Payment Method:</span>
+                  <span className="font-semibold text-slate-800">{paymentMethod}</span>
                 </div>
               </div>
             </div>
 
             {/* Signatures & Footer Note */}
-            <div className="pt-6 border-t border-slate-200 flex items-end justify-between text-[11px] text-slate-600">
-              <div className="space-y-1">
-                <div className="w-40 border-b border-slate-300" />
-                <div className="text-[10px] text-slate-400">Customer Receiver Signature</div>
+            <div className="pt-4 border-t border-slate-200/30 flex items-end justify-between text-[10.5px] text-slate-500">
+              <div className="space-y-0.5">
+                <div className="w-32 border-b border-slate-200/50" />
+                <div className="text-[9px] text-slate-400">Customer Receiver Signature</div>
               </div>
 
               <div className="text-center space-y-0.5">
-                <div className="font-bold text-slate-800">Thank you for choosing Go Shipping.</div>
-                <div className="text-[10px] text-slate-400">
+                <div className="font-medium text-slate-700">Thank you for choosing Go Shipping.</div>
+                <div className="text-[9px] text-slate-400">
                   Trusted Import &amp; Logistics Partner | goshipping.com.bd
                 </div>
               </div>
 
-              <div className="space-y-1 text-right">
-                <div className="w-40 border-b border-slate-900 ml-auto" />
-                <div className="text-[10px] font-bold text-slate-800">Authorized Accounts Signatory</div>
+              <div className="space-y-0.5 text-right">
+                <div className="w-32 border-b border-slate-200/50 ml-auto" />
+                <div className="text-[9px] font-bold text-slate-700">Authorized Signatory</div>
               </div>
             </div>
           </div>
