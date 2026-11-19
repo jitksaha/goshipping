@@ -474,21 +474,11 @@ export default function LiveTrackingIsland({
       )}
 
       {/* ========================================================================= */}
-      {/* 01. SEARCH & CONSIGNMENT SWITCHER BAR (Centered & Compact per client)      */}
+      {/* 01. SEARCH & CONSIGNMENT SWITCHER BAR (Full Width Matching Tracking Card)  */}
       {/* ========================================================================= */}
-      <div className="max-w-2xl mx-auto bg-white rounded-xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
-        {/* Unified Top Header Bar */}
-        <div className="flex flex-wrap items-center justify-center gap-3 text-center">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#EA1D2C] animate-pulse"></span>
-            <span className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">
-              Cargo & Consignment Tracker
-            </span>
-          </div>
-        </div>
-
+      <div className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5 shadow-xs space-y-3.5">
         {/* Unified Search Input Form */}
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           <div className="relative flex-1">
             <svg
               className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400 stroke-[2]"
@@ -504,11 +494,11 @@ export default function LiveTrackingIsland({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Enter Order ID (e.g. GOS-00005), Phone Number, Mark, or Tracking Code..."
-              className="w-full h-11 pl-10 pr-4 text-xs font-mono font-medium rounded-lg border border-slate-300 bg-white text-slate-900 placeholder-slate-400 focus:bg-white focus:border-[#EA1D2C] focus:ring-2 focus:ring-[#EA1D2C]/20 transition-none outline-none"
+              className="w-full h-11 pl-10 pr-4 text-xs font-mono font-medium rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:bg-white focus:border-[#EA1D2C] focus:ring-2 focus:ring-[#EA1D2C]/20 transition-none outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="submit"
               disabled={loading}
@@ -516,7 +506,7 @@ export default function LiveTrackingIsland({
             >
               {loading ? (
                 <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-25" />
+                  <circle cx="12" cy="12" strokeWidth="4" className="opacity-25" />
                   <path fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" className="opacity-75" />
                 </svg>
               ) : (
@@ -532,7 +522,7 @@ export default function LiveTrackingIsland({
                 type="button"
                 onClick={handleCopyTrackingLink}
                 title="Copy shareable direct tracking link"
-                className="h-11 px-3.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 text-xs font-medium flex items-center gap-1.5 transition-none cursor-pointer"
+                className="h-11 px-3.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-xs font-medium flex items-center gap-1.5 transition-none cursor-pointer"
               >
                 <svg className="w-3.5 h-3.5 stroke-[2] text-[#EA1D2C]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -545,15 +535,15 @@ export default function LiveTrackingIsland({
         </form>
 
         {/* Security & Multi-Method Guidance Strip */}
-        <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs border-t border-slate-100">
-          <div className="flex items-center gap-2 text-slate-600 text-[11px]">
+        <div className="pt-2 flex flex-wrap items-center justify-between gap-2 text-xs border-t border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-[11px]">
             <svg className="w-3.5 h-3.5 text-emerald-500 shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <span>Live telemetry, customs clearance, and consignment history.</span>
           </div>
 
-          <span className="text-[11px] text-slate-500 font-medium">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
             No login or password required for public tracking.
           </span>
         </div>

@@ -633,9 +633,11 @@ export class PosLedgerService {
       totalPurchaseRmb += Number(r.totalPurchaseRmb) || 0;
       totalPurchaseBdt += Number(r.purchaseCostBdt) || 0;
       totalFreightBdt += Number(r.internationalFreightBdt) || 0;
-      totalBilledBdt += Number(r.totalBillBdt) || 0;
-      totalCollectedBdt += Number(r.purchaseCostPaidBdt) || 0;
-      totalDueBdt += Number(r.purchaseCostDueBdt) || 0;
+      const billed = Number(r.totalBillBdt) || 0;
+      const paid = Number(r.purchaseCostPaidBdt) || 0;
+      totalBilledBdt += billed;
+      totalCollectedBdt += paid;
+      totalDueBdt += Math.max(0, billed - paid);
       totalWeightKg += Number(r.bdWeightKg || r.cnWeightKg) || 0;
     }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { PosLedgerRecord } from '../../server/services/posLedger.service';
 import { downloadPosReceiptPDF } from '../../lib/posReceiptPdf';
+import { normalizeStatusCode } from '../../server/services/tracking-status';
 
 interface PosStats {
   totalOrders: number;
@@ -23,6 +24,8 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const [serviceFilter, setServiceFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [supplierFilter, setSupplierFilter] = useState('all');
+  const [stageFilter, setStageFilter] = useState<'all' | 'processing' | 'hub' | 'transit' | 'delivered'>('all');
+  const [financialFilter, setFinancialFilter] = useState<'all' | 'paid' | 'due'>('all');
 
   // Modals & Panels
   const [showPosDrawer, setShowPosDrawer] = useState(false);
@@ -742,30 +745,43 @@ function doPost(e) {
     setTimeout(() => setCopiedScript(false), 3000);
   };
 
-  // Computed Analytics & Visual Report Metrics
+  // Computed Analytics & Visual Report Metrics (Super Dynamic & 100% Normalized)
   const analytics = useMemo(() => {
     const totalCount = records.length;
     
-    // Status pipeline counts
+    // Status pipeline counts using normalizeStatusCode so every single status is reliably mapped
     const statusCounts = {
-      processing: records.filter((r) => !r.currentStatus || r.currentStatus.toLowerCase().includes('process') || r.currentStatus.toLowerCase().includes('pending') || r.currentStatus.toLowerCase().includes('purchas')).length,
-      hub: records.filter((r) => r.currentStatus && (r.currentStatus.toLowerCase().includes('hub') || r.currentStatus.toLowerCase().includes('warehouse') || r.currentStatus.toLowerCase().includes('received'))).length,
-      transit: records.filter((r) => r.currentStatus && (r.currentStatus.toLowerCase().includes('transit') || r.currentStatus.toLowerCase().includes('flight') || r.currentStatus.toLowerCase().includes('ship') || r.currentStatus.toLowerCase().includes('air'))).length,
-      delivered: records.filter((r) => r.currentStatus && (r.currentStatus.toLowerCase().includes('deliver') || r.currentStatus.toLowerCase().includes('complete'))).length,
+      processing: records.filter((r) => normalizeStatusCode(r.currentStatus || 'purchased') === 'purchased').length,
+      hub: records.filter((r) => normalizeStatusCode(r.currentStatus || '') === 'cn_warehouse_received').length,
+      transit: records.filter((r) => ['dispatched_from_china', 'arrived_dhaka_airport', 'awaiting_customs'].includes(normalizeStatusCode(r.currentStatus || ''))).length,
+      delivered: records.filter((r) => ['bd_warehouse_received', 'out_for_delivery', 'delivered', 'payment_received'].includes(normalizeStatusCode(r.currentStatus || ''))).length,
     };
 
-    // Financial split
-    const totalBilled = stats?.totalBilledBdt || records.reduce((sum, r) => sum + (Number(r.totalBillBdt) || 0), 0);
-    const totalCollected = stats?.totalCollectedBdt || records.reduce((sum, r) => sum + (Number(r.purchaseCostPaidBdt) || 0), 0);
-    const totalDue = stats?.totalDueBdt !== undefined ? stats.totalDueBdt : Math.max(0, totalBilled - totalCollected);
+    // Live Financial split computed dynamically from loaded records
+    const liveBilled = records.reduce((sum, r) => sum + (Number(r.totalBillBdt) || 0), 0);
+    const liveCollected = records.reduce((sum, r) => sum + (Number(r.purchaseCostPaidBdt) || 0), 0);
+    const liveDue = Math.max(0, liveBilled - liveCollected);
+
+    const totalBilled = liveBilled || stats?.totalBilledBdt || 0;
+    const totalCollected = liveCollected || stats?.totalCollectedBdt || 0;
+    const totalDue = totalBilled > 0 ? Math.max(0, totalBilled - totalCollected) : (stats?.totalDueBdt || 0);
     const collectionPercent = totalBilled > 0 ? Math.min(100, Math.round((totalCollected / totalBilled) * 100)) : 0;
-    const duePercent = 100 - collectionPercent;
+    const duePercent = Math.max(0, 100 - collectionPercent);
 
     // Service breakdown
     const serviceCounts = {
-      sourcingAndShipping: records.filter((r) => r.serviceType?.toLowerCase().includes('sourcing') && r.serviceType?.toLowerCase().includes('shipping')).length,
-      sourcingOnly: records.filter((r) => r.serviceType?.toLowerCase().includes('sourcing only')).length,
-      freightCargo: records.filter((r) => !r.serviceType?.toLowerCase().includes('sourcing') || r.serviceType?.toLowerCase().includes('freight')).length,
+      sourcingAndShipping: records.filter((r) => {
+        const st = (r.serviceType || '').toLowerCase();
+        return st.includes('sourcing') && st.includes('shipping');
+      }).length,
+      sourcingOnly: records.filter((r) => {
+        const st = (r.serviceType || '').toLowerCase();
+        return st.includes('sourcing') && !st.includes('shipping');
+      }).length,
+      freightCargo: records.filter((r) => {
+        const st = (r.serviceType || '').toLowerCase();
+        return st.includes('cargo') || st.includes('freight') || (!st.includes('sourcing') && st.length > 0);
+      }).length,
     };
 
     // Trend points from records for sparklines
@@ -788,6 +804,35 @@ function doPost(e) {
       weightPoints: weightRaw.length >= 2 ? weightRaw : [8, 15, 12, 22, 19, 28, 35]
     };
   }, [records, stats]);
+
+  // Dynamic filter for displayed records based on stageFilter and financialFilter
+  const displayedRecords = useMemo(() => {
+    return records.filter((r) => {
+      // 1. Stage filter
+      if (stageFilter !== 'all') {
+        const code = normalizeStatusCode(r.currentStatus || 'purchased');
+        if (stageFilter === 'processing' && code !== 'purchased') return false;
+        if (stageFilter === 'hub' && code !== 'cn_warehouse_received') return false;
+        if (stageFilter === 'transit' && !['dispatched_from_china', 'arrived_dhaka_airport', 'awaiting_customs'].includes(code)) return false;
+        if (stageFilter === 'delivered' && !['bd_warehouse_received', 'out_for_delivery', 'delivered', 'payment_received'].includes(code)) return false;
+      }
+
+      // 2. Financial filter
+      if (financialFilter === 'paid') {
+        const billed = Number(r.totalBillBdt) || 0;
+        const paid = Number(r.purchaseCostPaidBdt) || 0;
+        const due = Math.max(0, billed - paid);
+        if (due > 0 && r.paymentStatus !== 'Paid') return false;
+      } else if (financialFilter === 'due') {
+        const billed = Number(r.totalBillBdt) || 0;
+        const paid = Number(r.purchaseCostPaidBdt) || 0;
+        const due = Math.max(0, billed - paid);
+        if (due <= 0 && r.paymentStatus === 'Paid') return false;
+      }
+
+      return true;
+    });
+  }, [records, stageFilter, financialFilter]);
 
   // Pure SVG mini-sparkline renderer
   const renderSparkline = (points: number[], strokeColor: string, fillColor: string) => {
@@ -943,7 +988,7 @@ function doPost(e) {
         </div>
       </div>
 
-      {/* 2. OPERATIONAL PIPELINE & FINANCIAL CLEARANCE REPORT BAR */}
+      {/* 2. OPERATIONAL PIPELINE & FINANCIAL CLEARANCE REPORT BAR (Super Dynamic & Interactive) */}
       <div className="p-4 sm:p-5 rounded-xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -951,75 +996,188 @@ function doPost(e) {
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 font-['Manrope',sans-serif]">
               Operational Pipeline &amp; Settlement Report
             </h3>
+            {(stageFilter !== 'all' || financialFilter !== 'all') && (
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-50 text-[#EA1D2C] border border-red-200 font-mono">
+                Filter: {stageFilter !== 'all' ? stageFilter.toUpperCase() : ''} {financialFilter !== 'all' ? financialFilter.toUpperCase() : ''}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
-            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Live Google Sheet Synced
-            </span>
+            {(stageFilter !== 'all' || financialFilter !== 'all') ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setStageFilter('all');
+                  setFinancialFilter('all');
+                }}
+                className="text-xs font-bold text-[#EA1D2C] hover:underline cursor-pointer"
+              >
+                ✕ Reset Pipeline Filters
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-semibold border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Live Google Sheet Synced
+              </span>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-          {/* Section A: Consignment Stage Distribution */}
+          {/* Section A: Consignment Stage Distribution (Clickable Interactive Stage Filter) */}
           <div className="p-3.5 rounded-lg bg-slate-50/80 border border-slate-200/70 space-y-2.5">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
               <span>Consignment Stages</span>
-              <span className="text-slate-400 font-mono font-normal">Active Orders</span>
+              <span className="text-slate-400 font-mono font-normal">Click to Filter Orders</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
-                <span className="text-slate-600 text-[11px] font-medium">Processing</span>
+              <button
+                type="button"
+                onClick={() => setStageFilter(stageFilter === 'processing' ? 'all' : 'processing')}
+                className={`p-2 rounded-md border flex items-center justify-between shadow-3xs cursor-pointer transition-all text-left ${
+                  stageFilter === 'processing'
+                    ? 'bg-amber-50 border-amber-400 ring-2 ring-amber-200'
+                    : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-amber-50/20'
+                }`}
+                title="Filter by Processing / Purchased orders"
+              >
+                <span className="text-slate-700 text-[11px] font-medium">Processing</span>
                 <span className="font-bold text-amber-600 font-mono">{analytics.statusCounts.processing}</span>
-              </div>
-              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
-                <span className="text-slate-600 text-[11px] font-medium">CN Hub</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStageFilter(stageFilter === 'hub' ? 'all' : 'hub')}
+                className={`p-2 rounded-md border flex items-center justify-between shadow-3xs cursor-pointer transition-all text-left ${
+                  stageFilter === 'hub'
+                    ? 'bg-sky-50 border-sky-400 ring-2 ring-sky-200'
+                    : 'bg-white border-slate-200 hover:border-sky-300 hover:bg-sky-50/20'
+                }`}
+                title="Filter by CN Warehouse Received orders"
+              >
+                <span className="text-slate-700 text-[11px] font-medium">CN Hub</span>
                 <span className="font-bold text-sky-600 font-mono">{analytics.statusCounts.hub}</span>
-              </div>
-              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
-                <span className="text-slate-600 text-[11px] font-medium">In Transit</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStageFilter(stageFilter === 'transit' ? 'all' : 'transit')}
+                className={`p-2 rounded-md border flex items-center justify-between shadow-3xs cursor-pointer transition-all text-left ${
+                  stageFilter === 'transit'
+                    ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-200'
+                    : 'bg-white border-slate-200 hover:border-blue-300 hover:bg-blue-50/20'
+                }`}
+                title="Filter by In Transit / Airport / Customs orders"
+              >
+                <span className="text-slate-700 text-[11px] font-medium">In Transit</span>
                 <span className="font-bold text-blue-600 font-mono">{analytics.statusCounts.transit}</span>
-              </div>
-              <div className="p-2 rounded-md bg-white border border-slate-200 flex items-center justify-between shadow-3xs">
-                <span className="text-slate-600 text-[11px] font-medium">Delivered</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStageFilter(stageFilter === 'delivered' ? 'all' : 'delivered')}
+                className={`p-2 rounded-md border flex items-center justify-between shadow-3xs cursor-pointer transition-all text-left ${
+                  stageFilter === 'delivered'
+                    ? 'bg-emerald-50 border-emerald-400 ring-2 ring-emerald-200'
+                    : 'bg-white border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/20'
+                }`}
+                title="Filter by BD Warehouse / Delivered orders"
+              >
+                <span className="text-slate-700 text-[11px] font-medium">Delivered</span>
                 <span className="font-bold text-emerald-600 font-mono">{analytics.statusCounts.delivered}</span>
-              </div>
+              </button>
             </div>
           </div>
 
-          {/* Section B: Financial Settlement Ratio Bar */}
+          {/* Section B: Financial Settlement Ratio Bar (Clickable Paid vs Due Filter) */}
           <div className="p-3.5 rounded-lg bg-slate-50/80 border border-slate-200/70 space-y-2.5">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
               <span>Financial Clearance</span>
               <span className="text-emerald-700 font-mono font-bold">{analytics.collectionPercent}% Settled</span>
             </div>
             <div className="w-full h-3 rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
-              <div style={{ width: `${analytics.collectionPercent}%` }} className="bg-emerald-500 h-full transition-all" title={`Collected: ৳${analytics.totalCollected.toLocaleString()}`} />
-              <div style={{ width: `${analytics.duePercent}%` }} className="bg-rose-500 h-full transition-all" title={`Due: ৳${analytics.totalDue.toLocaleString()}`} />
+              <div
+                style={{ width: `${analytics.collectionPercent}%` }}
+                className="bg-emerald-500 h-full transition-all cursor-pointer hover:opacity-90"
+                title={`Collected: ৳${analytics.totalCollected.toLocaleString()} (${analytics.collectionPercent}%) - Click to filter Paid`}
+                onClick={() => setFinancialFilter(financialFilter === 'paid' ? 'all' : 'paid')}
+              />
+              <div
+                style={{ width: `${analytics.duePercent}%` }}
+                className="bg-rose-500 h-full transition-all cursor-pointer hover:opacity-90"
+                title={`Due: ৳${analytics.totalDue.toLocaleString()} (${analytics.duePercent}%) - Click to filter Due`}
+                onClick={() => setFinancialFilter(financialFilter === 'due' ? 'all' : 'due')}
+              />
             </div>
-            <div className="flex items-center justify-between text-[10px] font-mono text-slate-600 pt-0.5">
-              <span className="text-emerald-700 font-bold">৳{analytics.totalCollected.toLocaleString()} Paid</span>
-              <span className="text-rose-600 font-bold">৳{analytics.totalDue.toLocaleString()} Due</span>
+            <div className="flex items-center justify-between text-[10px] font-mono pt-0.5">
+              <button
+                type="button"
+                onClick={() => setFinancialFilter(financialFilter === 'paid' ? 'all' : 'paid')}
+                className={`px-2 py-0.5 rounded cursor-pointer transition-all ${
+                  financialFilter === 'paid'
+                    ? 'bg-emerald-100 text-emerald-900 font-extrabold ring-1 ring-emerald-400'
+                    : 'text-emerald-700 font-bold hover:bg-emerald-50'
+                }`}
+                title="Click to view Paid orders"
+              >
+                ৳{analytics.totalCollected.toLocaleString()} Paid {financialFilter === 'paid' && '✓'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setFinancialFilter(financialFilter === 'due' ? 'all' : 'due')}
+                className={`px-2 py-0.5 rounded cursor-pointer transition-all ${
+                  financialFilter === 'due'
+                    ? 'bg-rose-100 text-rose-900 font-extrabold ring-1 ring-rose-400'
+                    : 'text-rose-600 font-bold hover:bg-rose-50'
+                }`}
+                title="Click to view Due orders"
+              >
+                ৳{analytics.totalDue.toLocaleString()} Due {financialFilter === 'due' && '✓'}
+              </button>
             </div>
           </div>
 
-          {/* Section C: Service Breakdown */}
+          {/* Section C: Service Breakdown (Clickable Service Filter) */}
           <div className="p-3.5 rounded-lg bg-slate-50/80 border border-slate-200/70 space-y-2.5">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
               <span>Service Breakdown</span>
               <span className="text-slate-400 font-mono font-normal">Consignment Mix</span>
             </div>
             <div className="space-y-1.5 text-xs">
-              <div className="flex items-center justify-between text-[11px] p-1 rounded hover:bg-white transition-colors">
-                <span className="text-slate-600">Sourcing &amp; Shipping</span>
+              <div
+                onClick={() => setServiceFilter(serviceFilter === 'Sourcing & Shipping' ? 'all' : 'Sourcing & Shipping')}
+                className={`flex items-center justify-between text-[11px] p-1.5 rounded cursor-pointer transition-colors ${
+                  serviceFilter === 'Sourcing & Shipping'
+                    ? 'bg-red-50 text-[#EA1D2C] font-bold border border-red-200 ring-1 ring-red-200'
+                    : 'hover:bg-white text-slate-600'
+                }`}
+                title="Click to filter Sourcing & Shipping orders"
+              >
+                <span>Sourcing &amp; Shipping</span>
                 <span className="font-mono font-bold text-slate-900">{analytics.serviceCounts.sourcingAndShipping} orders</span>
               </div>
-              <div className="flex items-center justify-between text-[11px] p-1 rounded hover:bg-white transition-colors">
-                <span className="text-slate-600">China Sourcing Only</span>
+              <div
+                onClick={() => setServiceFilter(serviceFilter === 'Sourcing Only' ? 'all' : 'Sourcing Only')}
+                className={`flex items-center justify-between text-[11px] p-1.5 rounded cursor-pointer transition-colors ${
+                  serviceFilter === 'Sourcing Only'
+                    ? 'bg-red-50 text-[#EA1D2C] font-bold border border-red-200 ring-1 ring-red-200'
+                    : 'hover:bg-white text-slate-600'
+                }`}
+                title="Click to filter China Sourcing Only orders"
+              >
+                <span>China Sourcing Only</span>
                 <span className="font-mono font-bold text-slate-900">{analytics.serviceCounts.sourcingOnly} orders</span>
               </div>
-              <div className="flex items-center justify-between text-[11px] p-1 rounded hover:bg-white transition-colors">
-                <span className="text-slate-600">Freight Cargo Only</span>
+              <div
+                onClick={() => setServiceFilter(serviceFilter === 'Air Cargo' ? 'all' : 'Air Cargo')}
+                className={`flex items-center justify-between text-[11px] p-1.5 rounded cursor-pointer transition-colors ${
+                  serviceFilter === 'Air Cargo' || serviceFilter === 'Sea Cargo'
+                    ? 'bg-red-50 text-[#EA1D2C] font-bold border border-red-200 ring-1 ring-red-200'
+                    : 'hover:bg-white text-slate-600'
+                }`}
+                title="Click to filter Freight Cargo orders"
+              >
+                <span>Freight Cargo Only</span>
                 <span className="font-mono font-bold text-slate-900">{analytics.serviceCounts.freightCargo} orders</span>
               </div>
             </div>
@@ -1218,14 +1376,28 @@ function doPost(e) {
                     </div>
                   </td>
                 </tr>
-              ) : records.length === 0 ? (
+              ) : displayedRecords.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-16 text-center text-xs text-slate-500">
-                    No orders found matching criteria. Click &quot;Create Order&quot; above to add.
+                    <div className="space-y-1">
+                      <p className="font-semibold text-slate-700">No orders found matching the active filter.</p>
+                      {(stageFilter !== 'all' || financialFilter !== 'all') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStageFilter('all');
+                            setFinancialFilter('all');
+                          }}
+                          className="text-xs font-bold text-[#EA1D2C] hover:underline cursor-pointer"
+                        >
+                          Clear Filters &amp; Show All Orders
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
-                records.map((r, idx) => (
+                displayedRecords.map((r, idx) => (
                   <tr key={r.id || idx} className="hover:bg-slate-50/90 transition-colors">
                     {/* Column 1: Order ID & Date (Sticky Left) */}
                     <td className="py-3 px-4 sticky left-0 bg-white hover:bg-slate-50 z-10 border-r border-slate-200 font-mono font-bold text-slate-900 shadow-[1px_0_3px_rgba(0,0,0,0.03)]">
@@ -1503,12 +1675,24 @@ function doPost(e) {
             </svg>
             Loading orders list...
           </div>
-        ) : records.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-500">
-            No orders found matching criteria.
+        ) : displayedRecords.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-xs text-slate-500 space-y-1">
+            <p className="font-semibold text-slate-700">No orders found matching criteria.</p>
+            {(stageFilter !== 'all' || financialFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStageFilter('all');
+                  setFinancialFilter('all');
+                }}
+                className="text-xs font-bold text-[#EA1D2C] hover:underline cursor-pointer block mx-auto"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         ) : (
-          records.map((r, idx) => (
+          displayedRecords.map((r, idx) => (
             <div key={r.id || idx} className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
               {/* Card Header: Order ID + Status */}
               <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
