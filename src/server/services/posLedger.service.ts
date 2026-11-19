@@ -398,8 +398,8 @@ export class PosLedgerService {
     const record: PosLedgerRecord = {
       id,
       orderId,
-      orderDate: payload.orderDate || today,
-      cnDate: payload.cnDate || today,
+      orderDate: payload.orderDate !== undefined ? payload.orderDate : '',
+      cnDate: payload.cnDate !== undefined ? payload.cnDate : '',
       bdDate: payload.bdDate || '',
       customerName: payload.customerName?.trim() || 'Valued Customer',
       mobileNo: payload.mobileNo?.trim() || '',

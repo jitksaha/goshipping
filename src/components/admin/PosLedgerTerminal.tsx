@@ -104,8 +104,8 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   // Quick POS Form State
   const [formData, setFormData] = useState({
     orderId: '',
-    orderDate: new Date().toISOString().split('T')[0],
-    cnDate: new Date().toISOString().split('T')[0],
+    orderDate: '',
+    cnDate: '',
     bdDate: '',
     customerName: '',
     mobileNo: '',
@@ -199,8 +199,8 @@ export default function PosLedgerTerminal({ showToast }: { showToast: (msg: stri
   const resetForm = () => {
     setFormData({
       orderId: '',
-      orderDate: new Date().toISOString().split('T')[0],
-      cnDate: new Date().toISOString().split('T')[0],
+      orderDate: '',
+      cnDate: '',
       bdDate: '',
       customerName: '',
       mobileNo: '',

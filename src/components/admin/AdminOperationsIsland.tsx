@@ -618,8 +618,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [advancePaidBdt, setAdvancePaidBdt] = useState<number>(0);
   const [orderRemarks, setOrderRemarks] = useState('');
   const [customOrderId, setCustomOrderId] = useState('');
-  const [orderDateInput, setOrderDateInput] = useState(new Date().toISOString().split('T')[0]);
-  const [cnDateInput, setCnDateInput] = useState(new Date().toISOString().split('T')[0]);
+  const [orderDateInput, setOrderDateInput] = useState('');
+  const [cnDateInput, setCnDateInput] = useState('');
   const [bdDateInput, setBdDateInput] = useState('');
   const [importerClientInput, setImporterClientInput] = useState('');
   const [grossWeightKgInput, setGrossWeightKgInput] = useState<number>(10);
@@ -1563,8 +1563,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         bdCourierName: bdCourierName,
         bdTrackingNo: bdCourierTrackingNo.trim() || (orderScope !== 'sourcing' ? trackingCodeToUse : ''),
         remark: orderRemarks.trim() || deliveryNotes.trim() || '',
-        orderDate: orderDateInput || new Date().toISOString().split('T')[0],
-        cnDate: cnDateInput || new Date().toISOString().split('T')[0],
+        orderDate: orderDateInput || '',
+        cnDate: cnDateInput || '',
         bdDate: bdDateInput || '',
         currentStatus: newInitialStatus === 'delivered' ? 'Delivered' : 'Processing'
       };
@@ -1665,8 +1665,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       // Clear input fields
       setCustomerSearchQuery('');
       setCustomOrderId('');
-      setOrderDateInput(new Date().toISOString().split('T')[0]);
-      setCnDateInput(new Date().toISOString().split('T')[0]);
+      setOrderDateInput('');
+      setCnDateInput('');
       setBdDateInput('');
       setImporterClientInput('');
       setGrossWeightKgInput(10);
@@ -4086,7 +4086,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                        Order Date (Col B) *
+                        Order Date (Col B)
                       </label>
                       <input
                         type="date"
@@ -4098,7 +4098,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                        CN Date (Col C) *
+                        CN Date (Col C)
                       </label>
                       <input
                         type="date"
