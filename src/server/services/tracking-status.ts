@@ -41,8 +41,8 @@ export interface StatusDefinition {
 export const TRACKING_STATUSES: Record<TrackingStatusCode, StatusDefinition> = {
   purchased: {
     code: 'purchased',
-    label: 'PURCHASED',
-    shortLabel: 'Purchased',
+    label: 'PURCHASED CHINA WAREHOUSE',
+    shortLabel: 'Purchased China Warehouse',
     isPhysicalStage: true,
     physicalOrder: 1,
     defaultDescription: 'Goods purchased from supplier and assigned to consolidation manifest.',

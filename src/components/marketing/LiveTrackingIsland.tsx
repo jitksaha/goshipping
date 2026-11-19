@@ -30,7 +30,7 @@ function LiveStatusIcon({ status, className = 'w-5 h-5' }: { status: string; cla
   switch (normalized) {
     case 'purchased':
     case 'order_created':
-      label = 'PURCHASED';
+      label = 'PURCHASED CHINA WAREHOUSE';
       iconColor = 'text-slate-600 dark:text-slate-400';
       icon = (
         <svg className={`${className} stroke-[2]`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -845,10 +845,9 @@ export default function LiveTrackingIsland({
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="font-bold text-slate-800 dark:text-slate-200 truncate">
-                                      {evt.title}
+                                      {(evt.title === 'PURCHASED' || evt.statusCode === 'purchased') ? 'PURCHASED CHINA WAREHOUSE' : evt.title}
                                     </div>
-                                    <div className="text-[10px] text-slate-400 flex items-center justify-between gap-1">
-                                      <span className="truncate">{evt.locationName}</span>
+                                    <div className="text-[10px] text-slate-400 flex items-center justify-end gap-1">
                                       <span className="font-mono shrink-0">{evt.occurredAtBst ? evt.occurredAtBst.replace(/\d{4},\s*/, '') : ''}</span>
                                     </div>
                                   </div>
@@ -1375,7 +1374,7 @@ export default function LiveTrackingIsland({
                                     isLatest ? 'text-[#EA1D2C]' : 'text-slate-900 dark:text-white'
                                   }`}
                                 >
-                                  {evt.statusLabel || evt.title}
+                                  {(evt.statusLabel === 'PURCHASED' || evt.title === 'PURCHASED' || evt.status === 'purchased' || evt.statusCode === 'purchased') ? 'PURCHASED CHINA WAREHOUSE' : (evt.statusLabel || evt.title)}
                                 </h4>
                                 {isLatest && (
                                   <span className="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono bg-red-100 text-[#EA1D2C] dark:bg-red-950 dark:text-red-300 uppercase">
@@ -1384,23 +1383,12 @@ export default function LiveTrackingIsland({
                                 )}
                               </div>
 
-                            {/* Actual Timestamp in Bangladesh Time: 25 Oct 2026, 08:15 PM BST */}
-                            <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
-                              {evt.occurredAtBst || formatBstDateTime(evt.eventTime)}
-                            </span>
-                          </div>
-
-                          {/* Location */}
-                          {evt.locationName && (
-                            <div className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                              <svg className="w-3.5 h-3.5 text-slate-400 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                                <circle cx="12" cy="10" r="3" />
-                              </svg>
-                              <span>{evt.locationName}</span>
+                              {/* Actual Timestamp in Bangladesh Time: 25 Oct 2026, 08:15 PM BST */}
+                              <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 tabular-nums">
+                                {evt.occurredAtBst || formatBstDateTime(evt.eventTime)}
+                              </span>
                             </div>
-                          )}
-                        </div>
+                          </div>
                       </div>
                     );
                   })}

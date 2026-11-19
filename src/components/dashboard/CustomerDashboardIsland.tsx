@@ -44,7 +44,7 @@ function StatusIconBadge({ status }: { status: string }) {
   switch (normalized) {
     case 'purchased':
     case 'order_created':
-      label = 'PURCHASED';
+      label = 'PURCHASED CHINA WAREHOUSE';
       iconColor = 'text-slate-600 hover:text-slate-900';
       icon = (
         <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">

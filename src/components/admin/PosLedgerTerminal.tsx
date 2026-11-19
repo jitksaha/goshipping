@@ -2231,15 +2231,16 @@ function doPost(e) {
                     onChange={(e) => setFormData({ ...formData, currentStatus: e.target.value })}
                     className="w-full h-9 px-2.5 rounded-lg border border-slate-300 text-xs font-semibold"
                   >
-                    <option value="PURCHASED">1. PURCHASED (Initial Stage / Order Placed)</option>
-                    <option value="CN WAREHOUSE RECEIVED">2. CN WAREHOUSE RECEIVED (Guangzhou / Yiwu)</option>
-                    <option value="DISPATCHED FROM CHINA">3. DISPATCHED FROM CHINA (Air Linehaul)</option>
-                    <option value="ARRIVED DHAKA AIRPORT">4. ARRIVED DHAKA AIRPORT (HSIA Cargo)</option>
-                    <option value="AWAITING CUSTOMS CLEARANCE">5. AWAITING CUSTOMS CLEARANCE (DAC / NBR)</option>
-                    <option value="BD WAREHOUSE RECEIVED">6. BD WAREHOUSE RECEIVED (Dhaka Hub)</option>
-                    <option value="OUT FOR DELIVERY">7. OUT FOR DELIVERY (Last-Mile Dispatch)</option>
-                    <option value="DELIVERED">8. DELIVERED (Completed)</option>
-                    {!['PURCHASED','CN WAREHOUSE RECEIVED','DISPATCHED FROM CHINA','ARRIVED DHAKA AIRPORT','AWAITING CUSTOMS CLEARANCE','BD WAREHOUSE RECEIVED','OUT FOR DELIVERY','DELIVERED'].includes(formData.currentStatus.toUpperCase()) && (
+                    <option value="PURCHASED CHINA WAREHOUSE">1. PURCHASED CHINA WAREHOUSE</option>
+                    <option value="PURCHASED">1. PURCHASED</option>
+                    <option value="CN WAREHOUSE RECEIVED">2. CN WAREHOUSE RECEIVED</option>
+                    <option value="DISPATCHED FROM CHINA">3. DISPATCHED FROM CHINA</option>
+                    <option value="ARRIVED DHAKA AIRPORT">4. ARRIVED DHAKA AIRPORT</option>
+                    <option value="AWAITING CUSTOMS CLEARANCE">5. AWAITING CUSTOMS CLEARANCE</option>
+                    <option value="BD WAREHOUSE RECEIVED">6. BD WAREHOUSE RECEIVED</option>
+                    <option value="OUT FOR DELIVERY">7. OUT FOR DELIVERY</option>
+                    <option value="DELIVERED">8. DELIVERED</option>
+                    {!['PURCHASED','PURCHASED CHINA WAREHOUSE','CN WAREHOUSE RECEIVED','DISPATCHED FROM CHINA','ARRIVED DHAKA AIRPORT','AWAITING CUSTOMS CLEARANCE','BD WAREHOUSE RECEIVED','OUT FOR DELIVERY','DELIVERED'].includes(formData.currentStatus.toUpperCase()) && (
                       <option value={formData.currentStatus}>{formData.currentStatus}</option>
                     )}
                   </select>

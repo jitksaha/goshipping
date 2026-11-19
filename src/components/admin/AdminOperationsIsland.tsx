@@ -4884,7 +4884,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       value={newInitialStatus}
                       onChange={(val) => setNewInitialStatus(val)}
                       options={[
-                        { value: 'purchased', label: '1. Purchased (Initial Stage)', badge: 'Step 1' },
+                        { value: 'purchased', label: '1. Purchased (China Warehouse)', badge: 'Step 1' },
                         { value: 'cn_warehouse_received', label: '2. CN Warehouse Received', badge: 'Step 2' },
                         { value: 'dispatched_from_china', label: '3. Dispatched from China', badge: 'Step 3' },
                         { value: 'arrived_dhaka_airport', label: '4. Arrived Dhaka Airport', badge: 'Step 4' },
