@@ -227,10 +227,26 @@ export function updateAccount(id: string, updates: Partial<AuthUser>): AuthUser 
 
   accounts[idx] = { ...accounts[idx], ...updates };
 
-  // Also update any active session memory for this user
-  for (const [sId, sess] of memorySessions.entries()) {
-    if (sess.user.id === accounts[idx].id || sess.user.email.toLowerCase() === accounts[idx].email.toLowerCase()) {
-      sess.user = { ...sess.user, ...updates };
+  // If status is updated to suspended, instantly terminate all active sessions for this user
+  if (updates.status === 'suspended') {
+    const targetUserId = accounts[idx].id;
+    const targetEmail = accounts[idx].email.toLowerCase().trim();
+    for (const [sId, sess] of memorySessions.entries()) {
+      if (sess.user.id === targetUserId || sess.user.email.toLowerCase().trim() === targetEmail) {
+        memorySessions.delete(sId);
+      }
+    }
+    if (db) {
+      try {
+        db.delete(schema.sessions).where(eq(schema.sessions.userId, targetUserId)).catch(() => {});
+      } catch {}
+    }
+  } else {
+    // Also update any active session memory for this user
+    for (const [sId, sess] of memorySessions.entries()) {
+      if (sess.user.id === accounts[idx].id || sess.user.email.toLowerCase() === accounts[idx].email.toLowerCase()) {
+        sess.user = { ...sess.user, ...updates };
+      }
     }
   }
 
@@ -272,30 +288,79 @@ export function findAccountById(id: string): AuthUser | null {
 }
 
 /**
- * Delete or remove an account from memory
+ * Delete or remove an account from memory, session stores, and database permanently
  */
-export function deleteAccount(id: string): boolean {
+export async function deleteAccount(identifier: string): Promise<boolean> {
+  const normalized = identifier.toLowerCase().trim();
+  const phoneDigits = normalized.replace(/\D/g, '');
+  const last10Digits = phoneDigits.slice(-10);
+
   const accounts = getAllAccounts();
-  const idx = accounts.findIndex((a) => a.id === id || a.email.toLowerCase() === id.toLowerCase());
-  if (idx === -1) return false;
-  const removedUser = accounts[idx];
-  accounts.splice(idx, 1);
-  // Also clean up any active sessions for this user
+  const toDelete = accounts.filter((a) => {
+    if (a.id === identifier || a.id.toLowerCase() === normalized) return true;
+    if (a.email.toLowerCase() === normalized) return true;
+    if (phoneDigits.length >= 6) {
+      const aPhone = (a.phone || '').replace(/\D/g, '');
+      if (aPhone.endsWith(last10Digits)) return true;
+      if (a.email.toLowerCase().includes(last10Digits)) return true;
+    }
+    return false;
+  });
+
+  const purgeIds = new Set<string>(toDelete.map((u) => u.id));
+  purgeIds.add(identifier);
+  const purgeEmails = new Set<string>(toDelete.map((u) => u.email.toLowerCase().trim()));
+  if (normalized.includes('@')) {
+    purgeEmails.add(normalized);
+  }
+
+  // 1. Remove from accounts array
+  globalThis.__goshipping_accounts = accounts.filter(
+    (a) => !purgeIds.has(a.id) && !purgeEmails.has(a.email.toLowerCase().trim())
+  );
+
+  // 2. Destroy all active sessions matching this user
   for (const [sId, sess] of memorySessions.entries()) {
-    if (sess.user.id === removedUser.id || sess.user.email.toLowerCase() === removedUser.email.toLowerCase()) {
+    if (
+      purgeIds.has(sess.user.id) ||
+      purgeEmails.has(sess.user.email.toLowerCase().trim()) ||
+      (phoneDigits.length >= 6 && sess.user.phone && sess.user.phone.replace(/\D/g, '').endsWith(last10Digits))
+    ) {
       memorySessions.delete(sId);
     }
   }
-  saveAuthStore();
 
-  // Clean up database sessions and user record in MySQL if connected
-  if (db) {
-    try {
-      db.delete(schema.sessions).where(eq(schema.sessions.userId, removedUser.id)).catch(() => {});
-      db.delete(schema.users).where(eq(schema.users.id, removedUser.id)).catch(() => {});
-    } catch {}
+  // 3. Remove passwords
+  for (const em of purgeEmails) {
+    memoryPasswords.delete(em);
+  }
+  for (const uid of purgeIds) {
+    memoryPasswords.delete(uid);
+  }
+  if (phoneDigits.length >= 6) {
+    memoryPasswords.delete(phoneDigits);
   }
 
+  // 4. Clean up MySQL database
+  if (db) {
+    for (const uid of purgeIds) {
+      try {
+        await db.delete(schema.sessions).where(eq(schema.sessions.userId, uid));
+        await db.update(schema.customers).set({ userId: null }).where(eq(schema.customers.userId, uid));
+        await db.delete(schema.users).where(eq(schema.users.id, uid));
+      } catch (err) {
+        console.error('[deleteAccount] DB cleanup error for uid:', uid, err);
+      }
+    }
+    for (const em of purgeEmails) {
+      try {
+        await db.delete(schema.users).where(eq(schema.users.email, em));
+      } catch {}
+    }
+  }
+
+  // 5. Persist updated store to disk
+  saveAuthStore();
   return true;
 }
 
@@ -447,6 +512,38 @@ export async function validateSession(sessionId: string): Promise<SessionData | 
       } catch {}
       return null;
     }
+
+    // Dynamic Account Verification: check if account was deleted or suspended
+    const account = getAllAccounts().find(
+      (a) => a.id === cached!.user.id || a.email.toLowerCase() === cached!.user.email.toLowerCase()
+    );
+    const isDefaultStaff = DEFAULT_ACCOUNTS.some(
+      (d) => d.id === cached!.user.id || d.email.toLowerCase() === cached!.user.email.toLowerCase()
+    );
+
+    // If account was deleted (non-default account missing from store), destroy session immediately
+    if (!account && !isDefaultStaff && !cached.user.impersonatedBy) {
+      memorySessions.delete(sessionId);
+      saveAuthStore();
+      try {
+        await db.delete(schema.sessions).where(eq(schema.sessions.id, sessionId));
+      } catch {}
+      return null;
+    }
+
+    // If account was suspended, destroy session immediately and reject
+    if (account?.status === 'suspended' || cached.user.status === 'suspended') {
+      memorySessions.delete(sessionId);
+      saveAuthStore();
+      try {
+        await db.delete(schema.sessions).where(eq(schema.sessions.userId, cached.user.id));
+      } catch {}
+      return null;
+    }
+
+    if (account) {
+      cached.user = { ...cached.user, ...account };
+    }
     return cached;
   }
 
@@ -470,7 +567,7 @@ export async function validateSession(sessionId: string): Promise<SessionData | 
 
     if (dbSessions.length > 0) {
       const row = dbSessions[0];
-      if (new Date(row.expiresAt).getTime() < Date.now()) {
+      if (new Date(row.expiresAt).getTime() < Date.now() || row.status === 'suspended') {
         await db.delete(schema.sessions).where(eq(schema.sessions.id, sessionId));
         return null;
       }

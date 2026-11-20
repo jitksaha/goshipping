@@ -1783,7 +1783,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
       // If Admin opted to Register New Customer Account on the fly
       let clientEmailToUse = '';
-      if (orderCustomerMode === 'new') {
+      if (editingOrderRecord && orderCustomerMode === 'new') {
+        // In edit mode for an existing consignment order, don't spawn a new user account in users management
+        finalCustomerId = selectedCustomerId || `cust-${Date.now()}`;
+        finalCustName = newCustomerCompany.trim() || newCustomerFullName.trim() || editingOrderRecord.customerName;
+        finalRecipientName = newCustomerFullName.trim() || editingOrderRecord.customerName;
+        finalRecipientPhone = newCustomerPhone.trim() || editingOrderRecord.mobileNo;
+        finalRecipientAddress = newCustomerAddress.trim() || `${newDestCity}, Bangladesh`;
+      } else if (orderCustomerMode === 'new') {
         if (!newCustomerFullName.trim()) {
           throw new Error('Please enter customer full name.');
         }
@@ -2509,25 +2516,37 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
   const handleToggleUserStatus = async (userId: string, currentStatus: string) => {
     const actionName = currentStatus === 'active' ? 'suspend' : 'activate';
+    const targetStatus = currentStatus === 'active' ? 'suspended' : 'active';
     if (!confirm(`Are you sure you want to ${actionName} this user account?`)) return;
     try {
+      // Optimistic update across user management and customer caches
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, status: targetStatus } : u));
+      setCustomers((prev) => prev.map((c) => c.id === userId ? { ...c, status: targetStatus } : c));
+
       const res = await fetch(`/api/admin/users/${userId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' }
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update user status');
-      loadData();
+      showToast(`User account ${targetStatus === 'active' ? 'activated' : 'suspended'} successfully!`, 'success');
+      loadData(false);
     } catch (err: any) {
-      alert(err.message || 'Status toggle failed');
+      showToast(err.message || 'Status toggle failed', 'error');
+      loadData(false);
     }
   };
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     if (!confirm(`Are you sure you want to permanently delete user "${userName}"? This action cannot be undone.`)) return;
     try {
-      // Optimistically remove from state
+      // Optimistically remove from state across both users, customers and order customer selectors
       setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setCustomers((prev) => prev.filter((c) => c.id !== userId));
+      if (selectedCustomerId === userId) {
+        setSelectedCustomerId('');
+      }
+
       const res = await fetch(`/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
@@ -2535,14 +2554,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       const data = await res.json();
       if (!res.ok) {
         showToast(data.error || 'Failed to delete user', 'error');
-        loadData();
+        loadData(false);
         return;
       }
       showToast(`User "${userName}" deleted permanently`, 'success');
-      loadData();
+      loadData(false);
     } catch (err: any) {
       showToast(err.message || 'User deletion failed', 'error');
-      loadData();
+      loadData(false);
     }
   };
 
@@ -2645,12 +2664,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update user');
-      alert('User profile updated successfully!');
+      showToast('User profile updated successfully!', 'success');
+      if (data.user) {
+        setUsers((prev) => prev.map((u) => u.id === editingUserId ? { ...u, ...data.user } : u));
+        setCustomers((prev) => prev.map((c) => c.id === editingUserId ? { ...c, ...data.user } : c));
+      }
       setShowEditUserModal(false);
       resetUserForm();
-      loadData();
+      loadData(false);
     } catch (err: any) {
-      alert(err.message || 'Error updating user');
+      showToast(err.message || 'Error updating user', 'error');
     } finally {
       setSubmittingUser(false);
     }

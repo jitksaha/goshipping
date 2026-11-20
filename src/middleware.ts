@@ -43,7 +43,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (sessionCookie) {
     const session = await validateSession(sessionCookie);
-    if (session) {
+    if (session && session.user.status !== 'suspended') {
       currentUser = session.user;
 
       // Sliding session window: Refresh cookie expiry across both main domain & admin subdomain
@@ -55,6 +55,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
         domain: cookieDomain,
         maxAge: 30 * 24 * 60 * 60, // 30 days
       });
+    } else {
+      // Session invalid, expired, deleted or user suspended -> wipe cookie cleanly
+      context.cookies.delete('goshipping_session', { path: '/', domain: cookieDomain });
+      if (session && session.user.status === 'suspended') {
+        const redirectDest = isAdminHost ? '/admin/login?error=account_suspended' : '/login?error=account_suspended';
+        return context.redirect(redirectDest);
+      }
     }
   }
 

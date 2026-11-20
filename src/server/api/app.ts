@@ -152,6 +152,13 @@ app.post('/auth/login', async (c) => {
       return c.json({ error: 'Invalid credentials or user not found' }, 401);
     }
 
+    if (account.status === 'suspended') {
+      return c.json({
+        error: 'Your account has been suspended. Please contact customer support.',
+        code: 'ACCOUNT_SUSPENDED'
+      }, 403);
+    }
+
     const isValidPassword = verifyAccountPassword(account.email, password) || verifyAccountPassword(email, password);
     if (!isValidPassword) {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
@@ -225,6 +232,13 @@ app.post('/auth/admin-login', async (c) => {
 
     if (!account) {
       return c.json({ error: 'Invalid credentials or user not found' }, 401);
+    }
+
+    if (account.status === 'suspended') {
+      return c.json({
+        error: 'This administrative account has been suspended. Please contact system administrator.',
+        code: 'ACCOUNT_SUSPENDED'
+      }, 403);
     }
 
     // Role Gate: All administrative staff and super admins may authenticate through the Admin Gateway
@@ -546,7 +560,6 @@ const handleRegisterUser = async (c: any) => {
 };
 
 app.post('/auth/signup', handleRegisterUser);
-app.post('/auth/register', handleRegisterUser);
 
 // 03. Auth: Current User
 app.get('/auth/me', async (c) => {
@@ -2536,7 +2549,7 @@ app.delete('/admin/users/:id', async (c) => {
     return c.json({ error: 'You cannot delete your own administrative account.' }, 400);
   }
 
-  deleteAccount(existing.id);
+  await deleteAccount(existing.id);
 
   await AuditService.logAction({
     userId: currentUser.id,

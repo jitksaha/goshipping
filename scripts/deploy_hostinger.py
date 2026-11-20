@@ -22,7 +22,7 @@ def deploy_to_hostinger():
         f'rsync -avz --inplace '
         f'--exclude="node_modules" --exclude=".git" --exclude=".env" --exclude=".auth_store.json" '
         f'-e "ssh -p {PORT} -o StrictHostKeyChecking=no" '
-        f'src public server.js package.json astro.config.mjs tsconfig.json .pos_ledger_store.json .testimonials_store.json .invoices_store.json {USER}@{HOST}:{REMOTE_PATH}'
+        f'src public scripts server.js package.json astro.config.mjs tsconfig.json .pos_ledger_store.json .testimonials_store.json .invoices_store.json {USER}@{HOST}:{REMOTE_PATH}'
     )
     print(f"Running: {rsync_cmd}\n")
 
@@ -40,7 +40,7 @@ def deploy_to_hostinger():
         remote_build_cmd = (
             f'ssh -p {PORT} -o StrictHostKeyChecking=no {USER}@{HOST} '
             f'"cd domains/goshipping.com.bd/public_html && '
-            f'node -e \\"const fs=require(\'fs\'); if(fs.existsSync(\'.auth_store.json\')) {{ try {{ const d=JSON.parse(fs.readFileSync(\'.auth_store.json\')); d.accounts=[]; fs.writeFileSync(\'.auth_store.json\', JSON.stringify(d,null,2)); }} catch(e){{}} }}\\" && '
+            f'node scripts/clean_remote_store.cjs && '
             f'GOMAXPROCS=1 RAYON_NUM_THREADS=1 UV_THREADPOOL_SIZE=1 ./node_modules/.bin/astro build && '
             f'touch tmp/restart.txt && '
             f'npx pm2 restart goshipping 2>/dev/null || true"'

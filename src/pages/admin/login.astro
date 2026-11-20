@@ -3,6 +3,7 @@ import '../../styles/global.css';
 import { getSiteOrigin } from '../../server/utils/domain';
 
 const message = Astro.url.searchParams.get('message') || '';
+const errorParam = Astro.url.searchParams.get('error') || '';
 const siteOrigin = getSiteOrigin(Astro.request);
 ---
 
@@ -47,6 +48,16 @@ const siteOrigin = getSiteOrigin(Astro.request);
       </div>
 
       <!-- Logout / Status Messages -->
+      {errorParam === 'account_suspended' && (
+        <div class="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 font-medium flex items-center gap-2">
+          <svg class="w-4 h-4 text-rose-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>This administrative account has been suspended. Please contact system administrator.</span>
+        </div>
+      )}
       {message === 'logged_out' && (
         <div class="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium flex items-center gap-2">
           <svg class="w-4 h-4 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
