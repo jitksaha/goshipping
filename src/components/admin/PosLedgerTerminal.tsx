@@ -419,7 +419,8 @@ export default function PosLedgerTerminal({
         purchaseCostPaidBdt: Number(formData.purchaseCostPaidBdt) || 0,
         cnWeightKg: Number(formData.cnWeightKg) || 0,
         bdWeightKg: Number(formData.bdWeightKg) || 0,
-        shippingRatePerKgBdt: Number(formData.shippingRatePerKgBdt) || 0
+        shippingRatePerKgBdt: Number(formData.shippingRatePerKgBdt) || 0,
+        bdTrackingNo: formData.bdTrackingNo.trim() || (editingRecord ? (editingRecord.bdTrackingNo || '') : `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
       };
 
       if (editingRecord) {

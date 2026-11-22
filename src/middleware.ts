@@ -121,14 +121,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     } else {
       // Any customer marketing pages requested on admin subdomain redirect to primary domain
       if (isGoshippingDomain) {
-        return context.redirect(`https://goshipping.com.bd${pathname}`);
+        const targetSearch = url.search || '';
+        return context.redirect(`https://goshipping.com.bd${pathname}${targetSearch}`);
       }
     }
   } else {
     // 4. Standard Domain Routing (goshipping.com.bd)
     // Enforce dedicated subdomain for admin operations in production
     if (isGoshippingDomain && (pathname === '/admin/login' || pathname.startsWith('/admin'))) {
-      return context.redirect(`https://admin.goshipping.com.bd${pathname}`);
+      const targetSearch = url.search || '';
+      return context.redirect(`https://admin.goshipping.com.bd${pathname}${targetSearch}`);
     }
 
     // Protect admin operations routes (for localhost / non-goshipping environments)

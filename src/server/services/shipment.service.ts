@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import crypto from 'node:crypto';
 import {
   TRACKING_STATUSES,
@@ -99,7 +101,10 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
   // Weight is initially blank/0 until cargo arrives in Bangladesh and admin enters BD weight
   const weight = bdWeight > 0 ? bdWeight : (isBdStage && cnWeight > 0 ? cnWeight : 0);
   const pieces = Number(record.quantity) || 1;
-  const trackingNumber = record.orderId || `GOS-${record.id}`;
+  const isGoshTracking = record.bdTrackingNo && record.bdTrackingNo.toUpperCase().trim().startsWith('GOSH-');
+  const trackingNumber = isGoshTracking
+    ? record.bdTrackingNo!.trim().toUpperCase()
+    : (record.orderId || `GOS-${record.id}`);
 
   const orderDateIso = record.orderDate
     ? new Date(record.orderDate).toISOString()
@@ -369,14 +374,20 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
     cnWeightKg: cnWeight,
     bdWeightKg: bdWeight,
     carrierName: record.bdCourierName ? `${record.bdCourierName} / GoShipping Lines` : 'GoShipping Express Linehaul',
-    carrierWaybillNumber: record.chinaCourierTracking || record.bdTrackingNo || undefined,
+    carrierWaybillNumber: record.chinaCourierTracking || (record.bdTrackingNo && record.bdTrackingNo !== trackingNumber ? record.bdTrackingNo : undefined),
     voyageOrFlightNumber: mode === 'air' ? 'Flight GS-701 (CAN-DAC)' : 'Vessel GS OCEAN-12',
-    billOfLadingNumber: record.shippingMark ? `MARK-${record.shippingMark}` : `BL-${trackingNumber}`,
+    billOfLadingNumber: record.shippingMark ? `MARK-${record.shippingMark}` : (record.orderId ? `ORDER-${record.orderId}` : `BL-${trackingNumber}`),
     departureTime: cnDateIso,
     estimatedDelivery: new Date(new Date(orderDateIso).getTime() + 7 * 86400000).toISOString(),
     actualDelivery: normStatus === 'delivered' ? bdDateIso : undefined,
-    bookingReference: record.websiteOrderNo || record.shippingMark || undefined,
-    notes: record.remark || undefined,
+    bookingReference: record.orderId || record.websiteOrderNo || record.shippingMark || undefined,
+    notes: [
+      record.orderId ? `Order: ${record.orderId}` : '',
+      record.shippingMark ? `Mark: ${record.shippingMark}` : '',
+      record.chinaCourierTracking ? `CN Courier: ${record.chinaCourierTracking}` : '',
+      record.bdTrackingNo && record.bdTrackingNo !== trackingNumber ? `BD Tracking: ${record.bdTrackingNo}` : '',
+      record.remark || ''
+    ].filter(Boolean).join(' | ') || undefined,
     items: [
       {
         id: `itm-${record.id}`,
@@ -500,8 +511,63 @@ export interface ShipmentRecord {
   lastUpdatedBst: string;
 }
 
-// Live operational shipments store (empty by default; populated via bookings & admin dispatch)
-let initialShipments: ShipmentRecord[] = [];
+const SHIPMENTS_STORE_PATH = path.resolve(process.cwd(), '.shipments_store.json');
+let lastShipmentsMtimeMs = 0;
+
+function loadShipmentsFromFile(): ShipmentRecord[] {
+  try {
+    if (fs.existsSync(SHIPMENTS_STORE_PATH)) {
+      const content = fs.readFileSync(SHIPMENTS_STORE_PATH, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('[ShipmentService] Failed to load shipments store:', err);
+  }
+  return [];
+}
+
+function saveShipmentsToFile(data: ShipmentRecord[]): void {
+  try {
+    fs.writeFileSync(SHIPMENTS_STORE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    if (fs.existsSync(SHIPMENTS_STORE_PATH)) {
+      lastShipmentsMtimeMs = fs.statSync(SHIPMENTS_STORE_PATH).mtimeMs;
+    }
+  } catch (err) {
+    console.error('[ShipmentService] Failed to save shipments store:', err);
+  }
+}
+
+function ensureLatestShipmentsStore(): void {
+  try {
+    if (fs.existsSync(SHIPMENTS_STORE_PATH)) {
+      const stat = fs.statSync(SHIPMENTS_STORE_PATH);
+      if (stat.mtimeMs !== lastShipmentsMtimeMs || !initialShipments || initialShipments.length === 0) {
+        lastShipmentsMtimeMs = stat.mtimeMs;
+        const loaded = loadShipmentsFromFile();
+        if (loaded.length > 0 || !initialShipments || initialShipments.length === 0) {
+          initialShipments = loaded;
+          globalThis.__goshipping_shipments = initialShipments;
+        }
+      }
+    }
+  } catch {}
+}
+
+declare global {
+  var __goshipping_shipments: ShipmentRecord[] | undefined;
+}
+
+// Live operational shipments store with disk persistence across processes and restarts
+let initialShipments: ShipmentRecord[] = globalThis.__goshipping_shipments || loadShipmentsFromFile();
+globalThis.__goshipping_shipments = initialShipments;
+if (fs.existsSync(SHIPMENTS_STORE_PATH)) {
+  try {
+    lastShipmentsMtimeMs = fs.statSync(SHIPMENTS_STORE_PATH).mtimeMs;
+  } catch {}
+}
 
 export class ShipmentService {
   /**
@@ -516,6 +582,7 @@ export class ShipmentService {
     mode?: string;
     query?: string;
   }): Promise<ShipmentRecord[]> {
+    ensureLatestShipmentsStore();
     let posShipments: ShipmentRecord[] = [];
     try {
       const posRecords = await PosLedgerService.listRecords();
@@ -579,6 +646,8 @@ export class ShipmentService {
     shipments: ShipmentRecord[];
     searchType: 'tracking_code' | 'email' | 'phone';
   }> {
+    ensureLatestShipmentsStore();
+
     const raw = query.trim();
     if (!raw) {
       return { shipments: [], searchType: 'tracking_code' };
@@ -590,7 +659,7 @@ export class ShipmentService {
 
     const isEmail = cleanLower.includes('@');
 
-    // 1. Fetch all POS ledger records
+    // 1. Fetch all POS ledger records (auto-refreshed from disk/DB if updated)
     let posRecords: PosLedgerRecord[] = [];
     try {
       posRecords = await PosLedgerService.listRecords();
@@ -598,25 +667,32 @@ export class ShipmentService {
       console.error('[ShipmentService] Failed to load POS ledger records:', e);
     }
 
-    // Check if query is directly a known tracking number or carrier waybill before guessing phone number
+    // Check if query is directly a known tracking number, order ID, or carrier waybill before guessing phone number
     const isDirectTracking =
+      cleanUpper.startsWith('GOS-') ||
+      cleanUpper.startsWith('GOSH-') ||
+      cleanUpper.startsWith('POS-') ||
+      cleanUpper.startsWith('SH-') ||
+      cleanUpper.startsWith('MARK-') ||
       initialShipments.some(
         (s) =>
           s.trackingNumber.toUpperCase() === cleanUpper ||
           s.id.toLowerCase() === cleanLower ||
           (s.carrierWaybillNumber && s.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
-          (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper)
+          (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper) ||
+          (s.bookingReference && isOrderIdMatch(raw, s.bookingReference))
       ) ||
       posRecords.some(
         (r) =>
           isOrderIdMatch(raw, r.orderId) ||
           (r.id && r.id.toLowerCase() === cleanLower) ||
+          (r.bdTrackingNo && (r.bdTrackingNo.toUpperCase() === cleanUpper || isCourierTrackingMatch(raw, r.bdTrackingNo))) ||
           isShippingMarkMatch(raw, r.shippingMark) ||
           isCourierTrackingMatch(raw, r.chinaCourierTracking) ||
-          isCourierTrackingMatch(raw, r.bdTrackingNo)
+          (r.websiteOrderNo && r.websiteOrderNo.toUpperCase() === cleanUpper)
       );
 
-    const isPhone = !isDirectTracking && !isEmail && digitsOnly.length >= 6 && /^[\d\s+\-()]{6,}$/.test(raw);
+    const isPhone = !isDirectTracking && !isEmail && digitsOnly.length >= 8 && /^[\d\s+\-()]{8,}$/.test(raw);
     const searchType: 'tracking_code' | 'email' | 'phone' = isEmail ? 'email' : isPhone ? 'phone' : 'tracking_code';
 
     // Look up accounts matching email or phone
@@ -640,38 +716,57 @@ export class ShipmentService {
     const matchedShipments: ShipmentRecord[] = [];
     const addedIds = new Set<string>();
 
-    // 2. Search POS ledger records first (they are live operational orders)
+    // 2. Search POS ledger records first (live operational orders)
     for (const record of posRecords) {
       let matches = false;
 
-      // Phone query
+      // Phone query (e.g. 01917762678 or +880 01917762678)
       if (isPhone) {
         if (isPhoneMatch(raw, record.mobileNo)) {
           matches = true;
         }
       }
 
-      // Order ID / Tracking query
-      if (!isEmail && (isOrderIdMatch(raw, record.orderId) || (record.id && record.id.toLowerCase() === cleanLower))) {
+      // Order ID query (e.g. GOS-00001, GOS00001, 00001, 1)
+      if (!isEmail && (isOrderIdMatch(raw, record.orderId) || (record.orderId && record.orderId.toUpperCase() === cleanUpper) || (record.id && record.id.toLowerCase() === cleanLower))) {
         matches = true;
       }
 
-      // Shipping mark
-      if (!isEmail && !isPhone && isShippingMarkMatch(raw, record.shippingMark)) {
+      // GoShipping Consignment Tracking Code (e.g. GOSH-2026-XXXX) or Local BD Courier
+      if (!isEmail && record.bdTrackingNo) {
+        if (record.bdTrackingNo.toUpperCase() === cleanUpper || isCourierTrackingMatch(raw, record.bdTrackingNo)) {
+          matches = true;
+        }
+      }
+
+      // Shipping mark (e.g. AVC71, SH-DAC-35)
+      if (!isEmail && !isPhone && (isShippingMarkMatch(raw, record.shippingMark) || (record.shippingMark && record.shippingMark.toUpperCase() === cleanUpper))) {
         matches = true;
       }
 
-      // Courier tracking (China SF/ZTO or BD Courier)
-      if (
-        !isEmail &&
-        !isPhone &&
-        (isCourierTrackingMatch(raw, record.chinaCourierTracking) || isCourierTrackingMatch(raw, record.bdTrackingNo))
-      ) {
+      // China Courier Tracking (e.g. SF/ZTO/YTO/YTF)
+      if (!isEmail && !isPhone && (isCourierTrackingMatch(raw, record.chinaCourierTracking) || (record.chinaCourierTracking && record.chinaCourierTracking.toUpperCase() === cleanUpper))) {
         matches = true;
+      }
+
+      // Website Order Number
+      if (!isEmail && !isPhone && record.websiteOrderNo && record.websiteOrderNo.toUpperCase() === cleanUpper) {
+        matches = true;
+      }
+
+      // Email match
+      if (isEmail) {
+        if (
+          record.customerName?.toLowerCase().includes(cleanLower) ||
+          record.importerClient?.toLowerCase().includes(cleanLower) ||
+          (record.mobileNo && isPhoneMatch(raw, record.mobileNo))
+        ) {
+          matches = true;
+        }
       }
 
       // Customer name or Importer name partial match
-      if (!isEmail && !isPhone && raw.length >= 4) {
+      if (!isEmail && !isPhone && raw.length >= 3) {
         if (
           record.customerName?.toLowerCase().includes(cleanLower) ||
           record.importerClient?.toLowerCase().includes(cleanLower)
@@ -680,13 +775,16 @@ export class ShipmentService {
         }
       }
 
-      if (matches && !addedIds.has(record.orderId || record.id)) {
-        addedIds.add(record.orderId || record.id);
-        matchedShipments.push(convertPosRecordToShipment(record));
+      if (matches) {
+        const uniqueKey = record.orderId || record.bdTrackingNo || record.id;
+        if (!addedIds.has(uniqueKey)) {
+          addedIds.add(uniqueKey);
+          matchedShipments.push(convertPosRecordToShipment(record));
+        }
       }
     }
 
-    // 3. Search initialShipments
+    // 3. Search initialShipments / master consignment store
     for (const s of initialShipments) {
       if (addedIds.has(s.trackingNumber) || addedIds.has(s.id)) continue;
 
@@ -696,8 +794,9 @@ export class ShipmentService {
       if (
         s.trackingNumber.toUpperCase() === cleanUpper ||
         s.id.toLowerCase() === cleanLower ||
-        (s.carrierWaybillNumber && s.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
-        (s.billOfLadingNumber && s.billOfLadingNumber.toUpperCase() === cleanUpper)
+        (s.carrierWaybillNumber && (s.carrierWaybillNumber.toUpperCase() === cleanUpper || isCourierTrackingMatch(raw, s.carrierWaybillNumber))) ||
+        (s.billOfLadingNumber && (s.billOfLadingNumber.toUpperCase() === cleanUpper || isShippingMarkMatch(raw, s.billOfLadingNumber))) ||
+        (s.bookingReference && (s.bookingReference.toUpperCase() === cleanUpper || isOrderIdMatch(raw, s.bookingReference)))
       ) {
         matches = true;
       }
@@ -729,12 +828,15 @@ export class ShipmentService {
       }
     }
 
-    // 4. Fallback: if searchType was tracking_code but didn't match, check phone or email
+    // 4. Fallback: if searchType was tracking_code but didn't match anything, check phone digits
     if (matchedShipments.length === 0 && !isEmail && digitsOnly.length >= 8) {
       for (const record of posRecords) {
-        if (isPhoneMatch(raw, record.mobileNo) && !addedIds.has(record.orderId || record.id)) {
-          addedIds.add(record.orderId || record.id);
-          matchedShipments.push(convertPosRecordToShipment(record));
+        if (isPhoneMatch(raw, record.mobileNo)) {
+          const uniqueKey = record.orderId || record.bdTrackingNo || record.id;
+          if (!addedIds.has(uniqueKey)) {
+            addedIds.add(uniqueKey);
+            matchedShipments.push(convertPosRecordToShipment(record));
+          }
         }
       }
       for (const s of initialShipments) {
@@ -749,6 +851,25 @@ export class ShipmentService {
       }
     }
 
+    // 5. Intelligent Ranking: If searching by a specific identifier, ensure the exact matching consignment is at index 0
+    if (searchType === 'tracking_code' && matchedShipments.length > 1) {
+      matchedShipments.sort((a, b) => {
+        const aExact =
+          a.trackingNumber.toUpperCase() === cleanUpper ||
+          (a.bookingReference && a.bookingReference.toUpperCase() === cleanUpper) ||
+          (a.carrierWaybillNumber && a.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
+          (a.billOfLadingNumber && a.billOfLadingNumber.toUpperCase().includes(cleanUpper));
+        const bExact =
+          b.trackingNumber.toUpperCase() === cleanUpper ||
+          (b.bookingReference && b.bookingReference.toUpperCase() === cleanUpper) ||
+          (b.carrierWaybillNumber && b.carrierWaybillNumber.toUpperCase() === cleanUpper) ||
+          (b.billOfLadingNumber && b.billOfLadingNumber.toUpperCase().includes(cleanUpper));
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      });
+    }
+
     return { shipments: matchedShipments, searchType };
   }
 
@@ -756,6 +877,7 @@ export class ShipmentService {
    * Get single shipment by tracking number, id, email, or phone
    */
   static async getByTrackingNumber(trackingNumber: string): Promise<ShipmentRecord | null> {
+    ensureLatestShipmentsStore();
     const clean = trackingNumber.trim();
     if (!clean) return null;
 
@@ -780,6 +902,7 @@ export class ShipmentService {
    * Get direct reference to shipment by ID or Tracking
    */
   static async getById(idOrTracking: string): Promise<ShipmentRecord | null> {
+    ensureLatestShipmentsStore();
     const clean = idOrTracking.trim();
     if (!clean) return null;
 
@@ -1009,6 +1132,7 @@ export class ShipmentService {
     };
 
     initialShipments.unshift(newShipment);
+    saveShipmentsToFile(initialShipments);
 
     // Broadcast new consignment
     RealtimeService.broadcastShipmentUpdate({
@@ -1144,6 +1268,7 @@ export class ShipmentService {
 
     // Recalculate physical progress from actual events
     shipment.physicalProgress = calculatePhysicalProgress(shipment.status, shipment.events);
+    saveShipmentsToFile(initialShipments);
 
     // Publish to real-time synchronization channels
     RealtimeService.broadcastShipmentUpdate({
@@ -1194,9 +1319,11 @@ export class ShipmentService {
    * Delete a shipment (Admin function)
    */
   static async deleteShipment(id: string): Promise<boolean> {
+    ensureLatestShipmentsStore();
     const index = initialShipments.findIndex((s) => s.id === id || s.trackingNumber === id);
     if (index === -1) return false;
     initialShipments.splice(index, 1);
+    saveShipmentsToFile(initialShipments);
     return true;
   }
 
@@ -1207,11 +1334,13 @@ export class ShipmentService {
     id: string,
     updates: Partial<ShipmentRecord>
   ): Promise<ShipmentRecord | null> {
+    ensureLatestShipmentsStore();
     const shipment = initialShipments.find((s) => s.id === id || s.trackingNumber === id);
     if (!shipment) return null;
 
     Object.assign(shipment, updates, { updatedAt: new Date().toISOString() });
     shipment.lastUpdatedBst = formatBstDateTime(shipment.updatedAt);
+    saveShipmentsToFile(initialShipments);
     return shipment;
   }
 

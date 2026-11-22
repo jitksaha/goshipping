@@ -1906,7 +1906,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         totalBillBdt: dynamicFinanceTotals.totalBillBdt,
         paymentStatus: dynamicFinanceTotals.paymentStatus,
         bdCourierName: bdCourierName,
-        bdTrackingNo: bdCourierTrackingNo.trim() || (orderScope !== 'sourcing' ? trackingCodeToUse : ''),
+        bdTrackingNo: bdCourierTrackingNo.trim() || trackingCodeToUse,
         remark: orderRemarks.trim() || deliveryNotes.trim() || '',
         orderDate: orderDateInput || '',
         cnDate: cnDateInput || '',
@@ -7650,7 +7650,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
             <div className="pt-2 space-y-2">
               <a
-                href={`/tracking?code=${encodeURIComponent(createdShipmentResult.trackingNumber)}`}
+                href={
+                  typeof window !== 'undefined' && window.location.hostname.includes('goshipping.com.bd')
+                    ? `https://goshipping.com.bd/tracking?code=${encodeURIComponent(createdShipmentResult.trackingNumber)}`
+                    : `/tracking?code=${encodeURIComponent(createdShipmentResult.trackingNumber)}`
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-2.5 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white text-xs font-bold shadow-xs cursor-pointer flex items-center justify-center gap-1.5 transition-none"

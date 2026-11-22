@@ -172,16 +172,44 @@ function loadFromFile(): PosLedgerRecord[] {
   return [];
 }
 
+let lastStoreMtimeMs = 0;
+
 function saveToFile(data: PosLedgerRecord[]): void {
   try {
     fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    if (fs.existsSync(STORE_PATH)) {
+      lastStoreMtimeMs = fs.statSync(STORE_PATH).mtimeMs;
+    }
   } catch (err) {
     console.error('[PosLedgerService] Failed to save store:', err);
   }
 }
 
+function ensureLatestStore(): void {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      const stat = fs.statSync(STORE_PATH);
+      if (stat.mtimeMs !== lastStoreMtimeMs || !memoryLedger || memoryLedger.length === 0) {
+        lastStoreMtimeMs = stat.mtimeMs;
+        const loaded = loadFromFile();
+        if (loaded.length > 0 || !memoryLedger || memoryLedger.length === 0) {
+          memoryLedger = loaded;
+          globalThis.__goshipping_pos_ledger = memoryLedger;
+        }
+      }
+    }
+  } catch (err) {
+    // Non-blocking fallback
+  }
+}
+
 let memoryLedger: PosLedgerRecord[] = globalThis.__goshipping_pos_ledger || loadFromFile();
 globalThis.__goshipping_pos_ledger = memoryLedger;
+if (fs.existsSync(STORE_PATH)) {
+  try {
+    lastStoreMtimeMs = fs.statSync(STORE_PATH).mtimeMs;
+  } catch {}
+}
 
 // Connect sync status listener so all background Google Sheet syncs automatically reflect in memory and database
 setSyncStatusListener((idOrOrderId, status, error) => {
@@ -251,6 +279,7 @@ export class PosLedgerService {
     paymentStatus?: string;
     supplier?: string;
   }): Promise<PosLedgerRecord[]> {
+    ensureLatestStore();
     let list = [...memoryLedger];
 
     if (filters?.search) {
@@ -283,7 +312,36 @@ export class PosLedgerService {
   }
 
   static async getById(id: string): Promise<PosLedgerRecord | null> {
-    return memoryLedger.find((r) => r.id === id || r.orderId.toUpperCase() === id.toUpperCase()) || null;
+    ensureLatestStore();
+    const clean = id.trim().toUpperCase();
+    const cleanAlnum = clean.replace(/[^A-Z0-9]/g, '');
+    const numMatch = clean.match(/(\d+)$/);
+    const num = numMatch ? parseInt(numMatch[1], 10) : NaN;
+
+    return (
+      memoryLedger.find((r) => {
+        if (r.id === id) return true;
+        if (r.orderId && r.orderId.toUpperCase() === clean) return true;
+        if (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === clean) return true;
+        if (r.chinaCourierTracking && r.chinaCourierTracking.toUpperCase() === clean) return true;
+        if (r.shippingMark && r.shippingMark.toUpperCase() === clean) return true;
+
+        if (cleanAlnum && r.orderId) {
+          const rAlnum = r.orderId.toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (rAlnum === cleanAlnum) return true;
+        }
+
+        if (!isNaN(num) && r.orderId) {
+          const rNumMatch = r.orderId.match(/(\d+)$/);
+          if (rNumMatch && parseInt(rNumMatch[1], 10) === num) {
+            if (/^\d+$/.test(clean) || clean.startsWith('GOS') || clean.startsWith('POS')) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }) || null
+    );
   }
 
   /**
@@ -294,6 +352,7 @@ export class PosLedgerService {
    * Strictly maintains serial numbering: 1 -> GOS-00001, 2 -> GOS-00002, 23 -> GOS-00023
    */
   static generateNextOrderId(): string {
+    ensureLatestStore();
     let maxSeq = 0;
     for (const record of memoryLedger) {
       if (!record.orderId) continue;
@@ -313,6 +372,7 @@ export class PosLedgerService {
    * Create POS Order Record with Auto Calculations
    */
   static async createRecord(payload: Partial<PosLedgerRecord>): Promise<PosLedgerRecord> {
+    ensureLatestStore();
     const id = `pos-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
     const orderId = payload.orderId?.trim() ? payload.orderId.trim().toUpperCase() : PosLedgerService.generateNextOrderId();
     const today = new Date().toISOString().split('T')[0];
@@ -422,6 +482,7 @@ export class PosLedgerService {
    * Update POS Record with Auto Recalculations & Synchronous Google Sheet Sync
    */
   static async updateRecord(id: string, updates: Partial<PosLedgerRecord>): Promise<PosLedgerRecord | null> {
+    ensureLatestStore();
     const cleanId = String(id).trim();
     let idx = memoryLedger.findIndex(
       (r) => r.id === cleanId || r.orderId.toUpperCase() === cleanId.toUpperCase()
@@ -535,12 +596,13 @@ export class PosLedgerService {
    * Delete Record
    */
   static async deleteRecord(id: string): Promise<boolean> {
+    ensureLatestStore();
     const len = memoryLedger.length;
-    memoryLedger = memoryLedger.filter((r) => r.id !== id);
+    memoryLedger = memoryLedger.filter((r) => r.id !== id && r.orderId !== id);
     if (memoryLedger.length !== len) {
       saveToFile(memoryLedger);
       try {
-        await db.delete(posLedger).where(eq(posLedger.id, id));
+        await db.delete(posLedger).where(or(eq(posLedger.id, id), eq(posLedger.orderId, id)));
       } catch {}
       return true;
     }
@@ -554,6 +616,7 @@ export class PosLedgerService {
     idOrOrderId: string,
     payment: Omit<PaymentEntry, 'id'>
   ): Promise<{ record: PosLedgerRecord; payment: PaymentEntry } | null> {
+    ensureLatestStore();
     const cleanId = String(idOrOrderId).trim();
     const idx = memoryLedger.findIndex(
       (r) => r.id === cleanId || r.orderId.toUpperCase() === cleanId.toUpperCase()

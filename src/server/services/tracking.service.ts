@@ -4,6 +4,8 @@ import { formatBstDateTime } from '../utils/date';
 
 export interface PublicTrackingResponse {
   trackingNumber: string;
+  orderId?: string;
+  bookingReference?: string;
   productName: string;
   productImage?: string;
   productImages?: string[];
@@ -70,6 +72,8 @@ export interface PublicTrackingResponse {
 
 export interface MatchingShipmentSummary {
   trackingNumber: string;
+  orderId?: string;
+  bookingReference?: string;
   productName: string;
   productImage?: string;
   status: TrackingStatusCode;
@@ -137,6 +141,8 @@ export class TrackingService {
 
     const publicData: PublicTrackingResponse = {
       trackingNumber: primaryShipment.trackingNumber,
+      orderId: primaryShipment.bookingReference,
+      bookingReference: primaryShipment.bookingReference,
       productName: primaryShipment.productName || 'Commercial Cargo Consignment',
       productImage: primaryShipment.productImage || primaryShipment.items?.[0]?.imageUrl || '/assets/products/cotton-fabrics.svg',
       productImages: primaryShipment.productImages || [],
@@ -200,6 +206,8 @@ export class TrackingService {
 
     const matchingShipments: MatchingShipmentSummary[] = shipments.map((s) => ({
       trackingNumber: s.trackingNumber,
+      orderId: s.bookingReference,
+      bookingReference: s.bookingReference,
       productName: s.productName,
       productImage: s.productImage || s.items?.[0]?.imageUrl || '/assets/products/cotton-fabrics.svg',
       status: s.status,

@@ -71,9 +71,12 @@ interface AuthStoreData {
   passwords: Record<string, string>;
 }
 
+let lastAuthMtimeMs = 0;
+
 export function loadAuthStore(): void {
   try {
     if (fs.existsSync(STORE_PATH)) {
+      lastAuthMtimeMs = fs.statSync(STORE_PATH).mtimeMs;
       const raw = fs.readFileSync(STORE_PATH, 'utf-8');
       const data: AuthStoreData = JSON.parse(raw);
       if (Array.isArray(data.sessions)) {
@@ -89,24 +92,41 @@ export function loadAuthStore(): void {
         }
       }
       if (Array.isArray(data.accounts)) {
-        if (!globalThis.__goshipping_accounts) {
-          globalThis.__goshipping_accounts = [...DEFAULT_ACCOUNTS];
-        }
+        const cleanAccounts: AuthUser[] = [...DEFAULT_ACCOUNTS];
         for (const acc of data.accounts) {
-          if (!globalThis.__goshipping_accounts.some((a) => a.id === acc.id || a.email.toLowerCase() === acc.email.toLowerCase())) {
-            globalThis.__goshipping_accounts.push(acc);
+          const existingIdx = cleanAccounts.findIndex((a) => a.id === acc.id || a.email.toLowerCase() === acc.email.toLowerCase());
+          if (existingIdx >= 0) {
+            cleanAccounts[existingIdx] = acc;
+          } else {
+            cleanAccounts.push(acc);
           }
         }
+        globalThis.__goshipping_accounts = cleanAccounts;
+      } else if (!globalThis.__goshipping_accounts) {
+        globalThis.__goshipping_accounts = [...DEFAULT_ACCOUNTS];
       }
       if (data.passwords && typeof data.passwords === 'object') {
         for (const [k, v] of Object.entries(data.passwords)) {
           memoryPasswords.set(k.toLowerCase().trim(), v);
         }
       }
+    } else if (!globalThis.__goshipping_accounts) {
+      globalThis.__goshipping_accounts = [...DEFAULT_ACCOUNTS];
     }
   } catch (e) {
     console.error('[AuthStore] Error loading auth store:', e);
   }
+}
+
+export function ensureLatestAuthStore(): void {
+  try {
+    if (fs.existsSync(STORE_PATH)) {
+      const stat = fs.statSync(STORE_PATH);
+      if (stat.mtimeMs !== lastAuthMtimeMs || !globalThis.__goshipping_accounts) {
+        loadAuthStore();
+      }
+    }
+  } catch (e) {}
 }
 
 export function saveAuthStore(): void {
@@ -135,6 +155,9 @@ export function saveAuthStore(): void {
     };
 
     fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    if (fs.existsSync(STORE_PATH)) {
+      lastAuthMtimeMs = fs.statSync(STORE_PATH).mtimeMs;
+    }
   } catch (e) {
     console.error('[AuthStore] Error saving auth store:', e);
   }
@@ -144,6 +167,7 @@ export function saveAuthStore(): void {
  * Get all active user accounts (predefined defaults + dynamic signups)
  */
 export function getAllAccounts(): AuthUser[] {
+  ensureLatestAuthStore();
   if (!globalThis.__goshipping_accounts) {
     globalThis.__goshipping_accounts = [...DEFAULT_ACCOUNTS];
   }
