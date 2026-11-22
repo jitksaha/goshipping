@@ -2191,11 +2191,11 @@ function doPost(e) {
                       value={formData.mobileNo}
                       onChange={(e) => setFormData({ ...formData, mobileNo: e.target.value })}
                       className="w-full h-9 px-3 rounded-lg border border-slate-300 text-xs font-mono"
-                      placeholder="+880 1711..."
+                      placeholder="e.g. 01711... or +880 1711..."
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Importer / Client (Col H)</label>
+                    <label className="font-bold text-slate-700">Importer (Col H)</label>
                     <input
                       type="text"
                       value={formData.importerClient}

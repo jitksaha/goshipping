@@ -702,9 +702,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   }, [addressLine1, addressLine2, recipientCity, recipientState, recipientPostcode, newDestCountry]);
 
   const compiledPhone = useMemo(() => {
-    if (!recipientPhoneBody.trim()) return '';
-    return `${recipientPhoneCode} ${recipientPhoneBody.trim()}`.trim();
-  }, [recipientPhoneCode, recipientPhoneBody]);
+    return (newRecipientPhone || recipientPhoneBody || '').trim();
+  }, [newRecipientPhone, recipientPhoneBody]);
 
   const handleCountryChange = (country: string) => {
     setNewDestCountry(country);
@@ -1132,19 +1131,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setRecipientContactName(target.fullName || target.companyName || '');
     if (target.phone) {
       setNewRecipientPhone(target.phone);
-      const cleaned = target.phone.replace(/\s+/g, '');
-      if (cleaned.startsWith('+880')) {
-        setRecipientPhoneCode('+880');
-        setRecipientPhoneBody(cleaned.slice(4));
-      } else if (cleaned.startsWith('+60')) {
-        setRecipientPhoneCode('+60');
-        setRecipientPhoneBody(cleaned.slice(3));
-      } else if (cleaned.startsWith('+86')) {
-        setRecipientPhoneCode('+86');
-        setRecipientPhoneBody(cleaned.slice(3));
-      } else {
-        setRecipientPhoneBody(target.phone);
-      }
+      setRecipientPhoneBody(target.phone);
+      setNewCustomerPhone(target.phone);
     }
     if (target.address) {
       setNewRecipientAddress(target.address);
@@ -1605,8 +1593,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     // 5. Recipient
     setRecipientContactName(record.customerName || '');
     if (record.mobileNo) {
-      setRecipientPhoneBody(record.mobileNo.replace(/\D/g, ''));
+      setRecipientPhoneBody(record.mobileNo);
       setNewRecipientPhone(record.mobileNo);
+      setNewCustomerPhone(record.mobileNo);
     }
 
     // Switch to full-page order screen
@@ -1778,7 +1767,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
       let finalCustomerId = selectedCustomerId;
       let finalCustName = newCustName.trim();
       let finalRecipientName = recipientContactName.trim() || newRecipientName.trim();
-      let finalRecipientPhone = compiledPhone || newRecipientPhone.trim();
+      let finalRecipientPhone = (orderCustomerMode === 'new' ? newCustomerPhone.trim() : (newRecipientPhone.trim() || recipientPhoneBody.trim())) || '';
       let finalRecipientAddress = compiledAddress || newRecipientAddress.trim();
 
       // If Admin opted to Register New Customer Account on the fly
@@ -4496,99 +4485,110 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                       )}
                     </div>
                   ) : (
-                    /* On-The-Fly New Customer Form */
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-0.5">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Full Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={newCustomerFullName}
-                          onChange={(e) => {
-                            setNewCustomerFullName(e.target.value);
-                            setNewCustName(e.target.value);
-                            setNewRecipientName(e.target.value);
-                          }}
-                          placeholder="e.g. Tarek Rahman"
-                          required={orderCustomerMode === 'new'}
-                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                        />
+                    /* On-The-Fly New Customer Form (Visual Container with Soft Grey Border) */
+                    <div className="p-3 rounded-lg border border-slate-200 bg-slate-50/50 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600 border-b border-slate-200/80 pb-1.5 mb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#EA1D2C]"></span>
+                          <span>New Client Registration</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal">Account will be created automatically</span>
                       </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerFullName}
+                            onChange={(e) => {
+                              setNewCustomerFullName(e.target.value);
+                              setNewCustName(e.target.value);
+                              setNewRecipientName(e.target.value);
+                            }}
+                            placeholder="e.g. Tarek Rahman"
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Company / Importer Name (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          value={newCustomerCompany}
-                          onChange={(e) => {
-                            setNewCustomerCompany(e.target.value);
-                            setImporterClientInput(e.target.value);
-                          }}
-                          placeholder="e.g. Prime Apparels BD Ltd"
-                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                        />
-                      </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Company <span className="text-slate-400 font-normal">(Optional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerCompany}
+                            onChange={(e) => {
+                              setNewCustomerCompany(e.target.value);
+                              setImporterClientInput(e.target.value);
+                            }}
+                            placeholder="e.g. Prime Apparels BD Ltd"
+                            className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Email Address <span className="text-slate-400 font-normal">(Optional)</span>
-                        </label>
-                        <input
-                          type="email"
-                          value={newCustomerEmail}
-                          onChange={(e) => setNewCustomerEmail(e.target.value)}
-                          placeholder="client@company.com (optional)"
-                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                        />
-                      </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={newCustomerEmail}
+                            onChange={(e) => setNewCustomerEmail(e.target.value)}
+                            placeholder="client@company.com (optional)"
+                            className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Phone / WhatsApp *
-                        </label>
-                        <input
-                          type="tel"
-                          value={newCustomerPhone}
-                          onChange={(e) => {
-                            setNewCustomerPhone(e.target.value);
-                            setNewRecipientPhone(e.target.value);
-                          }}
-                          placeholder="+880 1711-XXXXXX"
-                          required={orderCustomerMode === 'new'}
-                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                        />
-                      </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Phone / WhatsApp *
+                          </label>
+                          <input
+                            type="tel"
+                            value={newCustomerPhone}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setNewCustomerPhone(val);
+                              setNewRecipientPhone(val);
+                              setRecipientPhoneBody(val);
+                            }}
+                            placeholder="e.g. 01711000000 or +880 1711..."
+                            required={orderCustomerMode === 'new'}
+                            className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Delivery Address
-                        </label>
-                        <input
-                          type="text"
-                          value={newCustomerAddress}
-                          onChange={(e) => {
-                            setNewCustomerAddress(e.target.value);
-                            setNewRecipientAddress(e.target.value);
-                          }}
-                          placeholder="Plot 12, Sector 3, Uttara, Dhaka"
-                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                        />
-                      </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Delivery Address
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerAddress}
+                            onChange={(e) => {
+                              setNewCustomerAddress(e.target.value);
+                              setNewRecipientAddress(e.target.value);
+                            }}
+                            placeholder="Plot 12, Sector 3, Uttara, Dhaka"
+                            className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Initial Password
-                        </label>
-                        <input
-                          type="text"
-                          value={newCustomerPassword}
-                          onChange={(e) => setNewCustomerPassword(e.target.value)}
-                          placeholder="password123"
-                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
-                        />
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                            Initial Password
+                          </label>
+                          <input
+                            type="text"
+                            value={newCustomerPassword}
+                            onChange={(e) => setNewCustomerPassword(e.target.value)}
+                            placeholder="password123"
+                            className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -4597,7 +4597,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                        Importer / Client (Col H)
+                        Importer (Col H)
                       </label>
                       <input
                         type="text"
@@ -4994,36 +4994,22 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Phone Number with Country Code *
+                          Phone / WhatsApp *
                         </label>
-                        <div className="relative flex items-center h-8 w-full rounded-md border border-slate-300 bg-white focus-within:border-slate-900 focus-within:ring-1 focus-within:ring-slate-900">
-                          <div className="relative flex items-center shrink-0 pl-2 pr-1.5 border-r border-slate-200">
-                            <select
-                              value={recipientPhoneCode}
-                              onChange={(e) => setRecipientPhoneCode(e.target.value)}
-                              className="appearance-none bg-transparent pr-3.5 text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer"
-                            >
-                              {PHONE_DIAL_CODES.map((dial) => (
-                                <option key={dial.code + dial.country} value={dial.code}>
-                                  {dial.flag} {dial.code}
-                                </option>
-                              ))}
-                            </select>
-                            <svg className="w-2.5 h-2.5 text-slate-400 pointer-events-none absolute right-1 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                              <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                          </div>
-                          <input
-                            type="tel"
-                            value={recipientPhoneBody}
-                            onChange={(e) => {
-                              setRecipientPhoneBody(e.target.value);
-                              setNewRecipientPhone(`${recipientPhoneCode} ${e.target.value}`);
-                            }}
-                            placeholder="1711 000000"
-                            className="flex-1 h-full px-2 text-xs text-slate-900 font-mono focus:outline-none bg-transparent"
-                          />
-                        </div>
+                        <input
+                          type="tel"
+                          value={newRecipientPhone}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setNewRecipientPhone(val);
+                            setRecipientPhoneBody(val);
+                            if (orderCustomerMode === 'new') {
+                              setNewCustomerPhone(val);
+                            }
+                          }}
+                          placeholder="e.g. 01711000000 or +880 1711..."
+                          className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
+                        />
                       </div>
                     </div>
 
