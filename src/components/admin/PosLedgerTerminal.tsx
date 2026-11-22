@@ -3,6 +3,7 @@ import type { PosLedgerRecord } from '../../server/services/posLedger.service';
 import { downloadPosReceiptPDF } from '../../lib/posReceiptPdf';
 import { normalizeStatusCode } from '../../server/services/tracking-status';
 import CombinedCommercialInvoiceModal from './CombinedCommercialInvoiceModal';
+import StatusQuickDropdown from './StatusQuickDropdown';
 
 interface PosStats {
   totalOrders: number;
@@ -493,6 +494,91 @@ export default function PosLedgerTerminal({
       }
     } catch {
       showToast('Failed to update payment status', 'error');
+    }
+  };
+
+  const handleQuickStatusChange = async (rec: PosLedgerRecord, newStatusLabel: string) => {
+    const norm = normalizeStatusCode(newStatusLabel);
+    const targetLabel = newStatusLabel.trim();
+
+    if (rec.currentStatus === targetLabel) return;
+
+    const previousStatus = rec.currentStatus;
+
+    // Optimistic instant UI update (0ms)
+    setRecords((prev) =>
+      prev.map((r) =>
+        r.id === rec.id
+          ? { ...r, currentStatus: targetLabel, sheetSyncStatus: 'pending' }
+          : r
+      )
+    );
+
+    // Cross-tab broadcast & event dispatch
+    if (typeof window !== 'undefined') {
+      const trackingCode =
+        rec.bdTrackingNo && rec.bdTrackingNo.toUpperCase().startsWith('GOSH-')
+          ? rec.bdTrackingNo.trim()
+          : rec.orderId || rec.id;
+
+      window.dispatchEvent(
+        new CustomEvent('goshipping-status-updated', {
+          detail: { trackingNumber: trackingCode, newStatus: norm, statusLabel: targetLabel }
+        })
+      );
+      try {
+        const bc = new BroadcastChannel('goshipping_tracking_sync');
+        bc.postMessage({
+          type: 'SHIPMENT_STATUS_UPDATED',
+          trackingNumber: trackingCode,
+          newStatus: norm,
+          statusLabel: targetLabel,
+          timestamp: Date.now()
+        });
+        bc.close();
+      } catch {}
+      try {
+        localStorage.setItem(
+          'goshipping_live_sync',
+          JSON.stringify({ code: trackingCode, status: norm, time: Date.now() })
+        );
+      } catch {}
+    }
+
+    try {
+      // 1. Call POS Ledger update API (persists in DB and triggers synchronous Google Sheet sync)
+      const res = await fetch(`/api/admin/pos-ledger/${rec.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentStatus: targetLabel })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to update order status');
+      }
+
+      const data = await res.json();
+      if (data.record) {
+        setRecords((prev) =>
+          prev.map((r) => (r.id === rec.id ? { ...r, ...data.record } : r))
+        );
+      }
+
+      // 2. Also notify shipment status endpoint for realtime public tracker cache sync
+      fetch(`/api/shipments/${rec.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: norm })
+      }).catch(() => {});
+
+      showToast(`Status updated to "${targetLabel}" for ${rec.orderId}`, 'success');
+    } catch (err: any) {
+      // Revert optimistic update
+      setRecords((prev) =>
+        prev.map((r) => (r.id === rec.id ? { ...r, currentStatus: previousStatus } : r))
+      );
+      showToast(err.message || 'Failed to update status', 'error');
     }
   };
 
@@ -1512,7 +1598,7 @@ function doPost(e) {
       
       {/* 4A. Desktop & Tablet View (Smooth Horizontal Scroll, Never Squeezed) */}
       <div className="hidden md:block bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[380px]">
           <table className="w-full text-left text-xs border-collapse min-w-[1260px]">
             <thead>
               <tr className="bg-slate-100 text-slate-700 border-b border-slate-200 text-[10px] uppercase font-mono tracking-wider font-bold">
@@ -1662,9 +1748,11 @@ function doPost(e) {
 
                     {/* Column 4: Status & Delivery */}
                     <td className="py-3 px-4 border-r border-slate-200">
-                      <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap">
-                        {r.currentStatus}
-                      </span>
+                      <StatusQuickDropdown
+                        currentStatus={r.currentStatus}
+                        onUpdate={(newLabel) => handleQuickStatusChange(r, newLabel)}
+                        openUpward={idx >= Math.max(displayedRecords.length - 4, 3)}
+                      />
                       {r.bdCourierName && (
                         <div className="text-[11px] font-semibold text-slate-800 mt-1">
                           {r.bdCourierName}
@@ -1933,9 +2021,11 @@ function doPost(e) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                    {r.currentStatus}
-                  </span>
+                  <StatusQuickDropdown
+                    currentStatus={r.currentStatus}
+                    onUpdate={(newLabel) => handleQuickStatusChange(r, newLabel)}
+                    openUpward={idx >= Math.max(displayedRecords.length - 3, 2)}
+                  />
                   <button
                     type="button"
                     onClick={() => handleSyncSingleOrder(r.id, r.orderId)}
