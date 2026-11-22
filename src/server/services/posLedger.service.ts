@@ -47,6 +47,7 @@ export interface PosLedgerRecord {
   totalBillBdt: number;
   paymentStatus: 'Due' | 'Paid' | 'Partial';
   payments?: PaymentEntry[];
+  trackingNumber?: string;
   bdCourierName?: string;
   bdTrackingNo?: string;
   remark?: string;
@@ -322,6 +323,7 @@ export class PosLedgerService {
       memoryLedger.find((r) => {
         if (r.id === id) return true;
         if (r.orderId && r.orderId.toUpperCase() === clean) return true;
+        if (r.trackingNumber && r.trackingNumber.toUpperCase() === clean) return true;
         if (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === clean) return true;
         if (r.chinaCourierTracking && r.chinaCourierTracking.toUpperCase() === clean) return true;
         if (r.shippingMark && r.shippingMark.toUpperCase() === clean) return true;
@@ -408,6 +410,7 @@ export class PosLedgerService {
       internationalFreightBdt: calc.internationalFreightBdt,
       totalBillBdt: calc.totalBillBdt,
       paymentStatus: calc.paymentStatus,
+      trackingNumber: payload.trackingNumber || '',
       bdCourierName: payload.bdCourierName || '',
       bdTrackingNo: payload.bdTrackingNo || '',
       remark: payload.remark || '',

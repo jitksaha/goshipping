@@ -102,9 +102,11 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
   const weight = bdWeight > 0 ? bdWeight : (isBdStage && cnWeight > 0 ? cnWeight : 0);
   const pieces = Number(record.quantity) || 1;
   const isGoshTracking = record.bdTrackingNo && record.bdTrackingNo.toUpperCase().trim().startsWith('GOSH-');
-  const trackingNumber = isGoshTracking
-    ? record.bdTrackingNo!.trim().toUpperCase()
-    : (record.orderId || `GOS-${record.id}`);
+  const trackingNumber = record.trackingNumber
+    ? record.trackingNumber.trim().toUpperCase()
+    : (isGoshTracking
+        ? record.bdTrackingNo!.trim().toUpperCase()
+        : (record.orderId || `GOS-${record.id}`));
 
   const orderDateIso = record.orderDate
     ? new Date(record.orderDate).toISOString()
@@ -733,8 +735,11 @@ export class ShipmentService {
       }
 
       // GoShipping Consignment Tracking Code (e.g. GOSH-2026-XXXX) or Local BD Courier
-      if (!isEmail && record.bdTrackingNo) {
-        if (record.bdTrackingNo.toUpperCase() === cleanUpper || isCourierTrackingMatch(raw, record.bdTrackingNo)) {
+      if (!isEmail) {
+        if (record.trackingNumber && record.trackingNumber.toUpperCase() === cleanUpper) {
+          matches = true;
+        }
+        if (record.bdTrackingNo && (record.bdTrackingNo.toUpperCase() === cleanUpper || isCourierTrackingMatch(raw, record.bdTrackingNo))) {
           matches = true;
         }
       }

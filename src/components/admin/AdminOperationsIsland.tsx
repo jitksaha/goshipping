@@ -1581,7 +1581,16 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     setGrossWeightKgInput(record.cnWeightKg || record.bdWeightKg ? String(record.cnWeightKg || record.bdWeightKg) : '');
     setFreightRatePerKgBdt(record.shippingRatePerKgBdt ? Number(record.shippingRatePerKgBdt) : 950);
     setBdCourierName(record.bdCourierName || '');
-    setBdCourierTrackingNo(record.bdTrackingNo || '');
+    // Local Courier Tracking No (Col AA) is strictly manual for Bangladesh domestic couriers (e.g. Steadfast / RedX).
+    // Never auto-populate with internal orderId (e.g. GOS-00001) or GoShipping tracking code (GOSH-).
+    const isInternalTrackingCode = Boolean(
+      record.bdTrackingNo && (
+        record.bdTrackingNo.trim() === (record.orderId || '').trim() ||
+        record.bdTrackingNo.toUpperCase().startsWith('GOS-') ||
+        record.bdTrackingNo.toUpperCase().startsWith('GOSH-')
+      )
+    );
+    setBdCourierTrackingNo(isInternalTrackingCode ? '' : (record.bdTrackingNo || ''));
     setOrderRemarks(record.remark || '');
 
     // 4. Status
@@ -1906,7 +1915,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         totalBillBdt: dynamicFinanceTotals.totalBillBdt,
         paymentStatus: dynamicFinanceTotals.paymentStatus,
         bdCourierName: bdCourierName,
-        bdTrackingNo: bdCourierTrackingNo.trim() || trackingCodeToUse,
+        bdTrackingNo: bdCourierTrackingNo.trim(),
+        trackingNumber: editingOrderRecord?.trackingNumber || trackingCodeToUse,
         remark: orderRemarks.trim() || deliveryNotes.trim() || '',
         orderDate: orderDateInput || '',
         cnDate: cnDateInput || '',
@@ -4132,6 +4142,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                       const data = await res.json();
                                       const found = (data.records || []).find((r: any) =>
                                         (r.orderId && r.orderId.toUpperCase() === s.trackingNumber.toUpperCase()) ||
+                                        (r.trackingNumber && r.trackingNumber.toUpperCase() === s.trackingNumber.toUpperCase()) ||
                                         (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === s.trackingNumber.toUpperCase())
                                       );
                                       if (found) {
@@ -4238,6 +4249,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                   const data = await res.json();
                                   const found = (data.records || []).find((r: any) =>
                                     (r.orderId && r.orderId.toUpperCase() === s.trackingNumber.toUpperCase()) ||
+                                    (r.trackingNumber && r.trackingNumber.toUpperCase() === s.trackingNumber.toUpperCase()) ||
                                     (r.bdTrackingNo && r.bdTrackingNo.toUpperCase() === s.trackingNumber.toUpperCase())
                                   );
                                   if (found) {
@@ -4922,8 +4934,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     {/* Weight (Col V) and Shipping Rate (Col W) */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                          Gross Cargo Weight (KG) <span className="text-slate-400 font-normal">(Optional — Enter in BD)</span>
+                        <label
+                          className="block text-[11px] font-semibold text-slate-700 mb-0.5 whitespace-nowrap overflow-hidden text-ellipsis"
+                          title="Gross Cargo Weight (KG) — Optional, enter when cargo arrives in Bangladesh"
+                        >
+                          Gross Cargo Weight (KG) <span className="text-slate-400 font-normal text-[10px]">(BD)</span>
                         </label>
                         <input
                           type="number"

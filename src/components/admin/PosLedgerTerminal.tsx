@@ -397,7 +397,11 @@ export default function PosLedgerTerminal({
       bdWeightKg: rec.bdWeightKg,
       shippingRatePerKgBdt: rec.shippingRatePerKgBdt,
       bdCourierName: rec.bdCourierName || 'Steadfast',
-      bdTrackingNo: rec.bdTrackingNo || '',
+      bdTrackingNo: (rec.bdTrackingNo && (
+        rec.bdTrackingNo.trim() === (rec.orderId || '').trim() ||
+        rec.bdTrackingNo.toUpperCase().startsWith('GOS-') ||
+        rec.bdTrackingNo.toUpperCase().startsWith('GOSH-')
+      )) ? '' : (rec.bdTrackingNo || ''),
       remark: rec.remark || ''
     });
     setShowPosDrawer(true);
@@ -420,7 +424,8 @@ export default function PosLedgerTerminal({
         cnWeightKg: Number(formData.cnWeightKg) || 0,
         bdWeightKg: Number(formData.bdWeightKg) || 0,
         shippingRatePerKgBdt: Number(formData.shippingRatePerKgBdt) || 0,
-        bdTrackingNo: formData.bdTrackingNo.trim() || (editingRecord ? (editingRecord.bdTrackingNo || '') : `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`)
+        bdTrackingNo: formData.bdTrackingNo.trim(),
+        trackingNumber: (editingRecord as any)?.trackingNumber || `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
       };
 
       if (editingRecord) {
@@ -1665,9 +1670,14 @@ function doPost(e) {
                           {r.bdCourierName}
                         </div>
                       )}
-                      {r.bdTrackingNo && (
-                        <div className="font-mono text-[10px] text-blue-600 font-semibold truncate max-w-[140px]" title={r.bdTrackingNo}>
+                      {r.bdTrackingNo && !r.bdTrackingNo.startsWith('GOS-') && !r.bdTrackingNo.startsWith('GOSH-') && r.bdTrackingNo !== r.orderId && (
+                        <div className="font-mono text-[10px] text-emerald-600 font-semibold truncate max-w-[140px]" title={`Local Courier: ${r.bdTrackingNo}`}>
                           {r.bdTrackingNo}
+                        </div>
+                      )}
+                      {(r.trackingNumber || (r.bdTrackingNo && r.bdTrackingNo.startsWith('GOSH-'))) && (
+                        <div className="font-mono text-[10px] text-blue-600 font-semibold truncate max-w-[140px]" title={`Consignment: ${r.trackingNumber || r.bdTrackingNo}`}>
+                          {r.trackingNumber || r.bdTrackingNo}
                         </div>
                       )}
                     </td>
