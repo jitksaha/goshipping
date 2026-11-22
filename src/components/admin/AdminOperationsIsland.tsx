@@ -1537,7 +1537,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
     // 1. Identification & Dates
     setCustomOrderId(record.orderId || '');
-    setNewCustomTrackingNumber(record.orderId || '');
+    setNewCustomTrackingNumber(record.chinaCourierTracking || record.trackingNumber || record.orderId || '');
     setOrderDateInput(record.orderDate || '');
     setCnDateInput(record.cnDate || '');
     setBdDateInput(record.bdDate || '');
@@ -1872,8 +1872,8 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         finalCustName = 'Valued Customer';
       }
 
-      // Tracking code: custom or auto-generated
-      const trackingCodeToUse = newCustomTrackingNumber.trim().toUpperCase() || `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      // Tracking code: custom or auto-generated from China courier tracking
+      const trackingCodeToUse = newCustomTrackingNumber.trim().toUpperCase() || chinaTrackingNo.trim().toUpperCase() || `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
       // 1. Validation based on scope
       if (orderScope === 'both' || orderScope === 'sourcing') {
@@ -4754,7 +4754,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         <input
                           type="text"
                           value={chinaTrackingNo}
-                          onChange={(e) => setChinaTrackingNo(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setChinaTrackingNo(val);
+                            // Auto-sync: automatically update Consignment Tracking Code on the right side
+                            setNewCustomTrackingNumber(val.trim().toUpperCase());
+                          }}
                           placeholder="e.g. SF1482930192 or 7774569437"
                           className="w-full h-8 px-2.5 rounded-md border border-slate-300 text-xs text-slate-900 font-mono focus:outline-none focus:ring-1 focus:ring-slate-900 bg-white"
                         />
