@@ -383,6 +383,10 @@ export function convertPosRecordToShipment(record: PosLedgerRecord): ShipmentRec
     estimatedDelivery: new Date(new Date(orderDateIso).getTime() + 7 * 86400000).toISOString(),
     actualDelivery: normStatus === 'delivered' ? bdDateIso : undefined,
     bookingReference: record.orderId || record.websiteOrderNo || record.shippingMark || undefined,
+    orderId: record.orderId || undefined,
+    chinaCourierTracking: record.chinaCourierTracking || undefined,
+    shippingMark: record.shippingMark || undefined,
+    bdTrackingNo: record.bdTrackingNo || undefined,
     notes: [
       record.orderId ? `Order: ${record.orderId}` : '',
       record.shippingMark ? `Mark: ${record.shippingMark}` : '',
@@ -498,6 +502,10 @@ export interface ShipmentRecord {
   estimatedDelivery: string;
   actualDelivery?: string;
   bookingReference?: string;
+  orderId?: string;
+  chinaCourierTracking?: string;
+  shippingMark?: string;
+  bdTrackingNo?: string;
   notes?: string;
   items: ShipmentItem[];
   events: ShipmentEvent[];

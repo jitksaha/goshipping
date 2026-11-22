@@ -3624,12 +3624,35 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         setQuickTargetStage(normalizeStatusCode(found.status));
                       }
                     }}
-                    options={shipments.map((s) => ({
-                      value: s.id,
-                      label: `${s.trackingNumber} — ${s.customerName}`,
-                      badge: s.status.toUpperCase()
-                    }))}
+                    options={shipments.map((s) => {
+                      const cnTracking = (s as any).chinaCourierTracking || (s.carrierWaybillNumber && !s.carrierWaybillNumber.startsWith('GOSH-') ? s.carrierWaybillNumber : '');
+                      const orderId = (s as any).orderId || s.bookingReference || '';
+                      const mark = (s as any).shippingMark || (s.billOfLadingNumber?.startsWith('MARK-') ? s.billOfLadingNumber.replace('MARK-', '') : '');
+                      const phone = s.customerPhone || s.recipientPhone || '';
+
+                      const metaParts = [];
+                      if (cnTracking) metaParts.push(`SF/CN: ${cnTracking}`);
+                      if (orderId && orderId !== s.trackingNumber) metaParts.push(`Order: ${orderId}`);
+                      if (s.trackingNumber) metaParts.push(s.trackingNumber);
+                      if (mark) metaParts.push(`Mark: ${mark}`);
+                      if (phone) metaParts.push(phone);
+
+                      const displayTitle = `${orderId ? `${orderId} — ` : ''}${s.customerName}${cnTracking ? ` [SF: ${cnTracking}]` : ''}`;
+
+                      return {
+                        value: s.id,
+                        label: displayTitle,
+                        description: metaParts.join(' · '),
+                        badge: s.status.toUpperCase(),
+                        chinaTracking: cnTracking,
+                        orderId: orderId,
+                        trackingCode: s.trackingNumber,
+                        shippingMark: mark,
+                        phone: phone
+                      };
+                    })}
                     placeholder="Select Active Consignment"
+                    searchPlaceholder="Search by China Tracking (SF/ZTO), Order ID, Phone, Customer..."
                     searchable={true}
                   />
                 </div>

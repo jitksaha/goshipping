@@ -5,6 +5,11 @@ export interface ReferenceSelectOption {
   label: string;
   badge?: string;
   description?: string;
+  chinaTracking?: string;
+  orderId?: string;
+  trackingCode?: string;
+  shippingMark?: string;
+  phone?: string;
 }
 
 export interface ReferenceSelectProps {
@@ -12,10 +17,83 @@ export interface ReferenceSelectProps {
   onChange: (value: string) => void;
   options: ReferenceSelectOption[];
   placeholder?: string;
+  searchPlaceholder?: string;
   className?: string;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
   searchable?: boolean;
+}
+
+/**
+ * Calculate match score with highest priority given to China Domestic Tracking (Col D)
+ */
+function getOptionScore(opt: ReferenceSelectOption, rawQuery: string): number {
+  const q = rawQuery.trim().toUpperCase();
+  if (!q) return 0;
+  const qClean = q.replace(/[^A-Z0-9]/g, '');
+
+  // 1. TOP PRIORITY (Score 8000-10000): China Domestic Tracking (SF/ZTO) (Col D)
+  const cn = (opt.chinaTracking || '').trim().toUpperCase();
+  const cnClean = cn.replace(/[^A-Z0-9]/g, '');
+  if (cn) {
+    if (cn === q) return 10000;
+    if (cnClean && qClean && cnClean === qClean) return 9500;
+    if (qClean.length >= 4 && cnClean && cnClean.endsWith(qClean)) return 9200;
+    if (qClean.length >= 4 && cnClean && (cnClean.includes(qClean) || qClean.includes(cnClean))) return 8500;
+    if (q.length >= 4 && cn.includes(q)) return 8000;
+  }
+
+  // 2. PRIORITY 2 (Score 6000-7500): Order ID (Col A, e.g. GOS-00001, 00001, 1)
+  const oid = (opt.orderId || '').trim().toUpperCase();
+  const oidClean = oid.replace(/[^A-Z0-9]/g, '');
+  if (oid) {
+    if (oid === q) return 7500;
+    if (oidClean && qClean && oidClean === qClean) return 7200;
+    const numQ = q.match(/(\d+)$/);
+    const numOid = oid.match(/(\d+)$/);
+    if (numQ && numOid && parseInt(numQ[1], 10) === parseInt(numOid[1], 10)) {
+      if (/^\d+$/.test(q) || q.startsWith('GOS') || q.startsWith('POS')) {
+        return 7000;
+      }
+    }
+    if (q.length >= 3 && oid.includes(q)) return 6500;
+  }
+
+  // 3. PRIORITY 3 (Score 4500-5500): Consignment Tracking Code (GOSH-XXXX) or Waybill
+  const tc = (opt.trackingCode || '').trim().toUpperCase();
+  if (tc) {
+    if (tc === q) return 5500;
+    if (q.length >= 4 && tc.includes(q)) return 5000;
+  }
+
+  // 4. PRIORITY 4 (Score 3500-4200): Shipping Mark (Col I)
+  const mark = (opt.shippingMark || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (mark && qClean) {
+    if (mark === qClean) return 4200;
+    if (qClean.length >= 3 && (mark.includes(qClean) || qClean.includes(mark))) return 3800;
+  }
+
+  // 5. PRIORITY 5 (Score 2500-3200): Customer Phone / WhatsApp
+  const phone = (opt.phone || '').replace(/\D/g, '');
+  const qPhone = q.replace(/\D/g, '');
+  if (phone && qPhone.length >= 4) {
+    if (phone === qPhone || phone.endsWith(qPhone)) return 3200;
+    if (phone.includes(qPhone)) return 2800;
+  }
+
+  // 6. PRIORITY 6 (Score 1500-2200): Label match (Customer Name, Product, etc.)
+  const label = opt.label.toUpperCase();
+  if (label.includes(q)) return 2000;
+
+  // 7. PRIORITY 7 (Score 1000): Description match
+  const desc = (opt.description || '').toUpperCase();
+  if (desc.includes(q)) return 1200;
+
+  // 8. PRIORITY 8 (Score 500): Badge match
+  const badge = (opt.badge || '').toUpperCase();
+  if (badge.includes(q)) return 800;
+
+  return 0;
 }
 
 /**
@@ -32,6 +110,7 @@ export function ReferenceSelect({
   onChange,
   options,
   placeholder = 'Select option...',
+  searchPlaceholder = 'Search...',
   className = '',
   disabled = false,
   size = 'md',
@@ -67,11 +146,11 @@ export function ReferenceSelect({
     options.find((opt) => opt.label.toLowerCase() === value.toLowerCase());
 
   const filteredOptions = searchQuery.trim()
-    ? options.filter((opt) =>
-        opt.label.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
-        (opt.badge && opt.badge.toLowerCase().includes(searchQuery.trim().toLowerCase())) ||
-        (opt.description && opt.description.toLowerCase().includes(searchQuery.trim().toLowerCase()))
-      )
+    ? options
+        .map((opt) => ({ opt, score: getOptionScore(opt, searchQuery) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((item) => item.opt)
     : options;
 
   // Sleek compact dimensions: reduced padding and slightly smaller, sharper font
@@ -124,13 +203,13 @@ export function ReferenceSelect({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
+                placeholder={searchPlaceholder}
                 className="w-full h-7 px-2 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[11px] text-slate-900 dark:text-white focus:outline-none focus:border-slate-400 dark:focus:border-slate-500"
               />
             </div>
           )}
 
-          <div className="max-h-56 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/40">
+          <div className="max-h-60 overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800/40">
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-2 text-[11px] text-slate-400 dark:text-slate-500 text-center">
                 No matching options found
@@ -156,7 +235,21 @@ export function ReferenceSelect({
                         : 'text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
-                    <span className="truncate pr-2">{opt.label}</span>
+                    <div className="flex flex-col min-w-0 pr-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="truncate">{opt.label}</span>
+                        {opt.badge && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 shrink-0">
+                            {opt.badge}
+                          </span>
+                        )}
+                      </div>
+                      {opt.description && (
+                        <span className="truncate text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                          {opt.description}
+                        </span>
+                      )}
+                    </div>
                     {isSelected && (
                       <span className="w-4 h-4 rounded-full bg-[#334155] dark:bg-slate-600 flex items-center justify-center shrink-0 ml-1.5 shadow-2xs">
                         <svg
