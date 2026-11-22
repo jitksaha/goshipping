@@ -511,17 +511,18 @@ export default function CombinedCommercialInvoiceModal({
             {/* Header: GoShipping Brand & Invoice Title (Compact & Sleek) */}
             <div className="flex items-start justify-between border-b border-slate-200/40 pb-3 gap-3">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded-full bg-[#EA1D2C] inline-block shrink-0" />
-                  <span className="text-xl font-black tracking-tight text-slate-900 font-['Manrope']">
-                    Go<span className="text-[#EA1D2C]">Shipping</span>
-                  </span>
+                <div className="flex items-center gap-2 mb-1">
+                  <img
+                    src="/brand/logo-light.png"
+                    alt="GoShipping"
+                    className="h-8.5 w-auto object-contain"
+                  />
                 </div>
                 <p className="text-[11px] font-semibold text-slate-700 mt-0.5">
                   China Sourcing &amp; Shipping to Bangladesh
                 </p>
                 <p className="text-[9.5px] text-slate-400 mt-0.5">
-                  Dhaka Hub: Plot 14, Sector 7, Uttara · Hotline: +880 1711 000000 · billing@goshipping.com.bd
+                  Dhaka Hub: Plot 14, Sector 7, Uttara · Hotline / WhatsApp: +86 150 1423 2749 · billing@goshipping.com.bd
                 </p>
               </div>
 

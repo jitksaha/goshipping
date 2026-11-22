@@ -673,7 +673,7 @@ export class EmailService {
       <!-- Support Notice -->
       <div style="background-color: #F3F4F6; border-radius: 6px; padding: 14px 16px; font-size: 12px; color: #4B5563; line-height: 1.5;">
         <strong>Need immediate logistics support?</strong><br>
-        Our Dhaka 24/7 Operations Desk is available via phone/WhatsApp at <strong>+880 1711-223344</strong> or email at <a href="mailto:support@goshipping.com.bd" style="color: #EA1D2C; font-weight: 600;">support@goshipping.com.bd</a>.
+        Our Operations Desk is available via phone/WhatsApp at <strong><a href="https://wa.me/8615014232749" style="color: #11181E; text-decoration: none;">+86 150 1423 2749</a></strong> or email at <a href="mailto:support@goshipping.com.bd" style="color: #EA1D2C; font-weight: 600;">support@goshipping.com.bd</a>.
       </div>
     `;
 

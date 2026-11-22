@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { GOSHIPPING_LOGO_PNG_BASE64 } from './brandLogo';
 
 export interface SettlementBankInfo {
   id: string;
@@ -179,17 +180,21 @@ export function downloadInvoicePDF(invoice: InvoiceRecordData, bank: SettlementB
   doc.rect(0, 0, pageWidth, 4, 'F');
 
   // 2. Header: Company Brand & Document Title
-  // Left: Brand
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(18);
-  doc.setTextColor(...brandRed);
-  doc.text('GOSHIPPING LOGISTICS', margin, 17);
+  // Left: Brand Logo & Information
+  try {
+    doc.addImage(GOSHIPPING_LOGO_PNG_BASE64, 'PNG', margin, 7, 34, 13.9, undefined, 'FAST');
+  } catch {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...brandRed);
+    doc.text('GOSHIPPING LOGISTICS', margin, 17);
+  }
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(...textMuted);
-  doc.text('International Freight Forwarding · Customs Brokerage · Express Air & Sea Cargo', margin, 22);
-  doc.text('Web: goshipping.com.bd  |  Hotline: +880 9613-820820  |  Email: billing@goshipping.com.bd', margin, 26);
+  doc.text('International Freight Forwarding · Customs Brokerage · Express Air & Sea Cargo', margin, 23);
+  doc.text('Web: goshipping.com.bd  |  China Desk: +86 150 1423 2749  |  Email: billing@goshipping.com.bd', margin, 27);
 
   // Right: Document Metadata
   doc.setFont('helvetica', 'bold');
