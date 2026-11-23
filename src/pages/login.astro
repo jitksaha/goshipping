@@ -549,8 +549,8 @@ const trackingConfig = getTrackingConfig();
 
           const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(data.user?.role);
           const isGoshippingDomain = window.location.hostname.includes('goshipping.com.bd');
-          const defaultAdminUrl = isGoshippingDomain ? 'https://admin.goshipping.com.bd/admin' : '/admin';
-          const defaultCustomerUrl = isGoshippingDomain ? 'https://goshipping.com.bd/dashboard' : '/dashboard';
+          const defaultAdminUrl = '/admin';
+          const defaultCustomerUrl = '/dashboard';
 
           if (redirectUrl) {
             if (!isStaff && redirectUrl.startsWith('/admin')) {

@@ -126,14 +126,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     }
   } else {
-    // 4. Standard Domain Routing (goshipping.com.bd)
-    // Enforce dedicated subdomain for admin operations in production
-    if (isGoshippingDomain && (pathname === '/admin/login' || pathname.startsWith('/admin'))) {
-      const targetSearch = url.search || '';
-      return context.redirect(`https://admin.goshipping.com.bd${pathname}${targetSearch}`);
-    }
-
-    // Protect admin operations routes (for localhost / non-goshipping environments)
+    // 4. Standard Domain Routing (goshipping.com.bd or localhost)
+    // Protect admin operations routes
     if (pathname === '/admin/login') {
       if (currentUser && ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(currentUser.role)) {
         return context.redirect('/admin');
