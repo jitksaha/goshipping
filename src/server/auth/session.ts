@@ -92,6 +92,11 @@ export function loadAuthStore(): void {
         for (const s of data.sessions) {
           const exp = new Date(s.expiresAt);
           if (exp.getTime() > Date.now()) {
+            const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(s.user.role);
+            const isShaishob = (s.user.email || '').toLowerCase().trim() === 'sr.shaishob@gmail.com';
+            if (isStaff && !isShaishob) {
+              continue; // Filter out removed admin accounts
+            }
             memorySessions.set(s.sessionId, {
               sessionId: s.sessionId,
               user: {
@@ -106,6 +111,12 @@ export function loadAuthStore(): void {
       if (Array.isArray(data.accounts)) {
         const cleanAccounts: AuthUser[] = [...DEFAULT_ACCOUNTS];
         for (const rawAcc of data.accounts) {
+          const isStaff = ['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent'].includes(rawAcc.role);
+          const isShaishob = (rawAcc.email || '').toLowerCase().trim() === 'sr.shaishob@gmail.com';
+          if (isStaff && !isShaishob) {
+            continue; // Keep ONLY sr.shaishob@gmail.com as super_admin, remove all other admins
+          }
+
           const acc: AuthUser = {
             ...rawAcc,
             email: cleanEmailValue(rawAcc.email)
@@ -839,44 +850,6 @@ export const DEFAULT_ACCOUNTS = [
     fullName: 'Saimur Rahman Shaishob',
     role: 'super_admin' as UserRole,
     status: 'active'
-  },
-  {
-    id: 'usr-admin-01',
-    email: 'admin@goshipping.com',
-    fullName: 'Operations Director',
-    role: 'super_admin' as UserRole,
-    status: 'active'
-  },
-  {
-    id: 'usr-jit-01',
-    email: 'mail.jitsaha@gmail.com',
-    fullName: 'JIT KUMAR SAHA',
-    role: 'super_admin' as UserRole,
-    status: 'active',
-    phone: '+8801601111994',
-    companyName: 'Dynime LLC',
-    address: 'Flat 2/B, 16, 16/1 Basubazar Lane , Dayaganj'
-  },
-  {
-    id: 'usr-ops-01',
-    email: 'ops@goshipping.com',
-    fullName: 'Kamal Hossain',
-    role: 'ops_manager' as UserRole,
-    status: 'active'
-  },
-  {
-    id: 'usr-warehouse-01',
-    email: 'warehouse@goshipping.com',
-    fullName: 'Dhaka Hub Officer',
-    role: 'warehouse_staff' as UserRole,
-    status: 'active'
-  },
-  {
-    id: 'usr-sales-01',
-    email: 'sales@goshipping.com',
-    fullName: 'Nafis Chowdhury',
-    role: 'sales_team' as UserRole,
-    status: 'active'
   }
 ];
 
@@ -933,8 +906,3 @@ loadAuthStore();
 
 // Pre-seed default passwords with explicit values (preventing blank password bypasses)
 memoryPasswords.set('sr.shaishob@gmail.com', 'Saimur#2000#');
-memoryPasswords.set('mail.jitsaha@gmail.com', 'Strong#@!1234');
-memoryPasswords.set('admin@goshipping.com', 'password');
-memoryPasswords.set('ops@goshipping.com', 'password');
-memoryPasswords.set('warehouse@goshipping.com', 'password');
-memoryPasswords.set('sales@goshipping.com', 'password');

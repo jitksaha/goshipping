@@ -17,13 +17,33 @@ export const ALL: APIRoute = async (context) => {
     const isGoshippingDomain = hostname.includes('goshipping.com.bd');
     const cookieDomain = isGoshippingDomain ? '.goshipping.com.bd' : undefined;
 
-    const isLogout = setCookieHeader.includes('goshipping_session=;') || setCookieHeader.includes('Max-Age=0');
+    const isLogout =
+      setCookieHeader.includes('goshipping_session=;') ||
+      setCookieHeader.includes('goshipping_admin_session=;') ||
+      setCookieHeader.includes('Max-Age=0');
+
     if (isLogout) {
-      context.cookies.delete('goshipping_session', { path: '/', domain: cookieDomain });
+      if (setCookieHeader.includes('goshipping_admin_session')) {
+        context.cookies.delete('goshipping_admin_session', { path: '/', domain: cookieDomain });
+      }
+      if (setCookieHeader.includes('goshipping_session')) {
+        context.cookies.delete('goshipping_session', { path: '/', domain: cookieDomain });
+      }
     } else {
+      const isSecure = context.url.protocol === 'https:';
+      const adminMatch = setCookieHeader.match(/goshipping_admin_session=([^;]+)/);
+      if (adminMatch && adminMatch[1]) {
+        context.cookies.set('goshipping_admin_session', adminMatch[1], {
+          path: '/',
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: isSecure,
+          domain: cookieDomain,
+          maxAge: 30 * 24 * 60 * 60, // 30 days
+        });
+      }
       const sessionMatch = setCookieHeader.match(/goshipping_session=([^;]+)/);
       if (sessionMatch && sessionMatch[1]) {
-        const isSecure = context.url.protocol === 'https:';
         context.cookies.set('goshipping_session', sessionMatch[1], {
           path: '/',
           httpOnly: true,

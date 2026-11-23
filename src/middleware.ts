@@ -25,42 +25,94 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isGoshippingDomain = hostname.includes('goshipping.com.bd');
   const cookieDomain = isGoshippingDomain ? '.goshipping.com.bd' : undefined;
 
-  // 1. Extract session from cookie (Astro cookie jar + raw cookie header fallback) or URL auth token
-  let sessionCookie = context.cookies.get('goshipping_session')?.value;
+  // 1. Separate Admin and Customer Session Resolution
+  // Admin Gateway (admin.goshipping.com.bd or /admin/*) uses 'goshipping_admin_session'
+  // Customer Gateway (goshipping.com.bd, /dashboard, etc.) uses 'goshipping_session'
+  const isAdminContext = isAdminHost || pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   const urlAuthToken = url.searchParams.get('auth_token') || url.searchParams.get('impersonate_token');
+
+  let adminSessionCookie = context.cookies.get('goshipping_admin_session')?.value;
+  let customerSessionCookie = context.cookies.get('goshipping_session')?.value;
+
   if (urlAuthToken) {
-    sessionCookie = urlAuthToken;
+    if (isAdminContext) {
+      adminSessionCookie = urlAuthToken;
+    } else {
+      customerSessionCookie = urlAuthToken;
+    }
   }
-  if (!sessionCookie) {
+
+  // Fallback to raw cookie header if needed
+  if (!adminSessionCookie || !customerSessionCookie) {
     const rawCookie = context.request.headers.get('cookie') || '';
-    const match = rawCookie.match(/(?:^|;\s*)goshipping_session=([^;]+)/);
-    if (match) {
-      sessionCookie = decodeURIComponent(match[1]);
+    if (!adminSessionCookie) {
+      const match = rawCookie.match(/(?:^|;\s*)goshipping_admin_session=([^;]+)/);
+      if (match) adminSessionCookie = decodeURIComponent(match[1]);
+    }
+    if (!customerSessionCookie) {
+      const match = rawCookie.match(/(?:^|;\s*)goshipping_session=([^;]+)/);
+      if (match) customerSessionCookie = decodeURIComponent(match[1]);
     }
   }
 
   let currentUser: AuthUser | null = null;
+  let activeSessionCookie: string | undefined;
 
-  if (sessionCookie) {
-    const session = await validateSession(sessionCookie);
-    if (session && session.user.status !== 'suspended') {
-      currentUser = session.user;
+  if (isAdminContext) {
+    // In Admin context, check admin session first
+    if (adminSessionCookie) {
+      const session = await validateSession(adminSessionCookie);
+      if (session && session.user.status !== 'suspended' && session.user.role !== 'customer') {
+        currentUser = session.user;
+        activeSessionCookie = adminSessionCookie;
+      }
+    }
+    // Backward compatibility: if no admin session found yet, check goshipping_session if user is staff
+    if (!currentUser && customerSessionCookie) {
+      const session = await validateSession(customerSessionCookie);
+      if (session && session.user.status !== 'suspended' && session.user.role !== 'customer') {
+        currentUser = session.user;
+        activeSessionCookie = customerSessionCookie;
+        // Auto-upgrade / store into goshipping_admin_session so future requests are completely isolated
+        context.cookies.set('goshipping_admin_session', customerSessionCookie, {
+          path: '/',
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: isSecure,
+          domain: cookieDomain,
+          maxAge: 30 * 24 * 60 * 60,
+        });
+      }
+    }
 
-      // Sliding session window: Refresh cookie expiry across both main domain & admin subdomain
-      context.cookies.set('goshipping_session', sessionCookie, {
+    if (currentUser && activeSessionCookie) {
+      // Sliding window refresh for admin session
+      context.cookies.set('goshipping_admin_session', activeSessionCookie, {
         path: '/',
         httpOnly: true,
         sameSite: 'lax',
         secure: isSecure,
         domain: cookieDomain,
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 30 * 24 * 60 * 60,
       });
-    } else {
-      // Session invalid, expired, deleted or user suspended -> wipe cookie cleanly
-      context.cookies.delete('goshipping_session', { path: '/', domain: cookieDomain });
-      if (session && session.user.status === 'suspended') {
-        const redirectDest = isAdminHost ? '/admin/login?error=account_suspended' : '/login?error=account_suspended';
-        return context.redirect(redirectDest);
+    }
+  } else {
+    // In Customer context, strictly use customer session
+    if (customerSessionCookie) {
+      const session = await validateSession(customerSessionCookie);
+      if (session && session.user.status !== 'suspended') {
+        currentUser = session.user;
+        activeSessionCookie = customerSessionCookie;
+
+        // Sliding window refresh for customer session
+        context.cookies.set('goshipping_session', activeSessionCookie, {
+          path: '/',
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: isSecure,
+          domain: cookieDomain,
+          maxAge: 30 * 24 * 60 * 60,
+        });
       }
     }
   }
@@ -74,7 +126,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const defaultAdmin = DEFAULT_ACCOUNTS[0]; // Super Admin
       const { sessionId } = await createSession(defaultAdmin, context.request.headers.get('user-agent') || 'dev');
       currentUser = defaultAdmin;
-      context.cookies.set('goshipping_session', sessionId, {
+      context.cookies.set('goshipping_admin_session', sessionId, {
         path: '/',
         httpOnly: true,
         sameSite: 'lax',

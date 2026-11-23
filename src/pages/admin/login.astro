@@ -211,7 +211,7 @@ const siteOrigin = getSiteOrigin(Astro.request);
             const isGoshippingDomain = window.location.hostname.includes('goshipping.com.bd');
             const domainStr = isGoshippingDomain ? '; domain=.goshipping.com.bd' : '';
             const secureStr = window.location.protocol === 'https:' ? '; secure' : '';
-            document.cookie = `goshipping_session=${encodeURIComponent(data.token)}; path=/; max-age=2592000; SameSite=Lax${domainStr}${secureStr}`;
+            document.cookie = `goshipping_admin_session=${encodeURIComponent(data.token)}; path=/; max-age=2592000; SameSite=Lax${domainStr}${secureStr}`;
           }
 
           btnLabel.textContent = 'Redirecting...';

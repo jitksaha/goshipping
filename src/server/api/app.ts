@@ -57,10 +57,16 @@ export const app = new Hono<{
 }>().basePath('/api');
 
 // Helper to extract session from Cookie header
-function getSessionIdFromHeader(cookieHeader?: string | null): string | null {
+function getSessionIdFromHeader(cookieHeader?: string | null, preferAdmin = false): string | null {
   if (!cookieHeader) return null;
+  if (preferAdmin) {
+    const adminMatch = cookieHeader.match(/goshipping_admin_session=([^;]+)/);
+    if (adminMatch) return decodeURIComponent(adminMatch[1]);
+  }
   const match = cookieHeader.match(/goshipping_session=([^;]+)/);
-  return match ? match[1] : null;
+  if (match) return decodeURIComponent(match[1]);
+  const adminFallback = cookieHeader.match(/goshipping_admin_session=([^;]+)/);
+  return adminFallback ? decodeURIComponent(adminFallback[1]) : null;
 }
 
 // Helper to check whether incoming request is HTTPS
@@ -73,9 +79,23 @@ function isRequestSecure(c: any): boolean {
 // Session resolution middleware
 app.use('*', async (c, next) => {
   const cookie = c.req.header('cookie');
-  const sessionId = getSessionIdFromHeader(cookie);
+  const host = c.req.header('x-forwarded-host') || c.req.header('host') || '';
+  const isAdminHost = host.startsWith('admin.') || host.includes('admin.goshipping');
+  const isAdminReq = isAdminHost || c.req.path.startsWith('/admin') || c.req.path.startsWith('/auth/admin');
+
+  const sessionId = getSessionIdFromHeader(cookie, isAdminReq);
   if (sessionId) {
-    const session = await validateSession(sessionId);
+    let session = await validateSession(sessionId);
+    // If admin request but session was a customer, check if goshipping_admin_session exists
+    if (isAdminReq && session && session.user.role === 'customer') {
+      const adminSessionId = getSessionIdFromHeader(cookie, true);
+      if (adminSessionId && adminSessionId !== sessionId) {
+        const adminSession = await validateSession(adminSessionId);
+        if (adminSession && adminSession.user.role !== 'customer') {
+          session = adminSession;
+        }
+      }
+    }
     if (session) {
       c.set('user' as any, session.user);
       c.set('sessionId' as any, sessionId);
@@ -199,7 +219,8 @@ app.post('/auth/login', async (c) => {
     const host = c.req.header('x-forwarded-host') || c.req.header('host') || '';
     const isGoshippingDomain = host.includes('goshipping.com.bd');
     const domainAttr = isGoshippingDomain ? '; Domain=.goshipping.com.bd' : '';
-    const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
+    const cookieName = isStaff ? 'goshipping_admin_session' : 'goshipping_session';
+    const cookieString = `${cookieName}=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
 
     const redirectUrl = isStaff ? '/admin' : '/dashboard';
 
@@ -295,7 +316,7 @@ app.post('/auth/admin-login', async (c) => {
     const isSecure = isRequestSecure(c);
     const host = c.req.header('x-forwarded-host') || c.req.header('host') || '';
     const domainAttr = host.includes('goshipping.com.bd') ? '; Domain=.goshipping.com.bd' : '';
-    const cookieString = `goshipping_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
+    const cookieString = `goshipping_admin_session=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Expires=${expiresAt.toUTCString()}${isSecure ? '; Secure' : ''}${domainAttr}`;
 
     c.header('Set-Cookie', cookieString);
     return c.json({
@@ -690,9 +711,15 @@ const handleLogout = async (c: any) => {
   if (sessionId) {
     await destroySession(sessionId);
   }
+  const host = c.req.header('x-forwarded-host') || c.req.header('host') || '';
+  const isGoshippingDomain = host.includes('goshipping.com.bd');
+  const domainAttr = isGoshippingDomain ? '; Domain=.goshipping.com.bd' : '';
+  const isAdminHost = host.startsWith('admin.') || host.includes('admin.goshipping');
+  const cookieName = isAdminHost ? 'goshipping_admin_session' : 'goshipping_session';
+
   c.header(
     'Set-Cookie',
-    'goshipping_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax'
+    `${cookieName}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Lax${domainAttr}`
   );
   return c.json({ success: true, message: 'Logged out successfully' });
 };
