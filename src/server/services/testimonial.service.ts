@@ -21,7 +21,13 @@ declare global {
 }
 
 function getInitialTestimonials(): TestimonialRecord[] {
-  return [];
+  return TESTIMONIALS.map((t, idx) => ({
+    ...t,
+    displayOrder: idx,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }));
 }
 
 function loadTestimonialsFromFile(): TestimonialRecord[] {
@@ -29,14 +35,16 @@ function loadTestimonialsFromFile(): TestimonialRecord[] {
     if (fs.existsSync(STORE_PATH)) {
       const content = fs.readFileSync(STORE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
   } catch (err) {
     console.error('[TestimonialService] Failed to load testimonials from store:', err);
   }
-  return [];
+  const initial = getInitialTestimonials();
+  saveTestimonialsToFile(initial);
+  return initial;
 }
 
 function saveTestimonialsToFile(data: TestimonialRecord[]): void {
@@ -84,6 +92,11 @@ export class TestimonialService {
       }
     } catch {
       // Database not reachable, gracefully fallback to persisted store
+    }
+
+    if (!memoryTestimonials || memoryTestimonials.length === 0) {
+      memoryTestimonials = loadTestimonialsFromFile();
+      globalThis.__goshipping_testimonials = memoryTestimonials;
     }
 
     const sorted = [...memoryTestimonials].sort((a, b) => a.displayOrder - b.displayOrder);

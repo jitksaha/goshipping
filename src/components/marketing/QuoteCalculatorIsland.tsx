@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import QuoteFaqSection from './QuoteFaqSection';
 import ReferenceSelect from '../common/ReferenceSelect';
 import {
@@ -128,6 +128,7 @@ export default function QuoteCalculatorIsland({
   const [guestPhone, setGuestPhone] = useState(defaultGuestPhone);
 
   const [submitting, setSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [submittedQuote, setSubmittedQuote] = useState<{ quoteNumber: string; route: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -221,10 +222,12 @@ export default function QuoteCalculatorIsland({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current || submitting) return;
     if (!guestName || !guestEmail || !guestPhone) {
       setError('Please provide your name, business email and contact phone number.');
       return;
     }
+    isSubmittingRef.current = true;
     setError(null);
     setSubmitting(true);
 
@@ -296,6 +299,7 @@ export default function QuoteCalculatorIsland({
       setError(err.message || 'Error creating quotation request');
     } finally {
       setSubmitting(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -959,7 +963,7 @@ export default function QuoteCalculatorIsland({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full h-11 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] active:bg-[#B91C1C] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-none cursor-pointer shadow-xs disabled:opacity-50"
+                  className="w-full h-11 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] active:bg-[#B91C1C] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-none cursor-pointer shadow-xs disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {submitting ? (
                     <>

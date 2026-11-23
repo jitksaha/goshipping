@@ -49,6 +49,7 @@ export default function PosLedgerTerminal({
   const [importCsvText, setImportCsvText] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [savingRecord, setSavingRecord] = useState(false);
+  const isSavingRecordRef = useRef(false);
   const [isSyncingSheet, setIsSyncingSheet] = useState(false);
   const [syncingOrderId, setSyncingOrderId] = useState<string | null>(null);
   const [showSheetSetupModal, setShowSheetSetupModal] = useState(false);
@@ -233,6 +234,7 @@ export default function PosLedgerTerminal({
     cnWeightKg: '' as number | string,
     bdWeightKg: '' as number | string,
     shippingRatePerKgBdt: 850 as number | string,
+    packingFeeBdt: '' as number | string,
     bdCourierName: 'Steadfast',
     bdTrackingNo: '',
     remark: ''
@@ -248,13 +250,14 @@ export default function PosLedgerTerminal({
     const purchaseCostBdt = Math.round(totalRmb * rmbRate * 100) / 100;
 
     const paidBdt = Number(formData.purchaseCostPaidBdt) || 0;
-    const purchaseDueBdt = Math.max(0, Math.round((purchaseCostBdt - paidBdt) * 100) / 100);
 
     const weight = Number(formData.bdWeightKg) || Number(formData.cnWeightKg) || 0;
     const rate = Number(formData.shippingRatePerKgBdt) || 0;
     const intlFreightBdt = Math.round(weight * rate * 100) / 100;
 
-    const totalBillBdt = Math.round((purchaseCostBdt + intlFreightBdt) * 100) / 100;
+    const packingFeeBdt = Number(formData.packingFeeBdt) || 0;
+    const totalBillBdt = Math.round((purchaseCostBdt + intlFreightBdt + packingFeeBdt) * 100) / 100;
+    const purchaseDueBdt = Math.max(0, Math.round((totalBillBdt - paidBdt) * 100) / 100);
 
     let paymentStatus: 'Due' | 'Paid' | 'Partial' = 'Due';
     if (paidBdt >= totalBillBdt && totalBillBdt > 0) {
@@ -268,6 +271,7 @@ export default function PosLedgerTerminal({
       purchaseCostBdt,
       purchaseDueBdt,
       intlFreightBdt,
+      packingFeeBdt,
       totalBillBdt,
       paymentStatus
     };
@@ -353,6 +357,7 @@ export default function PosLedgerTerminal({
       cnWeightKg: '',
       bdWeightKg: '',
       shippingRatePerKgBdt: 850,
+      packingFeeBdt: '',
       bdCourierName: '',
       bdTrackingNo: '',
       remark: ''
@@ -397,6 +402,7 @@ export default function PosLedgerTerminal({
       cnWeightKg: rec.cnWeightKg,
       bdWeightKg: rec.bdWeightKg,
       shippingRatePerKgBdt: rec.shippingRatePerKgBdt,
+      packingFeeBdt: rec.packingFeeBdt !== undefined && rec.packingFeeBdt !== null ? rec.packingFeeBdt : '',
       bdCourierName: rec.bdCourierName || 'Steadfast',
       bdTrackingNo: (rec.bdTrackingNo && (
         rec.bdTrackingNo.trim() === (rec.orderId || '').trim() ||
@@ -410,10 +416,12 @@ export default function PosLedgerTerminal({
 
   const handleSaveOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSavingRecordRef.current || savingRecord) return;
     if (!formData.customerName.trim()) {
       showToast('Customer Name is required', 'error');
       return;
     }
+    isSavingRecordRef.current = true;
     setSavingRecord(true);
     try {
       const payload = {
@@ -425,6 +433,7 @@ export default function PosLedgerTerminal({
         cnWeightKg: Number(formData.cnWeightKg) || 0,
         bdWeightKg: Number(formData.bdWeightKg) || 0,
         shippingRatePerKgBdt: Number(formData.shippingRatePerKgBdt) || 0,
+        packingFeeBdt: Number(formData.packingFeeBdt) || 0,
         bdTrackingNo: formData.bdTrackingNo.trim(),
         trackingNumber: (editingRecord as any)?.trackingNumber || `GOSH-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
       };
@@ -459,6 +468,7 @@ export default function PosLedgerTerminal({
       showToast(err.message || 'Error saving POS order', 'error');
     } finally {
       setSavingRecord(false);
+      isSavingRecordRef.current = false;
     }
   };
 
@@ -2530,8 +2540,8 @@ function doPost(e) {
                   </div>
                 </div>
 
-                {/* Freight & Weight Inputs */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                {/* Freight, Packing & Weight Inputs */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">CN Weight (KG) <span className="font-normal text-slate-400">(Opt)</span></label>
                     <input
@@ -2542,11 +2552,11 @@ function doPost(e) {
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setFormData({ ...formData, cnWeightKg: e.target.value })}
                       placeholder="Leave blank"
-                      className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono text-center"
+                      className="w-full h-8 px-2 rounded border border-slate-300 text-xs font-mono text-center"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700 text-emerald-800">BD Weight (KG) <span className="font-normal text-emerald-600">(Enter on BD arrival)</span></label>
+                    <label className="font-bold text-slate-700 text-emerald-800">BD Weight (KG) <span className="font-normal text-emerald-600">(Arrival)</span></label>
                     <input
                       type="number"
                       step="any"
@@ -2555,11 +2565,11 @@ function doPost(e) {
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setFormData({ ...formData, bdWeightKg: e.target.value })}
                       placeholder="e.g. 12.5"
-                      className="w-full h-8 px-2.5 rounded border border-emerald-300 bg-emerald-50/30 text-xs font-mono text-center font-bold focus:bg-white"
+                      className="w-full h-8 px-2 rounded border border-emerald-300 bg-emerald-50/30 text-xs font-mono text-center font-bold focus:bg-white"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Shipping Rate / KG (৳)</label>
+                    <label className="font-bold text-slate-700">Freight Rate / KG (৳)</label>
                     <input
                       type="number"
                       step="any"
@@ -2568,22 +2578,48 @@ function doPost(e) {
                       onFocus={(e) => e.target.select()}
                       onChange={(e) => setFormData({ ...formData, shippingRatePerKgBdt: e.target.value })}
                       placeholder="850"
-                      className="w-full h-8 px-2.5 rounded border border-slate-300 text-xs font-mono text-center"
+                      className="w-full h-8 px-2 rounded border border-slate-300 text-xs font-mono text-center"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 flex items-center justify-between">
+                      <span>Packing Fee (৳)</span>
+                      <span className="text-[9px] text-slate-400 font-normal">Opt</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min={0}
+                      value={formData.packingFeeBdt}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setFormData({ ...formData, packingFeeBdt: e.target.value })}
+                      placeholder="0"
+                      className="w-full h-8 px-2 rounded border border-slate-300 text-xs font-mono text-center font-bold focus:bg-white"
                     />
                   </div>
                   <div className="space-y-1">
                     <label className="font-bold text-slate-700">Int'l Freight (BDT)</label>
-                    <div className="w-full h-8 px-2.5 rounded bg-white border border-slate-300 text-xs font-mono font-extrabold text-sky-700 flex items-center justify-center">
+                    <div className="w-full h-8 px-2 rounded bg-white border border-slate-300 text-xs font-mono font-extrabold text-sky-700 flex items-center justify-center">
                       ৳{computedForm.intlFreightBdt.toLocaleString()}
                     </div>
                   </div>
                 </div>
 
                 {/* Final Totals Breakdown Banner */}
-                <div className="p-3.5 rounded-lg bg-white border border-amber-300/80 grid grid-cols-2 sm:grid-cols-4 gap-3 items-center">
+                <div className="p-3.5 rounded-lg bg-white border border-amber-300/80 grid grid-cols-2 sm:grid-cols-5 gap-3 items-center">
                   <div>
                     <span className="text-[10px] text-slate-500 block uppercase font-mono">Purchase Cost BDT</span>
                     <span className="text-sm font-extrabold text-slate-900 font-mono">৳{computedForm.purchaseCostBdt.toLocaleString()}</span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-slate-500 block uppercase font-mono">Freight + Packing</span>
+                    <span className="text-sm font-extrabold text-sky-800 font-mono">
+                      ৳{(computedForm.intlFreightBdt + computedForm.packingFeeBdt).toLocaleString()}
+                      {computedForm.packingFeeBdt > 0 && (
+                        <span className="text-[9px] block text-slate-400 font-normal">(Incl. ৳{computedForm.packingFeeBdt.toLocaleString()} pack)</span>
+                      )}
+                    </span>
                   </div>
 
                   <div>
@@ -2709,7 +2745,7 @@ function doPost(e) {
                 <button
                   type="submit"
                   disabled={savingRecord}
-                  className="px-6 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold shadow-xs disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  className="px-6 py-2 rounded-lg bg-[#EA1D2C] hover:bg-[#D41523] text-white font-bold shadow-xs disabled:opacity-50 disabled:pointer-events-none cursor-pointer flex items-center gap-1.5"
                 >
                   {savingRecord ? (
                     <>

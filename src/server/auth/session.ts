@@ -73,6 +73,15 @@ interface AuthStoreData {
 
 let lastAuthMtimeMs = 0;
 
+export function cleanEmailValue(email?: string | null): string {
+  if (!email) return '';
+  const trimmed = email.trim();
+  if (trimmed.toLowerCase().endsWith('@goshipping.client') || trimmed.toLowerCase().includes('@goshipping.internal')) {
+    return '';
+  }
+  return trimmed;
+}
+
 export function loadAuthStore(): void {
   try {
     if (fs.existsSync(STORE_PATH)) {
@@ -85,7 +94,10 @@ export function loadAuthStore(): void {
           if (exp.getTime() > Date.now()) {
             memorySessions.set(s.sessionId, {
               sessionId: s.sessionId,
-              user: s.user,
+              user: {
+                ...s.user,
+                email: cleanEmailValue(s.user.email)
+              },
               expiresAt: exp,
             });
           }
@@ -93,8 +105,12 @@ export function loadAuthStore(): void {
       }
       if (Array.isArray(data.accounts)) {
         const cleanAccounts: AuthUser[] = [...DEFAULT_ACCOUNTS];
-        for (const acc of data.accounts) {
-          const existingIdx = cleanAccounts.findIndex((a) => a.id === acc.id || a.email.toLowerCase() === acc.email.toLowerCase());
+        for (const rawAcc of data.accounts) {
+          const acc: AuthUser = {
+            ...rawAcc,
+            email: cleanEmailValue(rawAcc.email)
+          };
+          const existingIdx = cleanAccounts.findIndex((a) => a.id === acc.id || (acc.email && a.email && a.email.toLowerCase() === acc.email.toLowerCase()));
           if (existingIdx >= 0) {
             cleanAccounts[existingIdx] = acc;
           } else {
@@ -107,7 +123,9 @@ export function loadAuthStore(): void {
       }
       if (data.passwords && typeof data.passwords === 'object') {
         for (const [k, v] of Object.entries(data.passwords)) {
-          memoryPasswords.set(k.toLowerCase().trim(), v);
+          if (!k.toLowerCase().endsWith('@goshipping.client')) {
+            memoryPasswords.set(k.toLowerCase().trim(), v);
+          }
         }
       }
     } else if (!globalThis.__goshipping_accounts) {
@@ -179,53 +197,96 @@ export function getAllAccounts(): AuthUser[] {
  */
 export function registerAccount(user: AuthUser, password?: string): void {
   const accounts = getAllAccounts();
-  const existingIdx = accounts.findIndex((a) => a.id === user.id || a.email.toLowerCase() === user.email.toLowerCase());
+  const cleanEmail = cleanEmailValue(user.email);
+  const sanitizedUser: AuthUser = {
+    ...user,
+    email: cleanEmail
+  };
+  const phoneDigits = (sanitizedUser.phone || '').replace(/\D/g, '');
+  const last10 = phoneDigits.slice(-10);
+
+  const existingIdx = accounts.findIndex((a) => {
+    if (a.id === sanitizedUser.id) return true;
+    if (cleanEmail && a.email && a.email.toLowerCase() === cleanEmail.toLowerCase()) return true;
+    if (last10.length >= 6 && a.phone) {
+      const pDigits = a.phone.replace(/\D/g, '');
+      if (pDigits.endsWith(last10)) return true;
+    }
+    return false;
+  });
+
   if (existingIdx >= 0) {
-    accounts[existingIdx] = user;
+    accounts[existingIdx] = sanitizedUser;
   } else {
-    accounts.push(user);
+    accounts.push(sanitizedUser);
   }
-  if (password) {
-    memoryPasswords.set(user.email.toLowerCase().trim(), password);
+
+  if (password && password.trim()) {
+    updateAccountPassword(sanitizedUser.id, password.trim());
+  } else {
+    saveAuthStore();
   }
-  saveAuthStore();
 }
 
 /**
  * Verify account password for in-memory or default accounts with strict bcrypt/hash matching
  */
 export function verifyAccountPassword(identifier: string, password: string): boolean {
+  if (!password) return false;
   const normalized = identifier.toLowerCase().trim();
   const phoneDigits = normalized.replace(/\D/g, '');
   const last10Digits = phoneDigits.slice(-10);
 
-  // Find account to resolve primary email key if user entered phone number
+  // Find account to resolve identifiers
   const acc = getAllAccounts().find((a) => {
-    if (a.email.toLowerCase() === normalized || a.id === normalized) return true;
+    if (a.id === identifier || a.id.toLowerCase() === normalized) return true;
+    if (a.email && a.email.toLowerCase() === normalized) return true;
     if (phoneDigits.length >= 6) {
       if (a.phone && a.phone.replace(/\D/g, '').endsWith(last10Digits)) return true;
-      if (a.email.includes(last10Digits)) return true;
+      if (a.email && a.email.toLowerCase().includes(last10Digits)) return true;
     }
     return false;
   });
-  const emailKey = acc ? acc.email.toLowerCase() : normalized;
+
+  const keysToCheck = new Set<string>();
+  if (normalized) keysToCheck.add(normalized);
+  if (phoneDigits.length >= 6) {
+    keysToCheck.add(phoneDigits);
+    if (last10Digits.length >= 6) keysToCheck.add(last10Digits);
+  }
+  if (acc) {
+    keysToCheck.add(acc.id);
+    if (acc.email && acc.email.trim()) {
+      keysToCheck.add(acc.email.toLowerCase().trim());
+    }
+    if (acc.phone) {
+      const pDigits = acc.phone.replace(/\D/g, '');
+      if (pDigits) {
+        keysToCheck.add(pDigits);
+        if (pDigits.slice(-10)) keysToCheck.add(pDigits.slice(-10));
+      }
+    }
+  }
 
   // Allow configured password or legacy fallback for primary super admin
-  if (emailKey === 'mail.jitsaha@gmail.com') {
-    return password === 'Strong#@!1234' || password === '123456';
+  if (keysToCheck.has('mail.jitsaha@gmail.com') || (acc && acc.email === 'mail.jitsaha@gmail.com')) {
+    if (password === 'Strong#@!1234' || password === '123456') return true;
   }
-  if (memoryPasswords.has(emailKey)) {
-    const stored = memoryPasswords.get(emailKey);
-    if (!stored) return false;
+
+  for (const k of keysToCheck) {
+    if (!k) continue;
+    const stored = memoryPasswords.get(k);
+    if (!stored) continue;
     // Check if stored is a bcrypt hash
     if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
       try {
-        return bcrypt.compareSync(password, stored);
+        if (bcrypt.compareSync(password, stored)) return true;
       } catch {
-        return false;
+        // Fall through
       }
+    } else if (stored === password) {
+      return true;
     }
-    return stored === password;
   }
   return false;
 }
@@ -235,28 +296,36 @@ export function verifyAccountPassword(identifier: string, password: string): boo
  */
 export function updateAccount(id: string, updates: Partial<AuthUser>): AuthUser | null {
   const accounts = getAllAccounts();
-  const idx = accounts.findIndex((a) => a.id === id || a.email.toLowerCase() === id.toLowerCase());
+  const normalized = id.toLowerCase().trim();
+  const idx = accounts.findIndex((a) => a.id === id || a.id.toLowerCase() === normalized || (a.email && a.email.toLowerCase() === normalized));
   if (idx === -1) return null;
 
+  const currentEmail = cleanEmailValue(accounts[idx].email);
+  const newEmail = updates.email !== undefined ? cleanEmailValue(updates.email) : currentEmail;
+
   // Handle email change and password migration
-  if (updates.email && accounts[idx].email.toLowerCase() !== updates.email.toLowerCase()) {
-    const oldEmail = accounts[idx].email.toLowerCase().trim();
-    const newEmail = updates.email.toLowerCase().trim();
-    if (memoryPasswords.has(oldEmail)) {
-      const pwd = memoryPasswords.get(oldEmail)!;
-      memoryPasswords.delete(oldEmail);
-      memoryPasswords.set(newEmail, pwd);
+  if (newEmail && currentEmail && newEmail.toLowerCase() !== currentEmail.toLowerCase()) {
+    const oldKey = currentEmail.toLowerCase();
+    const newKey = newEmail.toLowerCase();
+    if (memoryPasswords.has(oldKey)) {
+      const pwd = memoryPasswords.get(oldKey)!;
+      memoryPasswords.delete(oldKey);
+      memoryPasswords.set(newKey, pwd);
     }
   }
 
-  accounts[idx] = { ...accounts[idx], ...updates };
+  accounts[idx] = {
+    ...accounts[idx],
+    ...updates,
+    ...(updates.email !== undefined ? { email: newEmail } : {})
+  };
 
   // If status is updated to suspended, instantly terminate all active sessions for this user
   if (updates.status === 'suspended') {
     const targetUserId = accounts[idx].id;
-    const targetEmail = accounts[idx].email.toLowerCase().trim();
+    const targetEmail = (accounts[idx].email || '').toLowerCase().trim();
     for (const [sId, sess] of memorySessions.entries()) {
-      if (sess.user.id === targetUserId || sess.user.email.toLowerCase().trim() === targetEmail) {
+      if (sess.user.id === targetUserId || (targetEmail && sess.user.email.toLowerCase().trim() === targetEmail)) {
         memorySessions.delete(sId);
       }
     }
@@ -268,8 +337,12 @@ export function updateAccount(id: string, updates: Partial<AuthUser>): AuthUser 
   } else {
     // Also update any active session memory for this user
     for (const [sId, sess] of memorySessions.entries()) {
-      if (sess.user.id === accounts[idx].id || sess.user.email.toLowerCase() === accounts[idx].email.toLowerCase()) {
-        sess.user = { ...sess.user, ...updates };
+      if (sess.user.id === accounts[idx].id || (sess.user.email && accounts[idx].email && sess.user.email.toLowerCase() === accounts[idx].email.toLowerCase())) {
+        sess.user = {
+          ...sess.user,
+          ...updates,
+          ...(updates.email !== undefined ? { email: newEmail } : {})
+        };
       }
     }
   }
@@ -278,7 +351,7 @@ export function updateAccount(id: string, updates: Partial<AuthUser>): AuthUser 
   try {
     const dbUpdates: any = {};
     if (updates.fullName) dbUpdates.fullName = updates.fullName;
-    if (updates.email) dbUpdates.email = updates.email;
+    if (updates.email !== undefined) dbUpdates.email = newEmail;
     if (updates.phone) dbUpdates.phone = updates.phone;
     if (updates.companyName) dbUpdates.companyName = updates.companyName;
     if (updates.address) dbUpdates.address = updates.address;
@@ -295,11 +368,51 @@ export function updateAccount(id: string, updates: Partial<AuthUser>): AuthUser 
 }
 
 /**
- * Update an account password in memory and persistent auth store
+ * Update an account password in memory, persistent auth store, and database
  */
-export function updateAccountPassword(email: string, newPassword: string): void {
-  const normalized = email.toLowerCase().trim();
+export function updateAccountPassword(identifier: string, newPassword: string): void {
+  const normalized = identifier.toLowerCase().trim();
+  const phoneDigits = normalized.replace(/\D/g, '');
+  const last10Digits = phoneDigits.slice(-10);
+
+  const acc = getAllAccounts().find((a) => {
+    if (a.id === identifier || a.id.toLowerCase() === normalized) return true;
+    if (a.email && a.email.toLowerCase() === normalized) return true;
+    if (phoneDigits.length >= 6 && a.phone && a.phone.replace(/\D/g, '').endsWith(last10Digits)) return true;
+    return false;
+  });
+
+  if (acc) {
+    memoryPasswords.set(acc.id, newPassword);
+    if (acc.email && acc.email.trim()) {
+      memoryPasswords.set(acc.email.toLowerCase().trim(), newPassword);
+    }
+    if (acc.phone) {
+      const pDigits = acc.phone.replace(/\D/g, '');
+      if (pDigits) {
+        memoryPasswords.set(pDigits, newPassword);
+        if (pDigits.slice(-10)) memoryPasswords.set(pDigits.slice(-10), newPassword);
+      }
+    }
+  }
+
   memoryPasswords.set(normalized, newPassword);
+  if (phoneDigits.length >= 6) {
+    memoryPasswords.set(phoneDigits, newPassword);
+    if (last10Digits.length >= 6) memoryPasswords.set(last10Digits, newPassword);
+  }
+
+  if (db && acc) {
+    try {
+      bcrypt.hash(newPassword, 10).then((hashed) => {
+        db.update(schema.users)
+          .set({ passwordHash: hashed })
+          .where(eq(schema.users.id, acc.id))
+          .catch(() => {});
+      }).catch(() => {});
+    } catch {}
+  }
+
   saveAuthStore();
 }
 
@@ -308,7 +421,24 @@ export function updateAccountPassword(email: string, newPassword: string): void 
  */
 export function findAccountById(id: string): AuthUser | null {
   const accounts = getAllAccounts();
-  return accounts.find((a) => a.id === id || a.email.toLowerCase() === id.toLowerCase()) || null;
+  const normalized = id.toLowerCase().trim();
+  const phoneDigits = normalized.replace(/\D/g, '');
+  const last10Digits = phoneDigits.slice(-10);
+
+  const found = accounts.find((a) => {
+    if (a.id === id || a.id.toLowerCase() === normalized) return true;
+    if (a.email && a.email.toLowerCase() === normalized) return true;
+    if (phoneDigits.length >= 6 && a.phone && a.phone.replace(/\D/g, '').endsWith(last10Digits)) return true;
+    return false;
+  });
+
+  if (found) {
+    return {
+      ...found,
+      email: cleanEmailValue(found.email)
+    };
+  }
+  return null;
 }
 
 /**
@@ -416,47 +546,50 @@ export async function findAccountByEmail(identifier: string): Promise<AuthUser |
   const normalized = identifier.toLowerCase().trim();
   const phoneDigits = normalized.replace(/\D/g, '');
   const last10Digits = phoneDigits.slice(-10);
-  const generatedEmail = phoneDigits.length >= 6 ? `client.${phoneDigits}@goshipping.client` : '';
 
   // 1. Query MySQL database users table if reachable
   try {
-    const conditions = [eq(schema.users.email, normalized)];
+    const conditions = [];
+    if (normalized.includes('@')) {
+      conditions.push(eq(schema.users.email, normalized));
+    } else if (normalized.length > 0) {
+      conditions.push(eq(schema.users.id, normalized));
+      conditions.push(eq(schema.users.email, normalized));
+    }
     if (phoneDigits.length >= 6) {
       conditions.push(eq(schema.users.phone, normalized));
-      if (generatedEmail) {
-        conditions.push(eq(schema.users.email, generatedEmail));
-      }
       if (last10Digits.length >= 6) {
         conditions.push(like(schema.users.phone, `%${last10Digits}%`));
-        conditions.push(like(schema.users.email, `%${last10Digits}%`));
       }
     }
 
-    const dbUsers = await db
-      .select({
-        id: schema.users.id,
-        email: schema.users.email,
-        fullName: schema.users.fullName,
-        role: schema.users.role,
-        status: schema.users.status,
-        avatarUrl: schema.users.avatarUrl,
-        phone: schema.users.phone
-      })
-      .from(schema.users)
-      .where(or(...conditions))
-      .limit(1);
+    if (conditions.length > 0) {
+      const dbUsers = await db
+        .select({
+          id: schema.users.id,
+          email: schema.users.email,
+          fullName: schema.users.fullName,
+          role: schema.users.role,
+          status: schema.users.status,
+          avatarUrl: schema.users.avatarUrl,
+          phone: schema.users.phone
+        })
+        .from(schema.users)
+        .where(or(...conditions))
+        .limit(1);
 
-    if (dbUsers.length > 0) {
-      const u = dbUsers[0];
-      return {
-        id: u.id,
-        email: u.email,
-        fullName: u.fullName,
-        role: u.role as UserRole,
-        status: u.status,
-        avatarUrl: u.avatarUrl,
-        phone: u.phone || undefined
-      };
+      if (dbUsers.length > 0) {
+        const u = dbUsers[0];
+        return {
+          id: u.id,
+          email: cleanEmailValue(u.email),
+          fullName: u.fullName,
+          role: u.role as UserRole,
+          status: u.status,
+          avatarUrl: u.avatarUrl,
+          phone: u.phone || undefined
+        };
+      }
     }
   } catch {
     // Database may be offline during zero-config development; continue to in-memory store
@@ -464,15 +597,23 @@ export async function findAccountByEmail(identifier: string): Promise<AuthUser |
 
   // 2. Query in-memory user store
   const inMemory = getAllAccounts().find((a) => {
-    if (a.email.toLowerCase() === normalized || a.id === normalized) return true;
-    if (generatedEmail && a.email.toLowerCase() === generatedEmail) return true;
+    if (a.id === identifier || a.id.toLowerCase() === normalized) return true;
+    if (a.email && a.email.toLowerCase() === normalized) return true;
     if (phoneDigits.length >= 6) {
       if (a.phone && a.phone.replace(/\D/g, '').endsWith(last10Digits)) return true;
-      if (a.email.includes(last10Digits)) return true;
+      if (a.phone && a.phone.replace(/\D/g, '') === phoneDigits) return true;
     }
     return false;
   });
-  return inMemory || null;
+
+  if (inMemory) {
+    return {
+      ...inMemory,
+      email: cleanEmailValue(inMemory.email)
+    };
+  }
+
+  return null;
 }
 
 /**

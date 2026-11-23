@@ -395,26 +395,11 @@ const user = Astro.locals.user as AuthUser;
               </a>
             </div>
 
-            <!-- ACCOUNT & DOCUMENTS -->
+            <!-- ACCOUNT & SETTINGS -->
             <div class="space-y-1 pt-2">
               <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                ACCOUNT &amp; DOCUMENTS
+                ACCOUNT
               </span>
-
-              <a
-                href="/dashboard?tab=documents"
-                data-tab="documents"
-                class={`dashboard-nav-link flex items-center gap-3 px-3 py-2.5 rounded-r-lg font-medium transition-none border-l-4 ${
-                  activeTab === 'documents'
-                    ? 'bg-slate-100 text-slate-900 font-semibold border-[#EA1D2C]'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border-transparent'
-                }`}
-              >
-                <svg class="w-4 h-4 stroke-[1.8] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z" />
-                </svg>
-                <span>Invoices &amp; Receipts</span>
-              </a>
 
               <a
                 href="/dashboard?tab=settings"
@@ -451,7 +436,7 @@ const user = Astro.locals.user as AuthUser;
               {portalType === 'admin' ? (user?.fullName || 'Operations Director') : (user?.fullName || 'Verified Customer')}
             </div>
             <div class="text-[10px] text-slate-500 font-mono truncate">
-              {user?.email || (portalType === 'admin' ? 'admin@goshipping.com' : 'customer@goshipping.com')}
+              {user?.email && !user.email.endsWith('@goshipping.client') ? user.email : (user?.phone || (portalType === 'admin' ? 'admin@goshipping.com' : 'Verified Importer'))}
             </div>
           </div>
           <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active"></span>
@@ -498,7 +483,7 @@ const user = Astro.locals.user as AuthUser;
           <div class="flex items-center gap-2 truncate">
             <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping shrink-0"></span>
             <span class="truncate text-slate-900">
-              Viewing as: <strong class="font-bold underline">{user.fullName}</strong> ({user.role}) — <span class="font-mono text-slate-800">{user.email}</span>
+              Viewing as: <strong class="font-bold underline">{user.fullName}</strong> ({user.role}) {user.email && !user.email.endsWith('@goshipping.client') ? `— ${user.email}` : (user.phone ? `— ${user.phone}` : '')}
             </span>
           </div>
         </div>

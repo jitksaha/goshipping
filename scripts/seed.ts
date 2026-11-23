@@ -65,7 +65,7 @@ async function main() {
       role: 'customer',
       status: 'active'
     }
-  ]).onDuplicateKeyUpdate({ target: schema.users.id, set: { status: 'active' } });
+  ]).onDuplicateKeyUpdate({ set: { status: 'active' } });
 
   console.log('✅ Database seeded successfully!');
   await pool.end();

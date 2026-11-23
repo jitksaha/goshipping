@@ -393,6 +393,7 @@ export const posLedger = mysqlTable('pos_ledger', {
   bdWeightKg: decimal('bd_weight_kg', { precision: 10, scale: 2 }).default('0.00'),
   shippingRatePerKgBdt: decimal('shipping_rate_per_kg_bdt', { precision: 10, scale: 2 }).default('0.00'),
   internationalFreightBdt: decimal('international_freight_bdt', { precision: 12, scale: 2 }).default('0.00'),
+  packingFeeBdt: decimal('packing_fee_bdt', { precision: 12, scale: 2 }).default('0.00'),
   totalBillBdt: decimal('total_bill_bdt', { precision: 12, scale: 2 }).default('0.00'),
   paymentStatus: varchar('payment_status', { length: 30 }).default('Due'),
   bdCourierName: varchar('bd_courier_name', { length: 50 }),

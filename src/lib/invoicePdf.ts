@@ -127,6 +127,12 @@ export interface InvoiceRecordData {
   customsDuty: number;
   fuelSurcharge: number;
   vatTax: number;
+  packingFee?: number;
+  otherCharges?: number;
+  discount?: number;
+  advancePaid?: number;
+  balanceDue?: number;
+  productsSubtotal?: number;
   totalBDT: number;
   totalUSD: number;
   paymentMethod?: string;
@@ -194,7 +200,7 @@ export function downloadInvoicePDF(invoice: InvoiceRecordData, bank: SettlementB
   doc.setFontSize(7.5);
   doc.setTextColor(...textMuted);
   doc.text('International Freight Forwarding · Customs Brokerage · Express Air & Sea Cargo', margin, 23);
-  doc.text('Web: goshipping.com.bd  |  China Desk: +86 150 1423 2749  |  Email: billing@goshipping.com.bd', margin, 27);
+  doc.text('Web: goshipping.com.bd  |  China Desk: +86 150 1423 2749  |  Email: support@goshipping.com.bd', margin, 27);
 
   // Right: Document Metadata
   doc.setFont('helvetica', 'bold');
@@ -307,38 +313,89 @@ export function downloadInvoicePDF(invoice: InvoiceRecordData, bank: SettlementB
   doc.text('AMOUNT (BDT)', pageWidth - margin - 4, tableStartY + 5, { align: 'right' });
 
   // Rows definition
-  const lineItems = [
-    {
-      name: `International Freight Charges (${String(invoice.mode || 'air').toUpperCase()} Express DDP)`,
-      desc: 'Door-to-door international linehaul carriage from origin CFS to destination port',
-      basis: `${invoice.weightKg} KG Chargeable`,
-      amount: invoice.baseFreight,
-    },
-    {
-      name: 'Terminal Handling Charges (THC)',
-      desc: 'Airport / CFS container de-stuffing, ground handling and apron cargo transfer fee',
-      basis: 'Standard CFS Tariff',
-      amount: invoice.terminalHandling,
-    },
-    {
-      name: 'Customs Clearance & Brokerage Levy',
-      desc: 'Official customs brokerage, HS code tariff classification and import manifest clearance',
-      basis: 'Declared Entry Assessment',
-      amount: invoice.customsDuty,
-    },
-    {
-      name: 'Fuel & Security Surcharge',
-      desc: 'Aviation/maritime carrier bunker adjustment factor (BAF) and airport security levy',
-      basis: 'Standard Index Factor',
-      amount: invoice.fuelSurcharge,
-    },
-    {
-      name: 'Statutory Value Added Tax (VAT 15%)',
-      desc: 'Statutory government tax assessment pursuant to Bangladesh VAT Act 2012',
-      basis: '15.0% Standard Rate',
-      amount: invoice.vatTax,
-    },
-  ];
+  const lineItems: Array<{ name: string; desc: string; basis: string; amount: number }> = [];
+
+  if (invoice.items && invoice.items.length > 0) {
+    invoice.items.forEach((it) => {
+      const unit = (it as any).unit || 'Units';
+      const unitPrice = (it as any).unitPriceBdt || Math.round((it.amountBDT || 0) / (it.arrivedQuantity || 1));
+      lineItems.push({
+        name: it.description,
+        desc: it.itemCode ? `Code / Ref: ${it.itemCode}` : 'Custom Invoiced Product',
+        basis: `${it.arrivedQuantity || 1} ${unit} @ BDT ${unitPrice.toLocaleString()}`,
+        amount: it.amountBDT || 0,
+      });
+    });
+
+    if (invoice.baseFreight > 0) {
+      lineItems.push({
+        name: `International Freight Carriage (${String(invoice.mode || 'air').toUpperCase()} Express)`,
+        desc: 'International linehaul freight from origin to destination gateway',
+        basis: `${invoice.weightKg} KG Chargeable`,
+        amount: invoice.baseFreight,
+      });
+    }
+  } else {
+    lineItems.push(
+      {
+        name: `International Freight Charges (${String(invoice.mode || 'air').toUpperCase()} Express DDP)`,
+        desc: 'Door-to-door international linehaul carriage from origin CFS to destination port',
+        basis: `${invoice.weightKg} KG Chargeable`,
+        amount: invoice.baseFreight,
+      },
+      {
+        name: 'Terminal Handling Charges (THC)',
+        desc: 'Airport / CFS container de-stuffing, ground handling and apron cargo transfer fee',
+        basis: 'Standard CFS Tariff',
+        amount: invoice.terminalHandling,
+      },
+      {
+        name: 'Customs Clearance & Brokerage Levy',
+        desc: 'Official customs brokerage, HS code tariff classification and import manifest clearance',
+        basis: 'Declared Entry Assessment',
+        amount: invoice.customsDuty,
+      },
+      {
+        name: 'Fuel & Security Surcharge',
+        desc: 'Aviation/maritime carrier bunker adjustment factor (BAF) and airport security levy',
+        basis: 'Standard Index Factor',
+        amount: invoice.fuelSurcharge,
+      },
+      {
+        name: 'Statutory Value Added Tax (VAT 15%)',
+        desc: 'Statutory government tax assessment pursuant to Bangladesh VAT Act 2012',
+        basis: '15.0% Standard Rate',
+        amount: invoice.vatTax,
+      }
+    );
+  }
+
+  if (invoice.packingFee && invoice.packingFee > 0) {
+    lineItems.push({
+      name: 'Cargo Packaging & Protection Fee',
+      desc: 'Protective carton packaging, strapping and reinforcement',
+      basis: 'Custom Packing Service',
+      amount: invoice.packingFee,
+    });
+  }
+
+  if (invoice.otherCharges && invoice.otherCharges > 0) {
+    lineItems.push({
+      name: 'Customs & Port Handling / Other Charges',
+      desc: 'Documentation, local transit and administrative service fee',
+      basis: 'Service Surcharge',
+      amount: invoice.otherCharges,
+    });
+  }
+
+  if (invoice.discount && invoice.discount > 0) {
+    lineItems.push({
+      name: 'Discount / Promotional Adjustment',
+      desc: 'Special account concession or promotional waiver',
+      basis: 'Invoice Adjustment',
+      amount: -invoice.discount,
+    });
+  }
 
   let currentY = tableStartY + tableHeaderHeight;
 
@@ -379,92 +436,47 @@ export function downloadInvoicePDF(invoice: InvoiceRecordData, bank: SettlementB
   });
 
   // Total Summary Box
+  const hasAdvance = (invoice.advancePaid || 0) > 0;
   const totalBoxY = currentY + 3;
-  const totalBoxHeight = 14;
+  const totalBoxHeight = hasAdvance ? 16 : 12;
   doc.setFillColor(...bgLight);
   doc.setDrawColor(...borderLight);
   doc.roundedRect(margin, totalBoxY, contentWidth, totalBoxHeight, 1.5, 1.5, 'FD');
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...darkMidnight);
-  doc.text('TOTAL AMOUNT DUE:', margin + 6, totalBoxY + 8.5);
+  if (hasAdvance) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...darkMidnight);
+    doc.text(`GRAND TOTAL: BDT ${invoice.totalBDT.toLocaleString()}`, margin + 6, totalBoxY + 5.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(22, 101, 52);
+    doc.text(`ADVANCE PAID: BDT ${(invoice.advancePaid || 0).toLocaleString()}`, margin + 6, totalBoxY + 11.5);
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(...brandRed);
-  doc.text(`BDT ${invoice.totalBDT.toLocaleString()}`, pageWidth - margin - 6, totalBoxY + 6.5, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...textMuted);
+    doc.text('NET BALANCE DUE:', pageWidth - margin - 50, totalBoxY + 6.5);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...textMuted);
-  doc.text(`Equivalent: ~USD $${invoice.totalUSD.toLocaleString()} (Statutory Exchange Basis)`, pageWidth - margin - 6, totalBoxY + 11, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...brandRed);
+    const balDue = invoice.balanceDue !== undefined ? invoice.balanceDue : Math.max(0, invoice.totalBDT - (invoice.advancePaid || 0));
+    doc.text(`BDT ${balDue.toLocaleString()}`, pageWidth - margin - 6, totalBoxY + 12.5, { align: 'right' });
+  } else {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...darkMidnight);
+    doc.text('TOTAL AMOUNT DUE:', margin + 6, totalBoxY + 7.5);
 
-  // 5. Dynamic Settlement Bank & Wire Instructions Card
-  const bankBoxY = totalBoxY + totalBoxHeight + 5;
-  const bankBoxHeight = 36;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(...brandRed);
+    doc.text(`BDT ${invoice.totalBDT.toLocaleString()}`, pageWidth - margin - 6, totalBoxY + 7.5, { align: 'right' });
+  }
 
-  doc.setFillColor(...bgLight);
-  doc.setDrawColor(203, 213, 225); // slate-300
-  doc.setLineWidth(0.4);
-  doc.roundedRect(margin, bankBoxY, contentWidth, bankBoxHeight, 2, 2, 'FD');
-
-  // Header line
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...brandRed);
-  doc.text('OFFICIAL SETTLEMENT BANK & WIRE REMITTANCE INSTRUCTIONS', margin + 4, bankBoxY + 5.5);
-
-  // Bank details left column
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(...darkMidnight);
-  doc.text(bank.bankName, margin + 4, bankBoxY + 11.5);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...textDark);
-  doc.text(`Beneficiary Account Name: ${bank.accountName}`, margin + 4, bankBoxY + 16.5);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text(`Account Number: ${bank.accountNumber}`, margin + 4, bankBoxY + 21.5);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text(`Routing Number: ${bank.routingNumber}   |   SWIFT / BIC Code: ${bank.swiftCode}`, margin + 4, bankBoxY + 26.5);
-  doc.text(`Branch Location: ${bank.branch}`, margin + 4, bankBoxY + 31.5);
-
-  // Bank details right column (BIN & Tax Compliance)
-  const bankRightX = pageWidth - margin - 4;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...darkMidnight);
-  doc.text(`BIN / Tax Registration: ${bank.binNumber}`, bankRightX, bankBoxY + 11.5, { align: 'right' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...textMuted);
-  doc.text(bank.taxNote, bankRightX, bankBoxY + 16.5, { align: 'right' });
-  doc.text(`Accepted Currencies: ${bank.currency}`, bankRightX, bankBoxY + 21.5, { align: 'right' });
-  doc.text('EFT / RTGS / Swift Wire transfers supported', bankRightX, bankBoxY + 26.5, { align: 'right' });
-
-  // 6. Remittance Notes & Legal Terms
-  const termsY = bankBoxY + bankBoxHeight + 5;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...textMuted);
-  doc.text('TERMS OF BILLING & REMITTANCE COMPLIANCE:', margin, termsY);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7);
-  doc.setTextColor(100, 116, 139);
-  doc.text(`1. Please specify Invoice Number [${invoice.invoiceNumber}] and Tracking Code [${invoice.trackingNumber}] in your bank wire narration.`, margin, termsY + 4.5);
-  doc.text('2. Payments are strictly due on or before customs release at the designated terminal unless covered by pre-approved commercial credit.', margin, termsY + 8.5);
-  doc.text('3. This document is an authentic electronic commercial tax invoice generated by GoShipping Enterprise ERP and requires no physical seal.', margin, termsY + 12.5);
-
-  // 7. Signature & Stamp Blocks
-  const sigY = termsY + 18;
+  // 5. Signature & Stamp Blocks
+  const sigY = totalBoxY + totalBoxHeight + 22;
 
   // Importer Acknowledgement
   doc.setDrawColor(...borderLight);
@@ -487,15 +499,15 @@ export function downloadInvoicePDF(invoice: InvoiceRecordData, bank: SettlementB
   doc.setTextColor(...textMuted);
   doc.text('Authorized Signatory — Treasury & Billing Desk', authX, sigY + 17.5);
 
-  // 8. Footer
-  const footerY = 286;
+  // 6. Footer
+  const footerY = 282;
   doc.setDrawColor(...borderLight);
   doc.line(margin, footerY, pageWidth - margin, footerY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
-  doc.setTextColor(148, 163, 184);
-  doc.text('GoShipping Logistics Platform · Generated by Enterprise Billing Cloud · Page 1 of 1', pageWidth / 2, footerY + 4, { align: 'center' });
+  doc.setTextColor(100, 116, 139);
+  doc.text('Web: goshipping.com.bd  |  Email: support@goshipping.com.bd  |  China Desk: +86 150 1423 2749', pageWidth / 2, footerY + 5, { align: 'center' });
 
   // 9. Trigger Direct PDF Download
   const cleanInvoiceId = invoice.invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, '_');

@@ -73,16 +73,17 @@ const siteOrigin = getSiteOrigin(Astro.request);
       <!-- Form: Just Email and Password -->
       <form id="admin-login-form" class="space-y-4 text-xs">
         
-        <!-- Email Input -->
+        <!-- Email or Phone Input -->
         <div class="space-y-1.5">
           <label for="admin-email" class="block font-semibold text-slate-700">
-            Email
+            Work Email or Phone Number
           </label>
           <input
             id="admin-email"
-            type="email"
+            type="text"
             required
-            autocomplete="email"
+            autocomplete="username"
+            placeholder="admin@goshipping.com or 017XXXXXXXX"
             class="w-full h-11 px-3.5 rounded-lg bg-[#F8FAFC] border border-slate-200 hover:border-slate-300 focus:bg-white focus:border-[#EA1D2C] focus:ring-2 focus:ring-[#EA1D2C]/15 text-sm text-slate-900 transition-colors outline-none"
           />
         </div>

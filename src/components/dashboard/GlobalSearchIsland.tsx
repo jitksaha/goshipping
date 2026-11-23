@@ -127,15 +127,6 @@ export default function GlobalSearchIsland({ portalType = 'customer' }: Props) {
       href: '/dashboard?tab=request-quote'
     },
     {
-      id: 'page-docs',
-      category: 'page',
-      title: 'Documents & Invoices',
-      subtitle: 'Airway bills, bills of lading & tax invoices',
-      badge: 'COMPLIANCE',
-      tabKey: 'documents',
-      href: '/dashboard?tab=documents'
-    },
-    {
       id: 'page-profile',
       category: 'page',
       title: 'Profile & Settings',

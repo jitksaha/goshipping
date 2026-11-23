@@ -44,6 +44,8 @@ export interface PosLedgerRecord {
   bdWeightKg: number;
   shippingRatePerKgBdt: number;
   internationalFreightBdt: number;
+  packingFeeBdt?: number;
+  deliveryAddress?: string;
   totalBillBdt: number;
   paymentStatus: 'Due' | 'Paid' | 'Partial';
   payments?: PaymentEntry[];
@@ -71,6 +73,8 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
   purchaseCostPaidBdt: number;
   purchaseCostDueBdt: number;
   internationalFreightBdt: number;
+  packingFeeBdt?: number;
+  deliveryAddress?: string;
   totalBillBdt: number;
   paymentStatus: 'Due' | 'Paid' | 'Partial';
 } {
@@ -85,7 +89,8 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
   const shippingRate = Number(input.shippingRatePerKgBdt) || 0;
   const intlFreightBdt = Math.round(bdWeight * shippingRate * 100) / 100;
 
-  const totalBillBdt = Math.round((purchaseCostBdt + intlFreightBdt) * 100) / 100;
+  const packingFeeBdt = Number(input.packingFeeBdt) || 0;
+  const totalBillBdt = Math.round((purchaseCostBdt + intlFreightBdt + packingFeeBdt) * 100) / 100;
 
   // If input has payment entries, calculate total paid from payments
   let paidBdt = Number(input.purchaseCostPaidBdt) || 0;
@@ -110,6 +115,7 @@ export function autoCalculatePosFields(input: Partial<PosLedgerRecord>): {
     purchaseCostPaidBdt: paidBdt,
     purchaseCostDueBdt: purchaseDueBdt,
     internationalFreightBdt: intlFreightBdt,
+    packingFeeBdt,
     totalBillBdt,
     paymentStatus
   };
@@ -281,7 +287,21 @@ export class PosLedgerService {
     supplier?: string;
   }): Promise<PosLedgerRecord[]> {
     ensureLatestStore();
-    let list = [...memoryLedger];
+    // In-memory deduplication: prevent any twin duplicate records with identical orderId or identical timestamp/details
+    const seenOrderIds = new Set<string>();
+    const dedupedMemory: PosLedgerRecord[] = [];
+    for (const r of memoryLedger) {
+      const cleanOrderId = (r.orderId || '').trim().toUpperCase();
+      if (cleanOrderId && seenOrderIds.has(cleanOrderId)) {
+        continue; // Skip redundant duplicate
+      }
+      if (cleanOrderId) {
+        seenOrderIds.add(cleanOrderId);
+      }
+      dedupedMemory.push(r);
+    }
+
+    let list = dedupedMemory;
 
     if (filters?.search) {
       const q = filters.search.toLowerCase().trim();
@@ -375,6 +395,56 @@ export class PosLedgerService {
    */
   static async createRecord(payload: Partial<PosLedgerRecord>): Promise<PosLedgerRecord> {
     ensureLatestStore();
+
+    // Anti-duplicate protection: check for recent duplicate submission (within 20 seconds)
+    const nowMs = Date.now();
+    const candidateCustomer = (payload.customerName || '').trim().toLowerCase();
+    const candidateItem = (payload.itemDetails || '').trim().toLowerCase();
+    const candidateCnTracking = (payload.chinaCourierTracking || '').trim().toUpperCase();
+    const candidateTracking = (payload.trackingNumber || '').trim().toUpperCase();
+    const candidatePhone = (payload.mobileNo || '').replace(/\D/g, '');
+    const candidateQty = Number(payload.quantity) || 1;
+    const candidateUnitRmb = Number(payload.unitPriceRmb) || 0;
+
+    const duplicate = memoryLedger.find((r) => {
+      // 1. Explicit orderId match
+      if (payload.orderId?.trim() && r.orderId.toUpperCase() === payload.orderId.trim().toUpperCase()) {
+        return true;
+      }
+      // 2. Created within 20s anti-duplicate time window
+      const recordTime = new Date(r.createdAt || 0).getTime();
+      const isRecent = (nowMs - recordTime) < 20000;
+      if (!isRecent) return false;
+
+      // Same tracking number if explicitly passed
+      if (candidateTracking && r.trackingNumber && r.trackingNumber.toUpperCase() === candidateTracking) {
+        return true;
+      }
+      // Same China courier tracking if non-empty
+      if (candidateCnTracking && candidateCnTracking.length >= 4 && r.chinaCourierTracking && r.chinaCourierTracking.toUpperCase() === candidateCnTracking) {
+        return true;
+      }
+      // Same customer + phone + item + quantity + unit price
+      const rPhone = (r.mobileNo || '').replace(/\D/g, '');
+      const rCustomer = (r.customerName || '').trim().toLowerCase();
+      const rItem = (r.itemDetails || '').trim().toLowerCase();
+      if (
+        rCustomer === candidateCustomer &&
+        (candidatePhone && rPhone ? rPhone === candidatePhone : true) &&
+        rItem === candidateItem &&
+        Number(r.quantity) === candidateQty &&
+        Number(r.unitPriceRmb) === candidateUnitRmb
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (duplicate) {
+      console.warn(`[PosLedgerService] Duplicate order creation prevented. Returning existing order ${duplicate.orderId} (ID: ${duplicate.id})`);
+      return duplicate;
+    }
+
     const id = `pos-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
     const orderId = payload.orderId?.trim() ? payload.orderId.trim().toUpperCase() : PosLedgerService.generateNextOrderId();
     const today = new Date().toISOString().split('T')[0];
@@ -408,6 +478,7 @@ export class PosLedgerService {
       bdWeightKg: Number(payload.bdWeightKg) || 0,
       shippingRatePerKgBdt: Number(payload.shippingRatePerKgBdt) || 0,
       internationalFreightBdt: calc.internationalFreightBdt,
+      packingFeeBdt: calc.packingFeeBdt || 0,
       totalBillBdt: calc.totalBillBdt,
       paymentStatus: calc.paymentStatus,
       trackingNumber: payload.trackingNumber || '',
@@ -451,6 +522,7 @@ export class PosLedgerService {
         bdWeightKg: String(record.bdWeightKg),
         shippingRatePerKgBdt: String(record.shippingRatePerKgBdt),
         internationalFreightBdt: String(record.internationalFreightBdt),
+        packingFeeBdt: String(record.packingFeeBdt || 0),
         totalBillBdt: String(record.totalBillBdt),
         paymentStatus: record.paymentStatus,
         bdCourierName: record.bdCourierName,
@@ -554,6 +626,7 @@ export class PosLedgerService {
         bdWeightKg: String(updated.bdWeightKg),
         shippingRatePerKgBdt: String(updated.shippingRatePerKgBdt),
         internationalFreightBdt: String(updated.internationalFreightBdt),
+        packingFeeBdt: String(updated.packingFeeBdt || 0),
         totalBillBdt: String(updated.totalBillBdt),
         paymentStatus: updated.paymentStatus,
         bdCourierName: updated.bdCourierName,

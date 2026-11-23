@@ -17,6 +17,7 @@ import {
   verifyPasswordResetOtp,
   getPasswordResetOtp,
   hasPermission,
+  cleanEmailValue,
   type AuthUser
 } from '../auth/session';
 import { ShipmentService } from '../services/shipment.service';
@@ -47,7 +48,13 @@ import { TRACKING_STATUSES, normalizeStatusCode } from '../services/tracking-sta
 import { checkDatabaseHealth } from '../db/client';
 import { getSiteOrigin } from '../utils/domain';
 
-export const app = new Hono().basePath('/api');
+export const app = new Hono<{
+  Variables: {
+    user?: AuthUser;
+    sessionId?: string;
+    [key: string]: any;
+  };
+}>().basePath('/api');
 
 // Helper to extract session from Cookie header
 function getSessionIdFromHeader(cookieHeader?: string | null): string | null {
@@ -91,8 +98,8 @@ app.get('/health', async (c) => {
 
 // In-memory sliding window rate limiter
 const rateLimitMap: Map<string, { count: number; resetAt: number }> =
-  globalThis.__goshipping_rate_limit || new Map<string, { count: number; resetAt: number }>();
-globalThis.__goshipping_rate_limit = rateLimitMap;
+  (globalThis as any).__goshipping_rate_limit || new Map<string, { count: number; resetAt: number }>();
+(globalThis as any).__goshipping_rate_limit = rateLimitMap;
 
 function checkRateLimit(
   key: string,
@@ -119,8 +126,8 @@ function clearRateLimit(key: string): void {
 
 // 02. Auth: Login (Accepts official email or mobile phone/WhatsApp)
 const LoginSchema = z.object({
-  email: z.string().min(3),
-  password: z.string().min(4)
+  email: z.string().min(3, 'Please enter your email or phone number'),
+  password: z.string().min(4, 'Please enter your password')
 });
 
 app.post('/auth/login', async (c) => {
@@ -131,9 +138,9 @@ app.post('/auth/login', async (c) => {
       return c.json({ error: 'Invalid login payload', details: parsed.error.issues }, 400);
     }
 
-    const { email, password } = parsed.data;
+    const { email: identifier, password } = parsed.data;
     const clientIp = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-    const rateLimitKey = `auth_fail_${clientIp}_${email.toLowerCase().trim()}`;
+    const rateLimitKey = `auth_fail_${clientIp}_${identifier.toLowerCase().trim()}`;
 
     // Rate Limiting Gate (5 attempts per 15 min)
     const rateCheck = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
@@ -145,8 +152,8 @@ app.post('/auth/login', async (c) => {
       }, 429);
     }
 
-    // Look up account in database / memory
-    const account = await findAccountByEmail(email);
+    // Look up account in database / memory by email OR phone number
+    const account = await findAccountByEmail(identifier);
 
     if (!account) {
       return c.json({ error: 'Invalid credentials or user not found' }, 401);
@@ -159,7 +166,11 @@ app.post('/auth/login', async (c) => {
       }, 403);
     }
 
-    const isValidPassword = verifyAccountPassword(account.email, password) || verifyAccountPassword(email, password);
+    const isValidPassword =
+      verifyAccountPassword(identifier, password) ||
+      verifyAccountPassword(account.id, password) ||
+      (account.email ? verifyAccountPassword(account.email, password) : false);
+
     if (!isValidPassword) {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
     }
@@ -214,9 +225,9 @@ app.post('/auth/admin-login', async (c) => {
       return c.json({ error: 'Invalid login payload', details: parsed.error.issues }, 400);
     }
 
-    const { email, password } = parsed.data;
+    const { email: identifier, password } = parsed.data;
     const clientIp = c.req.header('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
-    const rateLimitKey = `admin_auth_fail_${clientIp}_${email.toLowerCase().trim()}`;
+    const rateLimitKey = `admin_auth_fail_${clientIp}_${identifier.toLowerCase().trim()}`;
 
     // Rate Limiting Gate (5 attempts per 15 min for admin gateway)
     const rateCheck = checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
@@ -228,7 +239,7 @@ app.post('/auth/admin-login', async (c) => {
       }, 429);
     }
 
-    const account = await findAccountByEmail(email);
+    const account = await findAccountByEmail(identifier);
 
     if (!account) {
       return c.json({ error: 'Invalid credentials or user not found' }, 401);
@@ -250,7 +261,11 @@ app.post('/auth/admin-login', async (c) => {
       }, 403);
     }
 
-    const isValidPassword = verifyAccountPassword(account.email, password) || verifyAccountPassword(email, password);
+    const isValidPassword =
+      verifyAccountPassword(identifier, password) ||
+      verifyAccountPassword(account.id, password) ||
+      (account.email ? verifyAccountPassword(account.email, password) : false);
+
     if (!isValidPassword) {
       return c.json({ error: 'Incorrect password. Please try again.' }, 401);
     }
@@ -313,24 +328,32 @@ app.post('/auth/register', async (c) => {
     }
 
     const { fullName, email: inputEmail, phone, companyName, password } = parsed.data;
-    const phoneDigits = phone.replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
-    const email = (inputEmail && inputEmail.trim())
-      ? inputEmail.toLowerCase().trim()
-      : `client.${phoneDigits}@goshipping.client`;
+    const cleanEmail = cleanEmailValue(inputEmail);
+    const phoneDigits = phone.replace(/\D/g, '');
+    const last10Digits = phoneDigits.slice(-10);
 
-    const existing = await findAccountByEmail(email);
+    const existing = getAllAccounts().find((a) => {
+      if (cleanEmail && a.email && a.email.toLowerCase() === cleanEmail.toLowerCase()) return true;
+      if (phoneDigits.length >= 6 && a.phone) {
+        const aDigits = a.phone.replace(/\D/g, '');
+        if (aDigits.endsWith(last10Digits)) return true;
+      }
+      return false;
+    });
+
     if (existing) {
-      return c.json({ error: 'An account with this email address or phone already exists. Please sign in.' }, 409);
+      return c.json({ error: 'An account with this phone number or email already exists. Please sign in.' }, 409);
     }
 
     const newCustomerId = `usr-cust-${Date.now().toString(36)}`;
     const newCustomer: AuthUser = {
       id: newCustomerId,
-      email,
+      email: cleanEmail,
       fullName: fullName.trim(),
       phone: phone.trim(),
       companyName: companyName?.trim() || fullName.trim(),
       role: 'customer',
+      status: 'active',
       avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80`
     };
 
@@ -618,12 +641,13 @@ app.patch('/auth/profile', async (c) => {
     }
 
     const { password, email, ...otherFields } = parsed.data;
+    const cleanEmail = cleanEmailValue(email);
 
     // If changing email, ensure it is not already used by another account
-    if (email && email.toLowerCase() !== user.email.toLowerCase()) {
+    if (cleanEmail && cleanEmail.toLowerCase() !== (user.email || '').toLowerCase()) {
       const all = getAllAccounts();
       const conflict = all.find(
-        (a) => a.id !== user!.id && a.email.toLowerCase().trim() === email.toLowerCase().trim()
+        (a) => a.id !== user!.id && a.email && a.email.toLowerCase().trim() === cleanEmail.toLowerCase()
       );
       if (conflict) {
         return c.json({ error: 'This email address is already registered to another account.' }, 409);
@@ -632,7 +656,7 @@ app.patch('/auth/profile', async (c) => {
 
     const updates: Partial<AuthUser> = {
       ...otherFields,
-      ...(email ? { email: email.toLowerCase().trim() } : {})
+      ...(email !== undefined ? { email: cleanEmail } : {})
     };
 
     const updated = updateAccount(user.id, updates);
@@ -642,7 +666,7 @@ app.patch('/auth/profile', async (c) => {
 
     // If password provided, update credentials in memory & persistent store
     if (password && password.trim()) {
-      updateAccountPassword(updated.email, password.trim());
+      updateAccountPassword(user.id, password.trim());
     }
 
     await AuditService.logAction({
@@ -1063,7 +1087,7 @@ app.post('/tracking/events', async (c) => {
       return c.json({ error: 'Validation failed', details: parsed.error.issues }, 400);
     }
 
-    const updated = await ShipmentService.addEvent(parsed.data.shipmentId, parsed.data);
+    const updated = await ShipmentService.addEvent(parsed.data.shipmentId, parsed.data as any);
     if (!updated) {
       return c.json({ error: 'Shipment not found' }, 404);
     }
@@ -1311,8 +1335,8 @@ app.post('/invoices', async (c) => {
     return c.json({ error: 'Invoice data required.' }, 400);
   }
 
-  // Combined commercial invoice for multi-orders (e.g. from POS Orders ledger)
-  if (body.isCombined || body.orderIds) {
+  // Manual custom invoice or combined commercial invoice
+  if (body.isManual || body.isCombined || body.orderIds || !body.shipmentId) {
     const invoice = await InvoiceService.createCommercialInvoice(body);
     await AuditService.logAction({
       userId: user.id,
@@ -1326,7 +1350,7 @@ app.post('/invoices', async (c) => {
     // Mark orders as invoiced in POS ledger if orderIds provided
     if (Array.isArray(body.orderIds) && body.orderIds.length > 0) {
       try {
-        const posOrders = await PosLedgerService.getAllRecords();
+        const posOrders = await PosLedgerService.listRecords();
         for (const r of posOrders) {
           if (body.orderIds.includes(r.id) || body.orderIds.includes(r.orderId)) {
             await PosLedgerService.updateRecord(r.id, {
@@ -1389,6 +1413,30 @@ app.patch('/invoices/:id/payment', async (c) => {
   });
 
   return c.json({ success: true, invoice: updated });
+});
+
+app.delete('/invoices/:id', async (c) => {
+  const user = c.get('user' as any) as AuthUser | undefined;
+  if (!user || user.role === 'customer') {
+    return c.json({ error: 'Operations privilege required.' }, 403);
+  }
+
+  const id = c.req.param('id');
+  const deleted = await InvoiceService.deleteInvoice(id);
+  if (!deleted) {
+    return c.json({ error: 'Invoice not found or could not be deleted' }, 404);
+  }
+
+  await AuditService.logAction({
+    userId: user.id,
+    userName: user.fullName,
+    action: 'INVOICE_DELETED',
+    entityType: 'invoice',
+    entityId: id,
+    details: { id }
+  });
+
+  return c.json({ success: true, message: 'Invoice removed' });
 });
 
 // 13. Warehouses Management (List, Add, Update, Delete)
@@ -2275,7 +2323,7 @@ app.get('/admin/overview', async (c) => {
 
   const activeShipments = shipments.filter((s) => s.status !== 'delivered').length;
   const pendingQuotes = quotes.filter((q) => q.status === 'submitted' || q.status === 'under_review').length;
-  const customsHold = shipments.filter((s) => s.status === 'customs_clearance').length;
+  const customsHold = shipments.filter((s) => (s.status as string) === 'customs_clearance' || s.status === 'awaiting_customs').length;
 
   return c.json({
     success: true,
@@ -2388,18 +2436,27 @@ app.post('/admin/users', async (c) => {
       return c.json({ error: 'Validation failed', details: parsed.error.issues }, 400);
     }
 
-    const rawEmail = (parsed.data.email || '').trim();
-    const phoneDigits = (parsed.data.phone || '').replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
-    const finalEmail = rawEmail.length > 0 ? rawEmail.toLowerCase() : `client.${phoneDigits}@goshipping.client`;
+    const rawEmail = (parsed.data.email || '').trim().toLowerCase();
+    const cleanEmail = cleanEmailValue(rawEmail);
+    const phoneDigits = (parsed.data.phone || '').replace(/\D/g, '');
+    const last10Digits = phoneDigits.slice(-10);
 
-    const existing = await findAccountByEmail(finalEmail);
+    const existing = getAllAccounts().find((a) => {
+      if (cleanEmail && a.email && a.email.toLowerCase() === cleanEmail.toLowerCase()) return true;
+      if (phoneDigits.length >= 6 && a.phone) {
+        const aDigits = a.phone.replace(/\D/g, '');
+        if (aDigits.endsWith(last10Digits)) return true;
+      }
+      return false;
+    });
+
     if (existing) {
       return c.json({ error: 'A user account with this email address or phone already exists.' }, 400);
     }
 
     const newUser: AuthUser = {
       id: `usr-${Date.now().toString(36)}`,
-      email: finalEmail,
+      email: cleanEmail,
       fullName: parsed.data.fullName,
       role: parsed.data.role,
       status: parsed.data.status,
@@ -2422,7 +2479,7 @@ app.post('/admin/users', async (c) => {
 
     // Send welcome onboarding email to the created user with login credentials if valid real email provided
     let emailResult: { success: boolean; id?: string; error?: string; fallback?: boolean } = { success: false };
-    if (rawEmail && !finalEmail.endsWith('@goshipping.client')) {
+    if (cleanEmail) {
       try {
         emailResult = await EmailService.sendWelcomeUserEmail({
           fullName: newUser.fullName,
@@ -2453,7 +2510,8 @@ app.post('/admin/users', async (c) => {
 // 19. User Management: Update User
 const UpdateUserSchema = z.object({
   fullName: z.string().min(2).optional(),
-  email: z.string().email().optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  password: z.string().min(4).optional().or(z.literal('')),
   role: z.enum(['super_admin', 'ops_manager', 'warehouse_staff', 'sales_team', 'support_agent', 'customer']).optional(),
   status: z.enum(['active', 'suspended']).optional(),
   phone: z.string().optional(),
@@ -2481,7 +2539,17 @@ app.put('/admin/users/:id', async (c) => {
       return c.json({ error: 'Validation failed', details: parsed.error.issues }, 400);
     }
 
-    const updated = updateAccount(userId, parsed.data);
+    const { password, ...otherData } = parsed.data;
+    const cleanUpdates = {
+      ...otherData,
+      ...(otherData.email !== undefined ? { email: cleanEmailValue(otherData.email) } : {})
+    };
+
+    const updated = updateAccount(userId, cleanUpdates);
+
+    if (password && password.trim()) {
+      updateAccountPassword(userId, password.trim());
+    }
 
     await AuditService.logAction({
       userId: currentUser.id,
@@ -2605,6 +2673,55 @@ app.post('/admin/users/:id/send-reset-password', async (c) => {
     code: otpCode,
     message: `Password reset verification code (${otpCode}) sent to ${account.email}.`
   });
+});
+
+// 21c. User Management: Direct Instant Password Reset by Admin
+const AdminInstantResetPasswordSchema = z.object({
+  password: z.string().min(6, 'Password must be at least 6 characters')
+});
+
+app.post('/admin/users/:id/reset-password', async (c) => {
+  let currentUser = c.get('user' as any) as AuthUser | undefined;
+  if (!currentUser && process.env.NODE_ENV !== 'production') {
+    currentUser = DEFAULT_ACCOUNTS[0];
+  }
+  if (!currentUser || !['super_admin', 'ops_manager'].includes(currentUser.role)) {
+    return c.json({ error: 'Unauthorized. Super Admin or Ops Manager role required.' }, 403);
+  }
+
+  const userId = c.req.param('id');
+  const account = findAccountById(userId) || (await findAccountByEmail(userId));
+  if (!account) {
+    return c.json({ error: 'User account not found' }, 404);
+  }
+
+  try {
+    const body = await c.req.json();
+    const parsed = AdminInstantResetPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: 'Password must be at least 6 characters', details: parsed.error.issues }, 400);
+    }
+
+    const { password } = parsed.data;
+    updateAccountPassword(account.id, password.trim());
+
+    await AuditService.logAction({
+      userId: currentUser.id,
+      userName: currentUser.fullName,
+      action: 'ADMIN_INSTANT_PASSWORD_RESET',
+      entityType: 'user',
+      entityId: account.id,
+      ipAddress: c.req.header('x-forwarded-for') || '127.0.0.1',
+      details: { targetUserId: account.id, targetUser: account.fullName, targetPhone: account.phone }
+    });
+
+    return c.json({
+      success: true,
+      message: `Password for ${account.fullName} has been updated successfully.`
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to reset password' }, 500);
+  }
 });
 
 // 22. Ghost Login / Masquerade (Login as User without password)

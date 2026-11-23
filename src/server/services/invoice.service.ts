@@ -13,8 +13,10 @@ export interface InvoiceItem {
   itemCode?: string;
   description: string;
   packagingType?: string;
+  unit?: string;
   arrivedQuantity: number;
   totalQuantity: number;
+  unitPriceBdt?: number;
   weightKg: number;
   cbm?: number;
   ratePerKg?: number;
@@ -24,12 +26,15 @@ export interface InvoiceItem {
 export interface InvoiceRecord {
   id: string;
   invoiceNumber: string;
+  isManual?: boolean;
   shipmentId: string;
   trackingNumber: string;
   customerId: string;
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  companyName?: string;
+  shippingMark?: string;
   recipientName: string;
   recipientPhone?: string;
   recipientAddress: string;
@@ -38,10 +43,13 @@ export interface InvoiceRecord {
   mode: 'air' | 'sea' | 'road' | 'hand_carry';
   totalWeightKg: number;
   items: InvoiceItem[];
+  productsSubtotal?: number;
   baseFreight: number;
   terminalHandling: number;
   customsDuty: number;
   fuelSurcharge: number;
+  packingFee?: number;
+  otherCharges?: number;
   subtotal: number;
   vatTax: number;
   totalBDT: number;
@@ -50,7 +58,7 @@ export interface InvoiceRecord {
   discount?: number;
   advancePaid?: number;
   balanceDue?: number;
-  status: 'pending' | 'paid';
+  status: 'pending' | 'paid' | 'partial';
   issueDate: string;
   dueDate: string;
   paymentMethod: string;
@@ -61,14 +69,16 @@ export interface InvoiceRecord {
 }
 
 // Live operational invoices store
-let initialInvoices: InvoiceRecord[] = [];
+let lastStoreMtime = 0;
 
 function loadInvoicesFromDisk(): InvoiceRecord[] {
-  if (globalThis.__goshipping_invoices) {
-    return globalThis.__goshipping_invoices;
-  }
   try {
     if (fs.existsSync(INVOICE_STORE_PATH)) {
+      const stat = fs.statSync(INVOICE_STORE_PATH);
+      if (globalThis.__goshipping_invoices && stat.mtimeMs === lastStoreMtime) {
+        return globalThis.__goshipping_invoices;
+      }
+      lastStoreMtime = stat.mtimeMs;
       const data = JSON.parse(fs.readFileSync(INVOICE_STORE_PATH, 'utf-8'));
       if (Array.isArray(data)) {
         globalThis.__goshipping_invoices = data;
@@ -78,7 +88,9 @@ function loadInvoicesFromDisk(): InvoiceRecord[] {
   } catch (err) {
     console.error('Failed reading .invoices_store.json:', err);
   }
-  globalThis.__goshipping_invoices = [];
+  if (!globalThis.__goshipping_invoices) {
+    globalThis.__goshipping_invoices = [];
+  }
   return globalThis.__goshipping_invoices;
 }
 
@@ -86,6 +98,7 @@ function saveInvoicesToDisk(records: InvoiceRecord[]) {
   globalThis.__goshipping_invoices = records;
   try {
     fs.writeFileSync(INVOICE_STORE_PATH, JSON.stringify(records, null, 2), 'utf-8');
+    lastStoreMtime = fs.statSync(INVOICE_STORE_PATH).mtimeMs;
   } catch (err) {
     console.error('Failed writing .invoices_store.json:', err);
   }
@@ -156,11 +169,15 @@ export class InvoiceService {
    */
   static async createCommercialInvoice(data: {
     invoiceNumber?: string;
+    isManual?: boolean;
     customerName: string;
     companyName?: string;
     customerPhone?: string;
+    customerEmail?: string;
     customerAddress?: string;
     shippingMark?: string;
+    origin?: string;
+    destination?: string;
     mode?: 'air' | 'sea' | 'road' | 'hand_carry';
     orderIds?: string[];
     trackingNumber?: string;
@@ -170,6 +187,8 @@ export class InvoiceService {
       itemCode?: string;
       description: string;
       packagingType?: string;
+      unit?: string;
+      unitPriceBdt?: number;
       arrivedQuantity: number;
       totalQuantity: number;
       weightKg: number;
@@ -177,10 +196,13 @@ export class InvoiceService {
       ratePerKg?: number;
       amountBDT: number;
     }>;
+    productsSubtotal?: number;
     baseFreight?: number;
     terminalHandling?: number;
     customsDuty?: number;
     fuelSurcharge?: number;
+    packingFee?: number;
+    otherCharges?: number;
     subtotal?: number;
     vatTax?: number;
     totalBDT: number;
@@ -188,7 +210,7 @@ export class InvoiceService {
     discount?: number;
     advancePaid?: number;
     balanceDue?: number;
-    status?: 'pending' | 'paid';
+    status?: 'pending' | 'paid' | 'partial';
     issueDate?: string;
     dueDate?: string;
     paymentMethod?: string;
@@ -214,16 +236,20 @@ export class InvoiceService {
     const newInvoice: InvoiceRecord = {
       id,
       invoiceNumber,
-      shipmentId: data.orderIds?.length ? data.orderIds.join(', ') : 'combined-consignments',
+      isManual: data.isManual ?? true,
+      shipmentId: data.orderIds?.length ? data.orderIds.join(', ') : 'manual-invoice',
       trackingNumber: data.trackingNumber || (data.orderIds?.length ? data.orderIds.join(', ') : invoiceNumber),
-      customerId: 'usr-customer-combined',
+      customerId: 'usr-customer-manual',
       customerName: displayName,
+      customerEmail: data.customerEmail || '',
       customerPhone: data.customerPhone || '',
+      companyName: data.companyName || '',
+      shippingMark: data.shippingMark || '',
       recipientName: data.customerName,
       recipientPhone: data.customerPhone || '',
       recipientAddress: data.customerAddress || 'Dhaka, Bangladesh',
-      origin: 'China (Guangzhou / Yiwu)',
-      destination: 'Dhaka, Bangladesh',
+      origin: data.origin || 'Guangzhou / Yiwu, China',
+      destination: data.destination || 'Dhaka, Bangladesh',
       mode: data.mode || 'air',
       totalWeightKg,
       items: (data.items || []).map((it, idx) => ({
@@ -231,6 +257,8 @@ export class InvoiceService {
         itemCode: it.itemCode,
         description: it.description,
         packagingType: it.packagingType || 'air_cargo',
+        unit: (it as any).unit || 'Pcs',
+        unitPriceBdt: (it as any).unitPriceBdt || 0,
         arrivedQuantity: it.arrivedQuantity,
         totalQuantity: it.totalQuantity,
         weightKg: it.weightKg,
@@ -238,10 +266,13 @@ export class InvoiceService {
         ratePerKg: it.ratePerKg,
         amountBDT: it.amountBDT
       })),
+      productsSubtotal: data.productsSubtotal !== undefined ? Number(data.productsSubtotal) : undefined,
       baseFreight,
       terminalHandling: Number(data.terminalHandling) || 0,
       customsDuty: Number(data.customsDuty) || 0,
       fuelSurcharge: Number(data.fuelSurcharge) || 0,
+      packingFee: Number(data.packingFee) || 0,
+      otherCharges: Number(data.otherCharges) || 0,
       subtotal,
       vatTax: Number(data.vatTax) || 0,
       totalBDT,
@@ -253,9 +284,9 @@ export class InvoiceService {
       status: data.status || 'pending',
       issueDate,
       dueDate,
-      paymentMethod: data.paymentMethod || 'Bank Wire / bKash',
+      paymentMethod: data.paymentMethod || 'bKash Merchant Pay',
       bankId: 'scb-bd',
-      notes: data.notes || (data.orderIds?.length ? `Combined commercial invoice for orders: ${data.orderIds.join(', ')}` : ''),
+      notes: data.notes || '',
       createdAt: now.toISOString(),
       updatedAt: now.toISOString()
     };
@@ -263,6 +294,19 @@ export class InvoiceService {
     invoices.unshift(newInvoice);
     saveInvoicesToDisk(invoices);
     return newInvoice;
+  }
+
+  static async deleteInvoice(idOrNumber: string): Promise<boolean> {
+    const list = loadInvoicesFromDisk();
+    const initialLen = list.length;
+    const filtered = list.filter(
+      (i) => i.id !== idOrNumber && i.invoiceNumber.toUpperCase() !== idOrNumber.toUpperCase()
+    );
+    if (filtered.length !== initialLen) {
+      saveInvoicesToDisk(filtered);
+      return true;
+    }
+    return false;
   }
 
   static async createInvoice(data: {
@@ -273,7 +317,7 @@ export class InvoiceService {
     paymentMethod?: string;
     bankId?: string;
     notes?: string;
-    status?: 'pending' | 'paid';
+    status?: 'pending' | 'paid' | 'partial';
     shippingCharges?: number;
     discount?: number;
     advancePaid?: number;

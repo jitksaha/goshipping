@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { downloadInvoicePDF, SETTLEMENT_BANKS, type InvoiceRecordData } from '../../lib/invoicePdf';
+import { GOSHIPPING_LOGO_PNG_BASE64 } from '../../lib/brandLogo';
 import type { PosLedgerRecord } from '../../server/services/posLedger.service';
 
 interface CustomerSummary {
@@ -79,15 +80,15 @@ export default function CombinedCommercialInvoiceModal({
     const now = new Date();
     return `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
   });
-  const [deliveryAddress, setDeliveryAddress] = useState(
-    'House 12, Road 4, Sector 7, Uttara Model Town, Dhaka-1230, Bangladesh'
-  );
+  // Client Details derived from first record
+  const primaryRecord = selectedRecords[0];
+  const [deliveryAddress, setDeliveryAddress] = useState(() => {
+    return primaryRecord?.deliveryAddress || (primaryRecord as any)?.address || '';
+  });
   const [shippingMethod, setShippingMethod] = useState(
     selectedRecords[0]?.serviceType || 'Air Cargo (7–14 days)'
   );
 
-  // Client Details derived from first record
-  const primaryRecord = selectedRecords[0];
   const clientName = primaryRecord.importerClient || primaryRecord.customerName || 'Commercial Consignee';
   const contactPerson = primaryRecord.customerName;
   const mobileNo = primaryRecord.mobileNo || '+880 1711 000000';
@@ -97,6 +98,11 @@ export default function CombinedCommercialInvoiceModal({
   // Base Products Subtotal from selected records
   const productsSubtotal = useMemo(() => {
     return selectedRecords.reduce((acc, r) => acc + (Number(r.purchaseCostBdt) || 0), 0);
+  }, [selectedRecords]);
+
+  // Total Packing Fee from selected records
+  const totalPackingFee = useMemo(() => {
+    return selectedRecords.reduce((acc, r) => acc + (Number((r as any).packingFeeBdt) || 0), 0);
   }, [selectedRecords]);
 
   // Default pre-filled freight charges from selected records
@@ -136,9 +142,9 @@ export default function CombinedCommercialInvoiceModal({
 
   // Calculated Grand Total & Balance Due
   const grandTotalBdt = useMemo(() => {
-    const total = productsSubtotal + (Number(shippingCharges) || 0) - (Number(discountBdt) || 0);
+    const total = productsSubtotal + (Number(shippingCharges) || 0) + totalPackingFee - (Number(discountBdt) || 0);
     return Math.max(0, Math.round(total * 100) / 100);
-  }, [productsSubtotal, shippingCharges, discountBdt]);
+  }, [productsSubtotal, shippingCharges, totalPackingFee, discountBdt]);
 
   const balanceDueBdt = useMemo(() => {
     const due = grandTotalBdt - (Number(advancePaidBdt) || 0);
@@ -329,6 +335,7 @@ export default function CombinedCommercialInvoiceModal({
       customsDuty: 0,
       fuelSurcharge: 0,
       vatTax: 0,
+      packingFee: totalPackingFee,
       totalBDT: grandTotalBdt,
       totalUSD: Math.round(grandTotalBdt / 122),
       paymentMethod
@@ -410,7 +417,7 @@ export default function CombinedCommercialInvoiceModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-slate-100 rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-300 my-auto flex flex-col max-h-[95vh]">
+      <div className="bg-slate-100 rounded-2xl max-w-5xl lg:max-w-6xl w-full shadow-2xl border border-slate-300 my-auto flex flex-col max-h-[95vh]">
         {/* Top Control Bar (Non-Printable, Compact) */}
         <div className="no-print bg-white px-4 py-2.5 border-b border-slate-200/50 rounded-t-2xl flex items-center justify-between shrink-0 gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -490,8 +497,8 @@ export default function CombinedCommercialInvoiceModal({
             <button
               type="button"
               onClick={onClose}
-              className="h-8 w-8 rounded-lg border border-slate-200/80 hover:bg-slate-100 text-slate-500 hover:text-slate-900 flex items-center justify-center cursor-pointer transition-colors"
-              title="Close modal"
+              className="h-8 w-8 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-[#EA1D2C] border border-slate-300 flex items-center justify-center cursor-pointer transition-colors shadow-2xs"
+              title="Close modal (Esc)"
               aria-label="Close modal"
             >
               <svg className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -506,24 +513,18 @@ export default function CombinedCommercialInvoiceModal({
         <div className="overflow-y-auto p-3 sm:p-5 bg-slate-100">
           <div
             id="printable-commercial-invoice"
-            className="bg-white rounded-xl shadow-xs border border-slate-200/40 p-5 sm:p-6 max-w-[800px] mx-auto text-slate-900 font-sans space-y-4"
+            className="bg-white rounded-xl shadow-xs border border-slate-200/40 p-5 sm:p-6 max-w-4xl mx-auto text-slate-900 font-sans space-y-4"
           >
             {/* Header: GoShipping Brand & Invoice Title (Compact & Sleek) */}
             <div className="flex items-start justify-between border-b border-slate-200/40 pb-3 gap-3">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2">
                   <img
-                    src="/brand/logo-light.png"
+                    src={GOSHIPPING_LOGO_PNG_BASE64}
                     alt="GoShipping"
-                    className="h-8.5 w-auto object-contain"
+                    className="h-9 w-auto object-contain"
                   />
                 </div>
-                <p className="text-[11px] font-semibold text-slate-700 mt-0.5">
-                  China Sourcing &amp; Shipping to Bangladesh
-                </p>
-                <p className="text-[9.5px] text-slate-400 mt-0.5">
-                  Dhaka Hub: Plot 14, Sector 7, Uttara · Hotline / WhatsApp: +86 150 1423 2749 · billing@goshipping.com.bd
-                </p>
               </div>
 
               <div className="text-right shrink-0">
@@ -586,7 +587,7 @@ export default function CombinedCommercialInvoiceModal({
                 <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-200/20">
                   <span className="text-slate-400 text-[10.5px]">Delivery Address:</span>
                   <span className="col-span-2 text-slate-600 text-[10.5px] leading-relaxed">
-                    {deliveryAddress}
+                    {deliveryAddress || 'Not specified (Direct Gateway Pickup)'}
                   </span>
                 </div>
               </div>
@@ -636,7 +637,7 @@ export default function CombinedCommercialInvoiceModal({
                   <tr className="bg-slate-50 text-slate-600 text-[9.5px] font-mono uppercase tracking-wider font-semibold border-b border-slate-200/30">
                     <th className="py-2 px-2.5 w-14 text-center">Photo</th>
                     <th className="py-2 px-2.5">Product / Details</th>
-                    <th className="py-2 px-2.5 w-24 text-center">SKU / Model</th>
+                    <th className="py-2 px-2.5 w-24 text-center">Gross Weight</th>
                     <th className="py-2 px-2.5 w-28 text-center">Tracking No.</th>
                     <th className="py-2 px-2.5 w-12 text-center">Qty</th>
                     <th className="py-2 px-2.5 w-24 text-right">Unit Price (৳)</th>
@@ -667,15 +668,19 @@ export default function CombinedCommercialInvoiceModal({
                         <td className="py-2 px-2.5">
                           <div className="font-bold text-slate-900 text-xs">{r.itemDetails}</div>
                           <div className="text-[10px] text-slate-400 font-mono mt-0.5 flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-amber-800/90">{r.supplierName}</span>
-                            <span>·</span>
                             <span>¥{Number(r.unitPriceRmb).toFixed(2)} @ ৳{r.rmbRateBdt}</span>
                           </div>
                         </td>
 
-                        {/* SKU / Model */}
-                        <td className="py-2 px-2.5 text-center font-mono font-medium text-slate-600">
-                          {r.shippingMark || 'Standard'}
+                        {/* Gross Cargo Weight */}
+                        <td className="py-2 px-2.5 text-center font-mono font-medium text-slate-700">
+                          {Number(r.bdWeightKg) > 0 ? (
+                            <span className="font-bold text-slate-900">{r.bdWeightKg} KG <span className="text-[9px] text-slate-400 font-sans">(BD)</span></span>
+                          ) : Number(r.cnWeightKg) > 0 ? (
+                            <span>{r.cnWeightKg} KG <span className="text-[9px] text-slate-400 font-sans">(CN)</span></span>
+                          ) : (
+                            <span className="text-slate-400 text-[10px]">Pending</span>
+                          )}
                         </td>
 
                         {/* Tracking No */}
@@ -709,77 +714,22 @@ export default function CombinedCommercialInvoiceModal({
               </table>
             </div>
 
-            {/* PAYMENT SUMMARY & CUSTOMER OVERALL BALANCE (Soft Lines) */}
+            {/* PAYMENT SUMMARY (Clean Minimal Lines) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
-              {/* Left Column: Settlement Bank Instructions & Customer Overall Outstanding Due */}
-              <div className="space-y-3">
-                {/* Highlighted Banner: Customer Total Outstanding Due Across All Active Consignments */}
-                <div className="rounded-lg border border-amber-200/50 bg-amber-50/30 p-3 space-y-1.5">
-                  <div className="flex items-center justify-between border-b border-amber-200/40 pb-1">
-                    <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
-                      <span>CUSTOMER OVERALL ACCOUNT DUE (সকল অর্ডারের বকেয়া)</span>
-                    </span>
-                    <span className="text-[9.5px] font-bold text-amber-800">
-                      {customerSummary ? `${customerSummary.totalOrders} Total Orders` : 'Loading...'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline justify-between pt-0.5">
-                    <div>
-                      <span className="text-[10.5px] text-amber-950 font-medium block">
-                        Total Outstanding Across Consignments:
-                      </span>
-                      <span className="text-[9.5px] text-slate-400 font-mono">
-                        Including pending orders &amp; uncollected shipments
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-base font-black font-mono text-rose-700">
-                        ৳{(customerSummary?.totalDueBdt ?? 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {customerSummary && customerSummary.orders.filter((o) => o.purchaseCostDueBdt > 0).length > 0 && (
-                    <div className="text-[9.5px] font-mono text-slate-600 pt-1 border-t border-amber-200/40 space-y-0.5">
-                      <span className="font-semibold text-slate-700 block">Unsettled Consignments:</span>
-                      <div className="max-h-20 overflow-y-auto space-y-0.5 pr-1">
-                        {customerSummary.orders
-                          .filter((o) => o.purchaseCostDueBdt > 0)
-                          .map((o) => (
-                            <div key={o.id} className="flex items-center justify-between text-[9px] bg-white/80 px-2 py-0.5 rounded border border-amber-200/30">
-                              <span className="font-bold text-slate-800">{o.orderId}</span>
-                              <span className="text-slate-500 truncate max-w-[130px]">{o.itemDetails}</span>
-                              <span className="text-rose-600 font-bold">Due: ৳{o.purchaseCostDueBdt.toLocaleString()}</span>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
+              {/* Left Column: Shipment & Logistics Notes */}
+              <div className="rounded-lg border border-slate-200/40 p-3 space-y-2 bg-slate-50/20 text-slate-600">
+                <div className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/30 pb-1">
+                  SHIPMENT NOTES &amp; COMPLIANCE
                 </div>
-
-                {/* Settlement Accounts */}
-                <div className="rounded-lg border border-slate-200/30 p-3 space-y-1.5 bg-slate-50/15">
-                  <div className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/30 pb-1">
-                    OFFICIAL SETTLEMENT BANK &amp; WALLETS
-                  </div>
-                  <div className="text-[10.5px] text-slate-700 space-y-1 font-sans">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">1. Standard Chartered Bank:</span>
-                      <span className="font-mono text-[10px] text-slate-600">01-8492049-01</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">2. The City Bank PLC:</span>
-                      <span className="font-mono text-[10px] text-slate-600">1102948291001</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-800">3. bKash Merchant:</span>
-                      <span className="font-mono text-[10px] text-[#EA1D2C] font-bold">01711-000000</span>
-                    </div>
-                  </div>
-                  <p className="text-[9.5px] text-slate-400 border-t border-slate-200/20 pt-1 leading-relaxed">
-                    <strong>Note:</strong> Final shipping charges calculated on actual weight at Bangladesh entry gateway.
+                <div className="space-y-1.5 text-[10.5px]">
+                  <p>
+                    <strong className="text-slate-700">Route:</strong> Guangzhou / Yiwu CFS &rarr; Dhaka Gateway (Air / Sea Express DDP).
+                  </p>
+                  <p>
+                    <strong className="text-slate-700">Customs Clearance:</strong> All customs duties, port charges, and handling levies included in DDP service.
+                  </p>
+                  <p className="text-[10px] text-slate-500 pt-1 border-t border-slate-200/20">
+                    Final international freight charges are assessed on actual gross cargo weight upon gateway intake.
                   </p>
                 </div>
               </div>
@@ -832,6 +782,16 @@ export default function CombinedCommercialInvoiceModal({
                         )}
                       </td>
                     </tr>
+
+                    {/* Packing Fee */}
+                    {totalPackingFee > 0 && (
+                      <tr className="bg-slate-50/40">
+                        <td className="py-1.5 px-3 text-slate-700 font-sans text-[11px]">Packing Fee (প্যাকিং ফি):</td>
+                        <td className="py-1.5 px-3 text-right font-mono font-bold text-slate-800 text-xs">
+                          ৳{totalPackingFee.toLocaleString()}
+                        </td>
+                      </tr>
+                    )}
 
                     {/* Manual Discount (Editable if canEdit) */}
                     <tr className="bg-amber-50/20">
@@ -971,22 +931,34 @@ export default function CombinedCommercialInvoiceModal({
             </div>
 
             {/* Signatures & Footer Note */}
-            <div className="pt-4 border-t border-slate-200/30 flex items-end justify-between text-[10.5px] text-slate-500">
-              <div className="space-y-0.5">
-                <div className="w-32 border-b border-slate-200/50" />
-                <div className="text-[9px] text-slate-400">Customer Receiver Signature</div>
-              </div>
+            <div className="pt-4 border-t border-slate-200/40 space-y-4">
+              <div className="flex items-end justify-between text-[10.5px] text-slate-500">
+                <div className="space-y-0.5">
+                  <div className="w-32 border-b border-slate-300" />
+                  <div className="text-[9px] text-slate-400">Customer Receiver Signature</div>
+                </div>
 
-              <div className="text-center space-y-0.5">
-                <div className="font-medium text-slate-700">Thank you for choosing Go Shipping.</div>
-                <div className="text-[9px] text-slate-400">
-                  Trusted Import &amp; Logistics Partner | goshipping.com.bd
+                <div className="text-center space-y-0.5">
+                  <div className="font-medium text-slate-700">Thank you for choosing Go Shipping.</div>
+                  <div className="text-[9px] text-slate-400">
+                    Trusted Import &amp; Logistics Partner
+                  </div>
+                </div>
+
+                <div className="space-y-0.5 text-right">
+                  <div className="w-32 border-b border-slate-300 ml-auto" />
+                  <div className="text-[9px] font-bold text-slate-700">Authorized Signatory</div>
                 </div>
               </div>
 
-              <div className="space-y-0.5 text-right">
-                <div className="w-32 border-b border-slate-200/50 ml-auto" />
-                <div className="text-[9px] font-bold text-slate-700">Authorized Signatory</div>
+              <div className="pt-2 border-t border-slate-200/40 flex flex-col sm:flex-row items-center justify-between text-[10.5px] text-slate-500 gap-2">
+                <div className="flex items-center gap-4">
+                  <span>Email: <a href="mailto:support@goshipping.com.bd" className="font-semibold text-slate-800 hover:text-[#EA1D2C]">support@goshipping.com.bd</a></span>
+                  <span>China Desk: <a href="tel:+8615014232749" className="font-semibold text-slate-800 font-mono">+86 150 1423 2749</a></span>
+                </div>
+                <div className="font-mono text-slate-400 text-[10px]">
+                  goshipping.com.bd · China-BD Express Logistics
+                </div>
               </div>
             </div>
           </div>

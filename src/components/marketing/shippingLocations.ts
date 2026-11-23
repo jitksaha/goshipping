@@ -15,7 +15,7 @@ export const DEFAULT_SHIPPING_MODES: ShippingModeOption[] = [
 export interface DynamicFulfillmentOption {
   id: 'doorstep' | 'courier' | 'pickup';
   label: string;
-  badge: string;
+  badge?: string;
   cities: string[];
 }
 

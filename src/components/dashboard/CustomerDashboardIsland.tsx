@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LiveTrackingIsland from '../marketing/LiveTrackingIsland';
 import QuoteCalculatorIsland from '../marketing/QuoteCalculatorIsland';
 import ReferenceSelect from '../common/ReferenceSelect';
@@ -310,9 +310,19 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   } | null>(null);
 
   // Profile Form State (Clean user data - no hardcoded mock auto-fill per client instruction)
+  const isSyntheticEmail = (em?: string | null) => {
+    if (!em) return true;
+    const s = em.toLowerCase().trim();
+    return s.endsWith('@goshipping.client') || s.includes('@goshipping.internal');
+  };
+  const getCleanEmail = (em?: string | null) => {
+    if (!em || isSyntheticEmail(em)) return '';
+    return em;
+  };
+
   const [profileName, setProfileName] = useState(user?.fullName || '');
   const [profileCompany, setProfileCompany] = useState(user?.companyName || user?.fullName || '');
-  const [profileEmail, setProfileEmail] = useState(user?.email || userEmail || '');
+  const [profileEmail, setProfileEmail] = useState(getCleanEmail(user?.email || userEmail));
   const [profilePhone, setProfilePhone] = useState(user?.phone || '');
   const [profileAddress, setProfileAddress] = useState(user?.address || '');
   const [profileBin, setProfileBin] = useState(user?.binNumber || '');
@@ -320,12 +330,28 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
 
+  // Update profile inputs when currentUser is retrieved
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.fullName) setProfileName(currentUser.fullName);
+      if (currentUser.companyName) setProfileCompany(currentUser.companyName);
+      if (currentUser.email !== undefined) setProfileEmail(getCleanEmail(currentUser.email));
+      if (currentUser.phone) setProfilePhone(currentUser.phone);
+      if (currentUser.address) setProfileAddress(currentUser.address);
+      if (currentUser.binNumber) setProfileBin(currentUser.binNumber);
+    }
+  }, [currentUser]);
+
   // Sync tab with URL and custom event
   useEffect(() => {
     const handleUrlChange = () => {
       const params = new URLSearchParams(window.location.search);
       let urlTab = params.get('tab') || 'overview';
-      if (urlTab === 'invoices' || urlTab === 'invoice') urlTab = 'documents';
+      if (!isAdminOrStaff && (urlTab === 'invoices' || urlTab === 'invoice' || urlTab === 'documents')) {
+        urlTab = 'overview';
+      } else if (urlTab === 'invoices' || urlTab === 'invoice') {
+        urlTab = 'documents';
+      }
       if (urlTab === 'profile') urlTab = 'settings';
       if (urlTab === 'get-quote' || urlTab === 'quote') urlTab = 'request-quote';
       if (urlTab !== tab) {
@@ -470,8 +496,12 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
     }
   };
 
+  const isAcceptingQuoteRef = useRef(false);
+
   // Handle quote conversion (accept & book)
   const handleAcceptQuote = async (quoteId: string) => {
+    if (isAcceptingQuoteRef.current) return;
+    isAcceptingQuoteRef.current = true;
     try {
       const res = await fetch(`/api/quotes/${quoteId}/convert`, { method: 'POST' });
       const data = await res.json();
@@ -486,6 +516,8 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
       switchTab('shipments');
     } catch (err: any) {
       alert(err.message || 'Error converting quote');
+    } finally {
+      isAcceptingQuoteRef.current = false;
     }
   };
 
@@ -495,23 +527,28 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
     setProfileSaving(true);
     setProfileSuccessMsg('');
     try {
+      const cleanEmail = profileEmail.trim();
       const res = await fetch('/api/auth/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: profileName,
-          email: profileEmail,
+          email: cleanEmail,
           companyName: profileCompany,
           phone: profilePhone,
           address: profileAddress,
           binNumber: profileBin,
-          ...(profilePassword ? { password: profilePassword } : {})
+          ...(profilePassword && profilePassword.trim() ? { password: profilePassword.trim() } : {})
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update profile');
-      setProfileSuccessMsg('Profile information updated and saved successfully!');
+      setProfileSuccessMsg('Profile and password updated successfully!');
       setProfilePassword('');
+      if (data.user) {
+        setCurrentUser(data.user);
+        setProfileEmail(getCleanEmail(data.user.email));
+      }
       setTimeout(() => setProfileSuccessMsg(''), 4000);
     } catch (err: any) {
       alert(err.message || 'Failed to update profile');
@@ -1159,7 +1196,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                         </span>
                       </td>
                       <td className="py-4 px-4 text-right pr-5">
-                        {latestRev && q.status !== 'converted' ? (
+                        {latestRev && q.status !== 'converted_to_shipment' && (q.status as string) !== 'converted' ? (
                           <button
                             onClick={() => setSelectedQuote(q)}
                             className="px-3 py-1.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold hover:bg-emerald-600 hover:text-white transition-colors inline-flex items-center gap-1"
@@ -1169,7 +1206,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
                               <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
                           </button>
-                        ) : q.status === 'converted' ? (
+                        ) : q.status === 'converted_to_shipment' || (q.status as string) === 'converted' ? (
                           <span className="text-emerald-700 font-bold text-[11px] inline-flex items-center gap-1">
                             <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                               <polyline points="20 6 9 17 4 12" />
@@ -1308,7 +1345,7 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
       {/* ========================================================= */}
       {/* TAB 6: DOCUMENTS & INVOICES VAULT                         */}
       {/* ========================================================= */}
-      {tab === 'documents' && (
+      {tab === 'documents' && isAdminOrStaff && (
         <div className="bg-white rounded-lg border border-slate-200 shadow-xs p-6 space-y-6">
           <div>
             <h3 className="font-bold text-slate-900 text-base font-['Manrope',sans-serif]">
@@ -1564,12 +1601,14 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Contact Email Address</label>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Contact Email Address <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
+                </label>
                 <input
                   type="email"
                   value={profileEmail}
                   onChange={(e) => setProfileEmail(e.target.value)}
-                  placeholder="name@company.com"
+                  placeholder="name@company.com (optional)"
                   className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white font-mono text-slate-900"
                 />
               </div>
@@ -1638,7 +1677,10 @@ export default function CustomerDashboardIsland({ initialTab = 'overview', user,
               <div>
                 <h4 className="font-bold text-slate-900 text-xs">Account Session & Security</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Signed in as <span className="font-mono font-medium text-slate-800">{profileEmail}</span>
+                  Signed in as{' '}
+                  <span className="font-mono font-medium text-slate-800">
+                    {profileEmail || currentUser?.phone || profilePhone || currentUser?.fullName || 'Active Customer'}
+                  </span>
                 </p>
               </div>
               <a

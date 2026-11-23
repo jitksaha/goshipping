@@ -100,6 +100,7 @@ interface UserRowActionMenuProps {
   onToggleStatus: (id: string, status: string) => void;
   onDelete: (id: string, name: string) => void;
   onSendResetPassword?: (user: any) => void;
+  onInstantResetPassword?: (user: any) => void;
   onViewOrders?: (customerName: string) => void;
   openUpward?: boolean;
 }
@@ -111,6 +112,7 @@ function UserRowActionMenu({
   onToggleStatus,
   onDelete,
   onSendResetPassword,
+  onInstantResetPassword,
   onViewOrders,
   openUpward = false
 }: UserRowActionMenuProps) {
@@ -196,6 +198,28 @@ function UserRowActionMenu({
                 <div>
                   <span className="block text-xs font-semibold text-slate-900 group-hover:text-[#EA1D2C] transition-colors">View Orders &amp; Invoice</span>
                   <span className="block text-[10px] text-slate-400">Filter orders &amp; invoice</span>
+                </div>
+              </button>
+            )}
+
+            {/* Instant 1-Click Password Reset */}
+            {onInstantResetPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onInstantResetPassword(user);
+                }}
+                className="w-full px-3 py-1.5 text-left flex items-center gap-2 hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer group"
+              >
+                <svg className="w-3.5 h-3.5 text-rose-600 shrink-0 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="7.5" cy="15.5" r="5.5" />
+                  <path d="m11.5 11.5 8.5-8.5" />
+                  <path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M19 5l-2.5 2.5" />
+                </svg>
+                <div>
+                  <span className="block text-xs font-semibold text-slate-900 group-hover:text-rose-600 transition-colors">Reset Password</span>
+                  <span className="block text-[10px] text-slate-400">Instant 1-click popup modal</span>
                 </div>
               </button>
             )}
@@ -466,6 +490,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [recipientPostcode, setRecipientPostcode] = useState('');
   const [recipientPhoneCode, setRecipientPhoneCode] = useState('+880');
   const [recipientPhoneBody, setRecipientPhoneBody] = useState('');
+  const [newRecipientPhone, setNewRecipientPhone] = useState('');
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
   const currentAddressConfig = DESTINATION_ADDRESS_CONFIGS[newDestCountry] || DESTINATION_ADDRESS_CONFIGS.Bangladesh;
@@ -677,6 +702,12 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [userBin, setUserBin] = useState('');
   const [submittingUser, setSubmittingUser] = useState(false);
 
+  // Instant Password Reset Modal State
+  const [resetPasswordTargetUser, setResetPasswordTargetUser] = useState<any | null>(null);
+  const [resetPasswordInput, setResetPasswordInput] = useState('');
+  const [resetPasswordShowPlain, setResetPasswordShowPlain] = useState(true);
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+
   // Warehouse Facility Management State
   const [showAddWarehouseModal, setShowAddWarehouseModal] = useState(false);
   const [showEditWarehouseModal, setShowEditWarehouseModal] = useState(false);
@@ -711,7 +742,6 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const [newCustomerCompany, setNewCustomerCompany] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
   const [newCustomerPassword, setNewCustomerPassword] = useState('');
-  const [newRecipientPhone, setNewRecipientPhone] = useState('');
 
   // Dynamic Shipping Routes & Fulfillment Configuration State
   const [adminShippingConfig, setAdminShippingConfig] = useState<any>(null);
@@ -1582,8 +1612,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           throw new Error('Please enter customer phone/WhatsApp number.');
         }
 
-        const phoneDigits = newCustomerPhone.replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
-        clientEmailToUse = newCustomerEmail.trim().toLowerCase() || `client.${phoneDigits}@goshipping.client`;
+        clientEmailToUse = newCustomerEmail.trim().toLowerCase();
 
         const existingAcc = users.find((u) => {
           if (newCustomerEmail.trim() && u.email?.toLowerCase() === newCustomerEmail.trim().toLowerCase()) return true;
@@ -2364,12 +2393,42 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     }
   };
 
+  const handleExecuteInstantPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordTargetUser || !resetPasswordInput.trim()) return;
+    if (resetPasswordInput.trim().length < 6) {
+      showToast('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+    setResetPasswordLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${resetPasswordTargetUser.id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: resetPasswordInput.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update password');
+      showToast(`Password for ${resetPasswordTargetUser.fullName} updated instantly!`, 'success');
+      setResetPasswordTargetUser(null);
+      setResetPasswordInput('');
+    } catch (err: any) {
+      showToast(err.message || 'Error updating password', 'error');
+    } finally {
+      setResetPasswordLoading(false);
+    }
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingUser(true);
     try {
-      const phoneDigits = (userPhone || '').replace(/\D/g, '') || Math.floor(100000 + Math.random() * 900000).toString();
-      const finalEmail = userEmail.trim().toLowerCase() || `client.${phoneDigits}@goshipping.client`;
+      const finalEmail = userEmail.trim().toLowerCase();
+      if (!finalEmail && !userPhone?.trim()) {
+        alert('Please provide at least an Email address or Phone number for the user account.');
+        setSubmittingUser(false);
+        return;
+      }
 
       const res = await fetch('/api/admin/users', {
         method: 'POST',
@@ -2464,7 +2523,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
   const openEditUserModal = (u: any) => {
     setEditingUserId(u.id);
     setUserFullName(u.fullName || '');
-    setUserEmail(u.email || '');
+    setUserEmail(u.email && !u.email.endsWith('@goshipping.client') ? u.email : '');
     setUserRole(u.role || 'customer');
     setUserStatus(u.status || 'active');
     setUserPhone(u.phone || '');
@@ -2828,7 +2887,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
 
   // KPIs & Status-wise breakdown for Overview & Freight
   const activeConsignmentsCount = shipments.filter((s) => s.status !== 'delivered').length;
-  const inTransitAirCount = shipments.filter((s) => s.mode === 'air' && (s.status === 'dispatched_from_china' || s.status === 'in_transit' || s.status === 'arrived_dhaka_airport')).length;
+  const inTransitAirCount = shipments.filter((s) => s.mode === 'air' && ((s.status as string) === 'dispatched_from_china' || (s.status as string) === 'in_transit' || s.status === 'arrived_dhaka_airport')).length;
   const seaContainersCount = shipments.filter((s) => s.mode === 'sea').length;
   const customsCount = shipments.filter((s) => s.status === 'awaiting_customs' || s.status === 'arrived_dhaka_airport' || (s.status as string) === 'customs_clearance').length;
   const outForDeliveryCount = shipments.filter((s) => s.status === 'out_for_delivery' || s.status === 'bd_warehouse_received').length;
@@ -5218,7 +5277,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                             {q.revisions.length > 0 ? 'Revise Price' : 'Price Quote'}
                           </button>
 
-                          {q.status === 'converted_to_shipment' || q.status === 'converted' ? (
+                          {(q.status as string) === 'converted_to_shipment' || (q.status as string) === 'converted' ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
                               <svg className="w-3 h-3 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <polyline points="20 6 9 17 4 12" />
@@ -6554,7 +6613,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                                 {u.fullName}
                               </strong>
                               <span className="text-slate-500 font-mono text-[11px] block truncate">
-                                {u.email}
+                                {u.email && !u.email.endsWith('@goshipping.client') ? u.email : (u.phone || 'No email recorded')}
                               </span>
                             </div>
                           </div>
@@ -6667,22 +6726,46 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                           )}
                         </td>
 
-                        {/* Admin Action Bar - 3-Dot Dropdown */}
+                        {/* Admin Action Bar - 3-Dot Dropdown & Instant Reset Button */}
                         <td className="py-2.5 px-3 text-right whitespace-nowrap">
-                          <UserRowActionMenu
-                            user={u}
-                            onImpersonate={handleImpersonateUser}
-                            onEdit={openEditUserModal}
-                            onToggleStatus={handleToggleUserStatus}
-                            onDelete={handleDeleteUser}
-                            onSendResetPassword={handleSendResetPassword}
-                            onViewOrders={(custName) => {
-                              try { sessionStorage.setItem('goshipping_filter_customer', custName); } catch {}
-                              setActiveTab('orders');
-                              showToast(`Filtered orders for ${custName}`, 'info');
-                            }}
-                            openUpward={idx >= Math.max(0, filteredUsers.length - 2)}
-                          />
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setResetPasswordTargetUser(u);
+                                setResetPasswordInput('');
+                                setResetPasswordShowPlain(true);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition-colors cursor-pointer"
+                              title="Instant 1-Click Password Reset"
+                            >
+                              <svg className="w-3 h-3 text-rose-600 shrink-0 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="7.5" cy="15.5" r="5.5" />
+                                <path d="m11.5 11.5 8.5-8.5" />
+                                <path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M19 5l-2.5 2.5" />
+                              </svg>
+                              <span>Reset Pass</span>
+                            </button>
+                            <UserRowActionMenu
+                              user={u}
+                              onImpersonate={handleImpersonateUser}
+                              onEdit={openEditUserModal}
+                              onToggleStatus={handleToggleUserStatus}
+                              onDelete={handleDeleteUser}
+                              onInstantResetPassword={(target) => {
+                                setResetPasswordTargetUser(target);
+                                setResetPasswordInput('');
+                                setResetPasswordShowPlain(true);
+                              }}
+                              onSendResetPassword={handleSendResetPassword}
+                              onViewOrders={(custName) => {
+                                try { sessionStorage.setItem('goshipping_filter_customer', custName); } catch {}
+                                setActiveTab('orders');
+                                showToast(`Filtered orders for ${custName}`, 'info');
+                              }}
+                              openUpward={idx >= Math.max(0, filteredUsers.length - 2)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     );
@@ -7832,12 +7915,14 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Official Email</label>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Official Email <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
+                  </label>
                   <input
                     type="email"
                     value={userEmail}
                     onChange={(e) => setUserEmail(e.target.value)}
-                    required
+                    placeholder="name@company.com (optional)"
                     className="w-full h-9 px-3 rounded-lg border border-slate-300 bg-white"
                   />
                 </div>
@@ -7929,6 +8014,143 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   className="px-5 py-2 rounded-lg bg-[var(--color-brand-primary)] hover:opacity-90 text-white font-bold transition-none shadow-xs cursor-pointer disabled:opacity-50"
                 >
                   {submittingUser ? 'Saving...' : 'Save Profile Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 05b. MODAL: INSTANT 1-CLICK PASSWORD RESET                */}
+      {/* ========================================================= */}
+      {resetPasswordTargetUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4 font-['Inter',sans-serif]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="7.5" cy="15.5" r="5.5" />
+                    <path d="m11.5 11.5 8.5-8.5" />
+                    <path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M19 5l-2.5 2.5" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm font-['Manrope',sans-serif]">
+                    Instant Password Reset
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Directly set a new password without email or OTP verification.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetPasswordTargetUser(null);
+                  setResetPasswordInput('');
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md cursor-pointer"
+                aria-label="Close"
+              >
+                <svg aria-hidden="true" className="w-4 h-4 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Target Account Summary */}
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200/80 text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-800">{resetPasswordTargetUser.fullName}</span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-200 text-slate-700">
+                  {resetPasswordTargetUser.role?.replace('_', ' ')}
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-600 flex flex-col gap-0.5">
+                {resetPasswordTargetUser.email && !resetPasswordTargetUser.email.endsWith('@goshipping.client') && (
+                  <div><strong className="text-slate-700">Email:</strong> {resetPasswordTargetUser.email}</div>
+                )}
+                {resetPasswordTargetUser.phone && (
+                  <div><strong className="text-slate-700">Phone:</strong> {resetPasswordTargetUser.phone}</div>
+                )}
+                {resetPasswordTargetUser.companyName && (
+                  <div><strong className="text-slate-700">Company:</strong> {resetPasswordTargetUser.companyName}</div>
+                )}
+              </div>
+            </div>
+
+            <form onSubmit={handleExecuteInstantPasswordReset} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  New Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={resetPasswordShowPlain ? 'text' : 'password'}
+                    value={resetPasswordInput}
+                    onChange={(e) => setResetPasswordInput(e.target.value)}
+                    placeholder="Enter at least 6 characters"
+                    minLength={6}
+                    required
+                    autoFocus
+                    className="w-full h-10 px-3 pr-20 rounded-lg border border-slate-300 bg-white font-mono text-sm focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                  />
+                  <div className="absolute right-1 top-1 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setResetPasswordShowPlain(!resetPasswordShowPlain)}
+                      className="h-8 px-2 text-[11px] font-medium text-slate-500 hover:text-slate-800 rounded bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                    >
+                      {resetPasswordShowPlain ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-1 text-[11px]">
+                  <span className="text-slate-400">Must be at least 6 characters</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sample = 'Go#' + Math.floor(100000 + Math.random() * 900000);
+                      setResetPasswordInput(sample);
+                      setResetPasswordShowPlain(true);
+                    }}
+                    className="text-rose-600 hover:underline font-semibold cursor-pointer"
+                  >
+                    Generate Random
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetPasswordTargetUser(null);
+                    setResetPasswordInput('');
+                  }}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetPasswordLoading || resetPasswordInput.trim().length < 6}
+                  className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {resetPasswordLoading ? (
+                    <>
+                      <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Updating...
+                    </>
+                  ) : (
+                    'Set Password Instantly'
+                  )}
                 </button>
               </div>
             </form>

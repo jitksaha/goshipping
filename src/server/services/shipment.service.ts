@@ -601,15 +601,36 @@ export class ShipmentService {
       console.error('[ShipmentService] listShipments posRecords error:', e);
     }
 
-    const seen = new Set<string>();
+    const seenKeys = new Set<string>();
     const all: ShipmentRecord[] = [];
+    
+    // Register all identifiers from POS shipments
     for (const p of posShipments) {
-      seen.add(p.trackingNumber.toUpperCase());
+      if (p.trackingNumber) seenKeys.add(p.trackingNumber.toUpperCase());
+      if (p.id) seenKeys.add(p.id.toUpperCase());
+      if (p.orderId) seenKeys.add(p.orderId.toUpperCase());
+      if (p.chinaCourierTracking) seenKeys.add(p.chinaCourierTracking.toUpperCase());
+      if (p.bdTrackingNo) seenKeys.add(p.bdTrackingNo.toUpperCase());
+      if (p.carrierWaybillNumber) seenKeys.add(p.carrierWaybillNumber.toUpperCase());
+      if (p.billOfLadingNumber) seenKeys.add(p.billOfLadingNumber.toUpperCase());
+      if (p.bookingReference) seenKeys.add(p.bookingReference.toUpperCase());
       all.push(p);
     }
+
+    // Merge non-duplicate initialShipments
     for (const s of initialShipments) {
-      if (!seen.has(s.trackingNumber.toUpperCase())) {
-        seen.add(s.trackingNumber.toUpperCase());
+      const isAlreadyCovered =
+        seenKeys.has(s.trackingNumber.toUpperCase()) ||
+        seenKeys.has(s.id.toUpperCase()) ||
+        (s.orderId && seenKeys.has(s.orderId.toUpperCase())) ||
+        (s.bookingReference && seenKeys.has(s.bookingReference.toUpperCase())) ||
+        (s.carrierWaybillNumber && seenKeys.has(s.carrierWaybillNumber.toUpperCase())) ||
+        (s.chinaCourierTracking && seenKeys.has(s.chinaCourierTracking.toUpperCase())) ||
+        (s.bdTrackingNo && seenKeys.has(s.bdTrackingNo.toUpperCase()));
+
+      if (!isAlreadyCovered) {
+        if (s.trackingNumber) seenKeys.add(s.trackingNumber.toUpperCase());
+        if (s.id) seenKeys.add(s.id.toUpperCase());
         all.push(s);
       }
     }
@@ -973,6 +994,9 @@ export class ShipmentService {
    */
   static async createShipment(data: {
     trackingNumber?: string;
+    orderId?: string;
+    bookingReference?: string;
+    chinaCourierTracking?: string;
     customerId?: string;
     customerName: string;
     customerEmail?: string;
@@ -1014,12 +1038,52 @@ export class ShipmentService {
     billOfLadingNumber?: string;
     notes?: string;
   }): Promise<ShipmentRecord> {
-    const id = `shp-${Date.now().toString(36)}`;
+    ensureLatestShipmentsStore();
+    const nowMs = Date.now();
+    const now = new Date().toISOString();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const trackingNumber = data.trackingNumber?.trim()
       ? data.trackingNumber.trim().toUpperCase()
       : `GOSH-${new Date().getFullYear()}-${randomSuffix}`;
-    const now = new Date().toISOString();
+
+    // 1. Anti-duplicate: if exact trackingNumber already exists in initialShipments, return existing
+    if (data.trackingNumber?.trim()) {
+      const existing = initialShipments.find(
+        (s) => s.trackingNumber.toUpperCase() === trackingNumber || s.id.toUpperCase() === trackingNumber
+      );
+      if (existing) {
+        console.warn(`[ShipmentService] Shipment with tracking ${trackingNumber} already exists (${existing.id}). Returning existing.`);
+        return existing;
+      }
+    }
+
+    // 2. Anti-duplicate: check if identical shipment was submitted within last 20 seconds
+    const candCust = (data.customerName || '').trim().toLowerCase();
+    const candPhone = normalizePhoneDigits(data.customerPhone);
+    const candItem = (data.items?.[0]?.description || data.productName || '').trim().toLowerCase();
+    const candPieces = Number(data.totalPieces) || 1;
+
+    const duplicate = initialShipments.find((s) => {
+      const sTime = new Date(s.createdAt || 0).getTime();
+      if ((nowMs - sTime) >= 20000) return false;
+      const sCust = (s.customerName || '').trim().toLowerCase();
+      const sPhone = normalizePhoneDigits(s.customerPhone);
+      const sItem = (s.items?.[0]?.description || s.productName || '').trim().toLowerCase();
+      const sPieces = Number(s.totalPieces) || 1;
+      return (
+        sCust === candCust &&
+        (candPhone && sPhone ? sPhone === candPhone : true) &&
+        sItem === candItem &&
+        sPieces === candPieces
+      );
+    });
+
+    if (duplicate) {
+      console.warn(`[ShipmentService] Duplicate shipment creation prevented. Returning existing shipment ${duplicate.trackingNumber} (${duplicate.id})`);
+      return duplicate;
+    }
+
+    const id = `shp-${Date.now().toString(36)}`;
 
     const originLat =
       data.originLat ||
@@ -1129,6 +1193,10 @@ export class ShipmentService {
       billOfLadingNumber: data.billOfLadingNumber || `BL-${trackingNumber}`,
       departureTime: now,
       estimatedDelivery: data.estimatedDelivery || new Date(Date.now() + 6 * 86400000).toISOString(),
+      orderId: data.orderId,
+      bookingReference: data.bookingReference || data.orderId,
+      chinaCourierTracking: data.chinaCourierTracking,
+      carrierWaybillNumber: data.chinaCourierTracking,
       notes: data.notes,
       createdAt: now,
       updatedAt: now,
