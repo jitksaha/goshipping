@@ -22,7 +22,7 @@ def deploy_to_hostinger():
         f'rsync -avz --inplace '
         f'--exclude="node_modules" --exclude=".git" --exclude=".env" --exclude=".auth_store.json" '
         f'-e "ssh -p {PORT} -o StrictHostKeyChecking=no" '
-        f'src public scripts server.js package.json astro.config.mjs tsconfig.json .pos_ledger_store.json .testimonials_store.json .invoices_store.json {USER}@{HOST}:{REMOTE_PATH}'
+        f'src public scripts server.js package.json astro.config.mjs tsconfig.json .pos_ledger_store.json .testimonials_store.json .invoices_store.json .quotes_store.json {USER}@{HOST}:{REMOTE_PATH}'
     )
     print(f"Running: {rsync_cmd}\n")
 
