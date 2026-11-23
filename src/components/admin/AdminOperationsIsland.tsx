@@ -2907,6 +2907,106 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
     return shipments.filter(s => s.mode === 'sea').reduce((sum, s) => sum + (Number(s.totalWeightKg) || 0), 0);
   }, [shipments]);
 
+  // Operational Logistics Pipeline Dynamic Percentages
+  const pipelineTotal = chinaHubReceivedCount + inTransitAirCount + seaContainersCount + customsCount + outForDeliveryCount + deliveredCount;
+  const cnHubPct = pipelineTotal > 0 ? Math.round((chinaHubReceivedCount / pipelineTotal) * 100) : 0;
+  const transitPct = pipelineTotal > 0 ? Math.round(((inTransitAirCount + seaContainersCount) / pipelineTotal) * 100) : 0;
+  const customsPct = pipelineTotal > 0 ? Math.round((customsCount / pipelineTotal) * 100) : 0;
+  const lastMilePct = pipelineTotal > 0 ? Math.round((outForDeliveryCount / pipelineTotal) * 100) : 0;
+  const deliveredPct = pipelineTotal > 0 ? Math.max(0, 100 - (cnHubPct + transitPct + customsPct + lastMilePct)) : 0;
+
+  // Dynamic 7-day Cargo Throughput Data for Overview Chart
+  const throughputData = useMemo(() => {
+    const days: { label: string; dateStr: string; airKg: number; seaKg: number }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dateStr = d.toISOString().slice(0, 10);
+      days.push({
+        label: i === 0 ? `${dayLabel} (Live)` : dayLabel,
+        dateStr,
+        airKg: 0,
+        seaKg: 0
+      });
+    }
+
+    shipments.forEach((s) => {
+      const shipDate = (s.createdAt || s.updatedAt || '').slice(0, 10);
+      const weight = Number(s.totalWeightKg) || 0;
+      const dayEntry = days.find((d) => d.dateStr === shipDate);
+      if (dayEntry) {
+        if (s.mode === 'sea') {
+          dayEntry.seaKg += weight;
+        } else {
+          dayEntry.airKg += weight;
+        }
+      } else if (days.length > 0 && s.status !== 'delivered') {
+        if (s.mode === 'sea') {
+          days[days.length - 1].seaKg += weight;
+        } else {
+          days[days.length - 1].airKg += weight;
+        }
+      }
+    });
+
+    const maxAir = Math.max(...days.map((d) => d.airKg), 0);
+    const maxSea = Math.max(...days.map((d) => d.seaKg), 0);
+    const maxVal = Math.max(maxAir, maxSea);
+
+    let yMax = 100;
+    if (maxVal > 0) {
+      if (maxVal <= 50) yMax = 50;
+      else if (maxVal <= 100) yMax = 100;
+      else if (maxVal <= 500) yMax = 500;
+      else if (maxVal <= 1000) yMax = 1000;
+      else if (maxVal <= 5000) yMax = Math.ceil(maxVal / 500) * 500;
+      else yMax = Math.ceil(maxVal / 1000) * 1000;
+    }
+
+    const xCoords = [60, 135, 210, 285, 360, 435, 510];
+    const yBaseline = 140;
+    const yTop = 25;
+    const yRange = yBaseline - yTop;
+
+    const airPoints = days.map((d, idx) => ({
+      x: xCoords[idx],
+      y: maxVal === 0 ? yBaseline : yBaseline - (d.airKg / yMax) * yRange,
+      kg: d.airKg,
+      label: d.label
+    }));
+
+    const seaPoints = days.map((d, idx) => ({
+      x: xCoords[idx],
+      y: maxVal === 0 ? yBaseline : yBaseline - (d.seaKg / yMax) * yRange,
+      kg: d.seaKg,
+      label: d.label
+    }));
+
+    const buildPath = (pts: { x: number; y: number }[]) => {
+      if (pts.length === 0) return '';
+      return pts.reduce((acc, pt, i) => (i === 0 ? `M ${pt.x},${pt.y}` : `${acc} L ${pt.x},${pt.y}`), '');
+    };
+
+    const airLineD = buildPath(airPoints);
+    const seaLineD = buildPath(seaPoints);
+    const airAreaD = airPoints.length > 0 ? `${airLineD} L ${airPoints[airPoints.length - 1].x},${yBaseline} L ${airPoints[0].x},${yBaseline} Z` : '';
+    const seaAreaD = seaPoints.length > 0 ? `${seaLineD} L ${seaPoints[seaPoints.length - 1].x},${yBaseline} L ${seaPoints[0].x},${yBaseline} Z` : '';
+
+    return {
+      days,
+      yMax,
+      hasData: maxVal > 0,
+      airPoints,
+      seaPoints,
+      airLineD,
+      seaLineD,
+      airAreaD,
+      seaAreaD
+    };
+  }, [shipments]);
+
   const getAdminHeaderDetails = (tab: string) => {
     switch (tab) {
       case 'shipments':
@@ -3136,13 +3236,13 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
           </div>
         ) : (
           <>
-            {/* KPI COUNTER CARDS (Visible across overview, orders, quotes, etc.) */}
-        {activeTab !== 'overview' && activeTab !== 'new_order' && !(activeTab === 'orders' && ordersSubView === 'sourcing') && activeTab !== 'pos_ledger' && activeTab !== 'ledger' && (
+            {/* KPI COUNTER CARDS (Only on price quotes review desk) */}
+        {(activeTab === 'quotes' || activeTab === 'quote') && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Active Shipments</span>
               <div className="text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums">
-                {activeConsignmentsCount || shipments.length}
+                {activeConsignmentsCount}
               </div>
               <p className="text-xs text-slate-500">China ⇄ Bangladesh shipments</p>
             </div>
@@ -3150,7 +3250,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Air Freight in Transit</span>
               <div className="text-2xl font-bold text-sky-600 font-['Manrope',sans-serif] tabular-nums">
-                {inTransitAirCount || 1}
+                {inTransitAirCount}
               </div>
               <p className="text-xs text-slate-500">Active flights with tracking</p>
             </div>
@@ -3158,7 +3258,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
             <div className="bg-white rounded-lg p-5 border border-slate-200 space-y-1 shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Sea Freight in Transit</span>
               <div className="text-2xl font-bold text-indigo-600 font-['Manrope',sans-serif] tabular-nums">
-                {seaContainersCount || 2}
+                {seaContainersCount}
               </div>
               <p className="text-xs text-slate-500">Cargo ships & port arrivals</p>
             </div>
@@ -3221,11 +3321,11 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
                   <span className="text-[11px] font-semibold text-slate-500 block truncate">Active Cargo</span>
                   <div className="text-2xl font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums mt-0.5">
-                    {activeConsignmentsCount || shipments.length}
+                    {activeConsignmentsCount}
                   </div>
                   <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                     <span className="truncate">China ⇄ BD linehaul</span>
-                    <span className="font-semibold text-slate-600 font-mono">{totalCargoWeightKg > 0 ? `${totalCargoWeightKg} KG` : '85.8 KG'}</span>
+                    <span className="font-semibold text-slate-600 font-mono">{totalCargoWeightKg > 0 ? `${totalCargoWeightKg.toLocaleString()} KG` : '0 KG'}</span>
                   </div>
                 </div>
 
@@ -3251,7 +3351,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
                   <span className="text-[11px] font-semibold text-slate-500 block truncate">Air in Transit</span>
                   <div className="text-2xl font-bold text-sky-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
-                    {inTransitAirCount || 1}
+                    {inTransitAirCount}
                   </div>
                   <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                     <span className="truncate">Active Flights</span>
@@ -3282,7 +3382,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
                   <span className="text-[11px] font-semibold text-slate-500 block truncate">Sea Maritime</span>
                   <div className="text-2xl font-bold text-indigo-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
-                    {seaContainersCount || 2}
+                    {seaContainersCount}
                   </div>
                   <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                     <span className="truncate">Chittagong Port</span>
@@ -3311,7 +3411,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
                   <span className="text-[11px] font-semibold text-slate-500 block truncate">Customs Clear</span>
                   <div className="text-2xl font-bold text-amber-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
-                    {customsCount || 1}
+                    {customsCount}
                   </div>
                   <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                     <span className="truncate">HSIA Cargo</span>
@@ -3343,7 +3443,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   </div>
                   <span className="text-[11px] font-semibold text-slate-500 block truncate">Out for Delivery</span>
                   <div className="text-2xl font-bold text-orange-600 font-['Manrope',sans-serif] tabular-nums mt-0.5">
-                    {outForDeliveryCount || 1}
+                    {outForDeliveryCount}
                   </div>
                   <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                     <span className="truncate">Steadfast Courier</span>
@@ -3591,25 +3691,33 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100">
                     <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Total Cargo Volume</span>
                     <span className="text-base font-bold text-slate-900 font-['Manrope',sans-serif] tabular-nums">
-                      {totalCargoWeightKg > 0 ? `${totalCargoWeightKg.toLocaleString()} KG` : '24,535 KG'}
+                      {totalCargoWeightKg > 0 ? `${totalCargoWeightKg.toLocaleString()} KG` : '0 KG'}
                     </span>
-                    <span className="text-[10px] font-medium text-emerald-600 block mt-0.5">↑ +18.4% this month</span>
+                    <span className="text-[10px] font-medium text-slate-500 block mt-0.5">
+                      {totalCargoWeightKg > 0
+                        ? `Air: ${airCargoWeightKg.toLocaleString()} KG • Sea: ${seaCargoWeightKg.toLocaleString()} KG`
+                        : 'No active cargo volume'}
+                    </span>
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-sky-50/50 border border-sky-100">
                     <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider block">Air Velocity</span>
                     <span className="text-base font-bold text-sky-900 font-['Manrope',sans-serif] tabular-nums">
-                      4.2 Days
+                      {inTransitAirCount > 0 ? '3 - 5 Days' : '—'}
                     </span>
-                    <span className="text-[10px] font-medium text-sky-700 block mt-0.5">Guangzhou → HSIA</span>
+                    <span className="text-[10px] font-medium text-sky-700 block mt-0.5">
+                      {inTransitAirCount > 0 ? `${inTransitAirCount} active flight(s)` : 'No active flights'}
+                    </span>
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-indigo-50/50 border border-indigo-100">
                     <span className="text-[10px] font-semibold text-indigo-600 uppercase tracking-wider block">Linehaul SLA</span>
                     <span className="text-base font-bold text-indigo-900 font-['Manrope',sans-serif] tabular-nums">
-                      99.2%
+                      {shipments.length > 0 ? '99.2%' : '100%'}
                     </span>
-                    <span className="text-[10px] font-medium text-indigo-700 block mt-0.5">On-Time Clearance</span>
+                    <span className="text-[10px] font-medium text-indigo-700 block mt-0.5">
+                      {shipments.length > 0 ? 'On-Time Clearance' : 'Target SLA'}
+                    </span>
                   </div>
                 </div>
 
@@ -3628,60 +3736,86 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                     </defs>
 
                     {/* Horizontal Grid lines */}
-                    <line x1="30" y1="20" x2="530" y2="20" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-                    <line x1="30" y1="60" x2="530" y2="60" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-                    <line x1="30" y1="100" x2="530" y2="100" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="25" x2="530" y2="25" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="63" x2="530" y2="63" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+                    <line x1="30" y1="101" x2="530" y2="101" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
                     <line x1="30" y1="140" x2="530" y2="140" stroke="#e2e8f0" strokeWidth="1" />
 
                     {/* Y-Axis Value Labels */}
-                    <text x="22" y="24" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">4000</text>
-                    <text x="22" y="64" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">2500</text>
-                    <text x="22" y="104" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">1000</text>
+                    <text x="22" y="29" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">{throughputData.yMax}</text>
+                    <text x="22" y="67" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">{Math.round(throughputData.yMax * 0.66)}</text>
+                    <text x="22" y="105" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">{Math.round(throughputData.yMax * 0.33)}</text>
                     <text x="22" y="144" textAnchor="end" fontSize="9" fill="#94a3b8" fontFamily="monospace">0</text>
 
-                    {/* Sea Freight Area & Line */}
-                    <path
-                      d="M60,115 Q140,95 215,85 T370,55 T515,65 L515,140 L60,140 Z"
-                      fill="url(#seaAreaGrad)"
-                    />
-                    <path
-                      d="M60,115 Q140,95 215,85 T370,55 T515,65"
-                      fill="none"
-                      stroke="#4f46e5"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
+                    {throughputData.hasData ? (
+                      <>
+                        {/* Sea Freight Area & Line */}
+                        {throughputData.seaAreaD && <path d={throughputData.seaAreaD} fill="url(#seaAreaGrad)" />}
+                        {throughputData.seaLineD && (
+                          <path
+                            d={throughputData.seaLineD}
+                            fill="none"
+                            stroke="#4f46e5"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        )}
 
-                    {/* Air Freight Area & Line */}
-                    <path
-                      d="M60,95 Q140,65 215,75 T370,35 T515,40 L515,140 L60,140 Z"
-                      fill="url(#airAreaGrad)"
-                    />
-                    <path
-                      d="M60,95 Q140,65 215,75 T370,35 T515,40"
-                      fill="none"
-                      stroke="#0284c7"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    />
+                        {/* Air Freight Area & Line */}
+                        {throughputData.airAreaD && <path d={throughputData.airAreaD} fill="url(#airAreaGrad)" />}
+                        {throughputData.airLineD && (
+                          <path
+                            d={throughputData.airLineD}
+                            fill="none"
+                            stroke="#0284c7"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        )}
 
-                    {/* Data Points */}
-                    {[[60, 95], [140, 72], [215, 75], [290, 52], [370, 35], [445, 48], [515, 40]].map(([cx, cy], i) => (
-                      <circle key={i} cx={cx} cy={cy} r="3.5" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
-                    ))}
+                        {/* Data Points */}
+                        {throughputData.airPoints.map((pt, i) => (
+                          <circle key={`air-${i}`} cx={pt.x} cy={pt.y} r="3.5" fill="#0284c7" stroke="#ffffff" strokeWidth="2">
+                            <title>{`${pt.label} Air: ${pt.kg} KG`}</title>
+                          </circle>
+                        ))}
 
-                    {[[60, 115], [140, 102], [215, 85], [290, 78], [370, 55], [445, 68], [515, 65]].map(([cx, cy], i) => (
-                      <circle key={i} cx={cx} cy={cy} r="3.5" fill="#4f46e5" stroke="#ffffff" strokeWidth="2" />
-                    ))}
+                        {throughputData.seaPoints.map((pt, i) => (
+                          <circle key={`sea-${i}`} cx={pt.x} cy={pt.y} r="3.5" fill="#4f46e5" stroke="#ffffff" strokeWidth="2">
+                            <title>{`${pt.label} Sea: ${pt.kg} KG`}</title>
+                          </circle>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        {/* Baseline empty representation */}
+                        <line x1="60" y1="140" x2="510" y2="140" stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="4 4" />
+                        <text x="285" y="85" textAnchor="middle" fontSize="11" fill="#94a3b8" fontWeight="500">
+                          Awaiting active consignment volume data
+                        </text>
+                      </>
+                    )}
 
                     {/* X-Axis Day Labels */}
-                    <text x="60" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Mon</text>
-                    <text x="140" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Tue</text>
-                    <text x="215" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Wed</text>
-                    <text x="290" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Thu</text>
-                    <text x="370" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Fri</text>
-                    <text x="445" y="155" textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">Sat</text>
-                    <text x="515" y="155" textAnchor="middle" fontSize="10" fill="#0f172a" fontWeight="700">Sun (Live)</text>
+                    {throughputData.days.map((d, i) => {
+                      const x = [60, 135, 210, 285, 360, 435, 510][i];
+                      const isLive = i === 6;
+                      return (
+                        <text
+                          key={i}
+                          x={x}
+                          y="155"
+                          textAnchor="middle"
+                          fontSize="10"
+                          fill={isLive ? '#0f172a' : '#64748b'}
+                          fontWeight={isLive ? '700' : '500'}
+                        >
+                          {d.label}
+                        </text>
+                      );
+                    })}
                   </svg>
                 </div>
               </div>
@@ -3711,15 +3845,31 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="space-y-1.5">
                     <div className="flex justify-between text-[11px] font-semibold text-slate-600">
                       <span>End-to-End Pipeline Clearance</span>
-                      <span className="font-mono text-slate-900">8 Physical Stages</span>
+                      <span className="font-mono text-slate-900">{pipelineTotal} Consignments</span>
                     </div>
-                    <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                      <div style={{ width: '25%' }} className="h-full bg-blue-500" title="CN Hub Receiving (25%)"></div>
-                      <div style={{ width: '35%' }} className="h-full bg-indigo-500" title="International Flight/Vessel (35%)"></div>
-                      <div style={{ width: '20%' }} className="h-full bg-amber-500" title="Customs Valuation & Duty (20%)"></div>
-                      <div style={{ width: '12%' }} className="h-full bg-orange-500" title="Last Mile Courier (12%)"></div>
-                      <div style={{ width: '8%' }} className="h-full bg-emerald-500" title="Delivered & Cleared (8%)"></div>
-                    </div>
+                    {pipelineTotal === 0 ? (
+                      <div className="h-3 w-full bg-slate-100 rounded-full flex items-center justify-center">
+                        <span className="text-[9px] text-slate-400 font-medium tracking-tight">No active consignments in pipeline</span>
+                      </div>
+                    ) : (
+                      <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                        {cnHubPct > 0 && (
+                          <div style={{ width: `${cnHubPct}%` }} className="h-full bg-blue-500 transition-all duration-300" title={`China Hubs: ${chinaHubReceivedCount} (${cnHubPct}%)`}></div>
+                        )}
+                        {transitPct > 0 && (
+                          <div style={{ width: `${transitPct}%` }} className="h-full bg-indigo-500 transition-all duration-300" title={`Linehaul Transit: ${inTransitAirCount + seaContainersCount} (${transitPct}%)`}></div>
+                        )}
+                        {customsPct > 0 && (
+                          <div style={{ width: `${customsPct}%` }} className="h-full bg-amber-500 transition-all duration-300" title={`Customs Clearance: ${customsCount} (${customsPct}%)`}></div>
+                        )}
+                        {lastMilePct > 0 && (
+                          <div style={{ width: `${lastMilePct}%` }} className="h-full bg-orange-500 transition-all duration-300" title={`Last-Mile Courier: ${outForDeliveryCount} (${lastMilePct}%)`}></div>
+                        )}
+                        {deliveredPct > 0 && (
+                          <div style={{ width: `${deliveredPct}%` }} className="h-full bg-emerald-500 transition-all duration-300" title={`Delivered: ${deliveredCount} (${deliveredPct}%)`}></div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* 5 Progression Stage Rows */}
@@ -3737,7 +3887,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </div>
                       </div>
                       <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-blue-600">
-                        {chinaHubReceivedCount || 2} consignments
+                        {chinaHubReceivedCount} {chinaHubReceivedCount === 1 ? 'consignment' : 'consignments'}
                       </span>
                     </div>
 
@@ -3754,7 +3904,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </div>
                       </div>
                       <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-indigo-600">
-                        {(inTransitAirCount + seaContainersCount) || 3} active
+                        {inTransitAirCount + seaContainersCount} active
                       </span>
                     </div>
 
@@ -3771,7 +3921,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </div>
                       </div>
                       <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-amber-600">
-                        {customsCount || 1} awaiting
+                        {customsCount} awaiting
                       </span>
                     </div>
 
@@ -3788,7 +3938,7 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                         </div>
                       </div>
                       <span className="text-xs font-bold font-mono text-slate-900 group-hover:text-orange-600">
-                        {outForDeliveryCount || 1} dispatch
+                        {outForDeliveryCount} dispatch
                       </span>
                     </div>
                   </div>
@@ -3799,7 +3949,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
                     <span className="text-emerald-950 font-medium text-[11px]">
-                      China to Bangladesh corridor routes operating at 100% capacity
+                      {activeConsignmentsCount > 0
+                        ? `China to Bangladesh corridor: ${activeConsignmentsCount} active consignment(s) running on schedule`
+                        : 'China to Bangladesh corridor routes operating at 100% capacity'}
                     </span>
                   </div>
                   <button

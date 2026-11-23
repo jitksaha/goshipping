@@ -1004,10 +1004,10 @@ function doPost(e) {
     };
 
     // Trend points from records for sparklines
-    const revRaw = records.slice(0, 10).reverse().map((r) => Number(r.totalBillBdt) || 100);
-    const rmbRaw = records.slice(0, 10).reverse().map((r) => Number(r.totalPurchaseRmb) || 50);
-    const freightRaw = records.slice(0, 10).reverse().map((r) => Number(r.internationalFreightBdt) || 80);
-    const weightRaw = records.slice(0, 10).reverse().map((r) => Number(r.bdWeightKg || r.cnWeightKg) || 10);
+    const revRaw = records.slice(0, 10).reverse().map((r) => Number(r.totalBillBdt) || 0);
+    const rmbRaw = records.slice(0, 10).reverse().map((r) => Number(r.totalPurchaseRmb) || 0);
+    const freightRaw = records.slice(0, 10).reverse().map((r) => Number(r.internationalFreightBdt) || 0);
+    const weightRaw = records.slice(0, 10).reverse().map((r) => Number(r.bdWeightKg || r.cnWeightKg) || 0);
 
     return {
       statusCounts,
@@ -1017,10 +1017,10 @@ function doPost(e) {
       collectionPercent,
       duePercent,
       serviceCounts,
-      revenuePoints: revRaw.length >= 2 ? revRaw : [12000, 24000, 18000, 42000, 31000, 56000, 81000],
-      rmbPoints: rmbRaw.length >= 2 ? rmbRaw : [800, 1500, 1100, 2300, 1900, 3000, 4200],
-      freightPoints: freightRaw.length >= 2 ? freightRaw : [4000, 8500, 6200, 11000, 9500, 16000, 22500],
-      weightPoints: weightRaw.length >= 2 ? weightRaw : [8, 15, 12, 22, 19, 28, 35]
+      revenuePoints: revRaw,
+      rmbPoints: rmbRaw,
+      freightPoints: freightRaw,
+      weightPoints: weightRaw
     };
   }, [records, stats]);
 
@@ -1091,14 +1091,22 @@ function doPost(e) {
 
   // Pure SVG mini-sparkline renderer
   const renderSparkline = (points: number[], strokeColor: string, fillColor: string) => {
-    if (!points || points.length < 2) points = [10, 20, 15, 30, 25, 40];
-    const min = Math.min(...points);
-    const max = Math.max(...points) || 1;
-    const range = max - min || 1;
     const width = 84;
     const height = 28;
-    const coords = points.map((val, idx) => {
-      const x = (idx / (points.length - 1)) * width;
+    const allZero = !points || points.length === 0 || points.every((p) => p === 0);
+    if (allZero) {
+      return (
+        <svg className="w-21 h-7 overflow-visible shrink-0 opacity-30" viewBox={`0 0 ${width} ${height}`}>
+          <line x1="0" y1={height - 4} x2={width} y2={height - 4} stroke={strokeColor} strokeWidth="1.5" strokeDasharray="3 3" />
+        </svg>
+      );
+    }
+    const safePoints = points.length === 1 ? [points[0], points[0]] : points;
+    const min = Math.min(...safePoints);
+    const max = Math.max(...safePoints) || 1;
+    const range = max - min || 1;
+    const coords = safePoints.map((val, idx) => {
+      const x = (idx / (safePoints.length - 1)) * width;
       const y = height - ((val - min) / range) * (height - 6) - 3;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
@@ -1115,17 +1123,26 @@ function doPost(e) {
 
   // Pure SVG mini-bar renderer
   const renderMiniBars = (points: number[], barColor: string) => {
-    if (!points || points.length === 0) points = [6, 12, 8, 18, 14, 22, 28];
+    const allZero = !points || points.length === 0 || points.every((p) => p === 0);
+    if (allZero) {
+      return (
+        <div className="flex items-end gap-1 h-7 shrink-0 opacity-25">
+          {[0, 0, 0, 0, 0, 0].map((_, i) => (
+            <div key={i} className="w-1.5 h-1.5 rounded-t-xs bg-slate-300" />
+          ))}
+        </div>
+      );
+    }
     const max = Math.max(...points) || 1;
     return (
       <div className="flex items-end gap-1 h-7 shrink-0">
         {points.slice(-6).map((val, i) => {
-          const heightPct = Math.max(18, Math.round((val / max) * 100));
+          const heightPct = val > 0 ? Math.max(18, Math.round((val / max) * 100)) : 8;
           return (
             <div
               key={i}
               className="w-1.5 rounded-t-xs"
-              style={{ height: `${heightPct}%`, backgroundColor: barColor }}
+              style={{ height: `${heightPct}%`, backgroundColor: val > 0 ? barColor : '#cbd5e1' }}
               title={`Metric: ${val}`}
             />
           );
