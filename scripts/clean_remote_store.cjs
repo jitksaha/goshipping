@@ -56,10 +56,17 @@ try {
   posRecords = [];
 }
 
+// Ensure test order has the exact user's orderId INV-TEST-20261
+for (const r of posRecords) {
+  if (r.trackingNumber === 'CN-TEST-20261' || r.orderId === 'GOS-20261') {
+    r.orderId = 'INV-TEST-20261';
+  }
+}
+
 // If POS ledger is empty, seed user's order INV-TEST-20261
 const hasTestOrder = posRecords.some(
   (r) =>
-    (r.orderId && r.orderId.toUpperCase() === 'INV-TEST-20261') ||
+    (r.orderId && (r.orderId.toUpperCase() === 'INV-TEST-20261' || r.orderId.toUpperCase() === 'GOS-20261')) ||
     (r.trackingNumber && r.trackingNumber.toUpperCase() === 'CN-TEST-20261') ||
     (r.chinaCourierTracking && r.chinaCourierTracking.toUpperCase() === 'CN-TEST-20261')
 );

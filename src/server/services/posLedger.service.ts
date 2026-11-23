@@ -138,11 +138,13 @@ function normalizeOrderId(orderId: string | undefined, fallbackSeq: number): str
     return clean.toUpperCase();
   }
   // If old POS-2026-001 or POS-2026-0005, extract the trailing number
-  const match = clean.match(/(?:POS-.*?)?(\d+)$/i);
-  if (match) {
-    const num = parseInt(match[1], 10);
-    if (!isNaN(num) && num > 0) {
-      return `GOS-${String(num).padStart(5, '0')}`;
+  if (/^POS-/i.test(clean)) {
+    const match = clean.match(/(\d+)$/i);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > 0) {
+        return `GOS-${String(num).padStart(5, '0')}`;
+      }
     }
   }
   return clean;
