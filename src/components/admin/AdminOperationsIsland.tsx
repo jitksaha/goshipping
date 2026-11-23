@@ -1787,80 +1787,9 @@ export default function AdminOperationsIsland({ initialTab = 'overview' }: { ini
         throw new Error(errJson.error || 'Failed to save order to POS Ledger');
       }
 
-      // 3. Consignment tracking creation (if both or freight)
-      if (orderScope === 'both' || orderScope === 'freight') {
-        const finalCustomerEmail =
-          orderCustomerMode === 'new'
-            ? (newCustomerEmail.trim().toLowerCase() || clientEmailToUse)
-            : currentSelectedCustomer?.email;
-        const finalCustomerPhone =
-          orderCustomerMode === 'new'
-            ? newCustomerPhone.trim()
-            : currentSelectedCustomer?.phone;
-
-        const cargoItemsPayload = orderItems.length > 0 && orderItems[0].description.trim() ? orderItems.map((it, idx) => ({
-          itemCode: `#ITM-${1000 + idx}`,
-          description: it.description.trim() || sourcingItemDetails.trim() || 'Commercial Cargo Item',
-          packagingType: it.packagingType,
-          quantity: Math.max(1, Math.round(Number(it.quantity) || 1)),
-          weightKg: Number(it.weightKg) || 0,
-          cbm: Number(it.cbm) || 0,
-          categoryTag: it.categoryTag,
-          declaredValue: Number(it.declaredValue) || undefined,
-          currency: 'BDT'
-        })) : [
-          {
-            itemCode: '#ITM-1001',
-            description: sourcingItemDetails.trim() || 'Commercial Sourcing Cargo',
-            packagingType: 'carton',
-            quantity: Math.max(1, Math.round(Number(sourcingQuantity) || 1)),
-            weightKg: Number(orderTotals.totalWeight) || (Number(grossWeightKgInput) || 0),
-            cbm: Number(orderTotals.totalCbm) || 0,
-            categoryTag: 'Commercial' as const,
-            currency: 'BDT'
-          }
-        ];
-
-        const shipmentRes = await fetch('/api/shipments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            trackingNumber: trackingCodeToUse,
-            customerId: finalCustomerId || 'usr-customer-01',
-            customerName: finalCustName,
-            customerEmail: finalCustomerEmail,
-            customerPhone: finalCustomerPhone,
-            recipientName: finalRecipientName,
-            recipientPhone: finalRecipientPhone,
-            recipientAddress: finalRecipientAddress,
-            originCountry: newOriginCountry,
-            originCity: newOriginCity,
-            destCountry: newDestCountry,
-            destCity: newDestCity,
-            destAddress: finalRecipientAddress,
-            mode: newMode,
-            serviceLevel: newServiceLevel,
-            carrierName: newCarrier || (newMode === 'air' ? 'GoShipping Air Priority' : 'GoShipping Ocean Line'),
-            voyageOrFlightNumber: newVoyage || (newMode === 'air' ? 'Flight CX-068' : 'Vessel GOSH-VOYAGE'),
-            totalWeightKg: Number(orderTotals.totalWeight) || (Number(grossWeightKgInput) || 0),
-            totalCbm: Number(orderTotals.totalCbm) || 0,
-            totalPieces: Math.max(1, Math.round(Number(orderTotals.totalPieces) || 1)),
-            notes: orderRemarks.trim() || deliveryNotes.trim() || deliveryInstructions.trim(),
-            items: cargoItemsPayload
-          })
-        });
-
-        if (shipmentRes.ok) {
-          const sData = await shipmentRes.json();
-          if (newInitialStatus && newInitialStatus !== 'purchased' && sData?.shipment?.id) {
-            await fetch(`/api/shipments/${sData.shipment.id}/status`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: newInitialStatus })
-            });
-          }
-        }
-      }
+      // Consignment is fully unified: PosLedgerRecord is the authoritative master consignment
+      // which automatically powers live tracking, Google Sheets sync, and admin operations.
+      // Standalone /api/shipments records are never created for POS orders to prevent duplicates.
 
       setCreatedShipmentResult({
         trackingNumber: trackingCodeToUse,

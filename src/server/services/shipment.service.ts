@@ -635,7 +635,17 @@ export class ShipmentService {
       }
     }
 
-    let results = all;
+    const dedupedAll: ShipmentRecord[] = [];
+    const dedupSeenKeys = new Set<string>();
+    for (const item of all) {
+      const trackKey = (item.trackingNumber || item.id).trim().toUpperCase();
+      if (!dedupSeenKeys.has(trackKey)) {
+        dedupSeenKeys.add(trackKey);
+        dedupedAll.push(item);
+      }
+    }
+
+    let results = dedupedAll;
 
     if (params?.customerId) {
       const cId = params.customerId;
@@ -745,7 +755,45 @@ export class ShipmentService {
     }
 
     const matchedShipments: ShipmentRecord[] = [];
-    const addedIds = new Set<string>();
+    const seenKeys = new Set<string>();
+
+    const registerKeys = (keys: (string | undefined | null)[]) => {
+      for (const k of keys) {
+        if (k && k.trim()) {
+          seenKeys.add(k.trim().toUpperCase());
+        }
+      }
+    };
+
+    const isRecordOrShipmentSeen = (item: {
+      id?: string | null;
+      trackingNumber?: string | null;
+      orderId?: string | null;
+      bookingReference?: string | null;
+      chinaCourierTracking?: string | null;
+      bdTrackingNo?: string | null;
+      shippingMark?: string | null;
+      billOfLadingNumber?: string | null;
+      carrierWaybillNumber?: string | null;
+    }) => {
+      const keys = [
+        item.id,
+        item.trackingNumber,
+        item.orderId,
+        item.bookingReference,
+        item.chinaCourierTracking,
+        item.bdTrackingNo,
+        item.shippingMark,
+        item.billOfLadingNumber,
+        item.carrierWaybillNumber
+      ];
+      for (const k of keys) {
+        if (k && k.trim() && seenKeys.has(k.trim().toUpperCase())) {
+          return true;
+        }
+      }
+      return false;
+    };
 
     // 2. Search POS ledger records first (live operational orders)
     for (const record of posRecords) {
@@ -810,17 +858,31 @@ export class ShipmentService {
       }
 
       if (matches) {
-        const uniqueKey = record.orderId || record.bdTrackingNo || record.id;
-        if (!addedIds.has(uniqueKey)) {
-          addedIds.add(uniqueKey);
-          matchedShipments.push(convertPosRecordToShipment(record));
+        if (!isRecordOrShipmentSeen(record)) {
+          const converted = convertPosRecordToShipment(record);
+          registerKeys([
+            record.id,
+            record.orderId,
+            record.trackingNumber,
+            record.chinaCourierTracking,
+            record.bdTrackingNo,
+            record.shippingMark,
+            record.shippingMark ? `MARK-${record.shippingMark}` : undefined,
+            converted.id,
+            converted.trackingNumber,
+            converted.orderId,
+            converted.bookingReference,
+            converted.billOfLadingNumber,
+            converted.carrierWaybillNumber
+          ]);
+          matchedShipments.push(converted);
         }
       }
     }
 
     // 3. Search initialShipments / master consignment store
     for (const s of initialShipments) {
-      if (addedIds.has(s.trackingNumber) || addedIds.has(s.id)) continue;
+      if (isRecordOrShipmentSeen(s)) continue;
 
       let matches = false;
 
@@ -857,8 +919,19 @@ export class ShipmentService {
       }
 
       if (matches) {
-        addedIds.add(s.trackingNumber);
-        matchedShipments.push(s);
+        if (!isRecordOrShipmentSeen(s)) {
+          registerKeys([
+            s.id,
+            s.trackingNumber,
+            s.orderId,
+            s.bookingReference,
+            s.billOfLadingNumber,
+            s.carrierWaybillNumber,
+            s.chinaCourierTracking,
+            s.bdTrackingNo
+          ]);
+          matchedShipments.push(s);
+        }
       }
     }
 
@@ -866,17 +939,26 @@ export class ShipmentService {
     if (matchedShipments.length === 0 && !isEmail && digitsOnly.length >= 8) {
       for (const record of posRecords) {
         if (isPhoneMatch(raw, record.mobileNo)) {
-          const uniqueKey = record.orderId || record.bdTrackingNo || record.id;
-          if (!addedIds.has(uniqueKey)) {
-            addedIds.add(uniqueKey);
-            matchedShipments.push(convertPosRecordToShipment(record));
+          if (!isRecordOrShipmentSeen(record)) {
+            const converted = convertPosRecordToShipment(record);
+            registerKeys([
+              record.id,
+              record.orderId,
+              record.trackingNumber,
+              record.chinaCourierTracking,
+              record.bdTrackingNo,
+              record.shippingMark,
+              converted.id,
+              converted.trackingNumber
+            ]);
+            matchedShipments.push(converted);
           }
         }
       }
       for (const s of initialShipments) {
-        if (addedIds.has(s.trackingNumber) || addedIds.has(s.id)) continue;
+        if (isRecordOrShipmentSeen(s)) continue;
         if (isPhoneMatch(raw, s.customerPhone) || isPhoneMatch(raw, s.recipientPhone)) {
-          addedIds.add(s.trackingNumber);
+          registerKeys([s.id, s.trackingNumber]);
           matchedShipments.push(s);
         }
       }
@@ -885,9 +967,29 @@ export class ShipmentService {
       }
     }
 
+    // Strict Deduplication Pass: NEVER allow duplicate tracking code, duplicate order ID, or duplicate B/L
+    const finalShipments: ShipmentRecord[] = [];
+    const dedupSeen = new Set<string>();
+
+    for (const ship of matchedShipments) {
+      const trackKey = (ship.trackingNumber || ship.id || '').trim().toUpperCase();
+      const orderKey = (ship.orderId || ship.bookingReference || '').trim().toUpperCase();
+      const bolKey = (ship.billOfLadingNumber || '').trim().toUpperCase();
+
+      if (trackKey && dedupSeen.has(trackKey)) continue;
+      if (orderKey && dedupSeen.has(orderKey)) continue;
+      if (bolKey && dedupSeen.has(bolKey)) continue;
+
+      if (trackKey) dedupSeen.add(trackKey);
+      if (orderKey) dedupSeen.add(orderKey);
+      if (bolKey) dedupSeen.add(bolKey);
+
+      finalShipments.push(ship);
+    }
+
     // 5. Intelligent Ranking: If searching by a specific identifier, ensure the exact matching consignment is at index 0
-    if (searchType === 'tracking_code' && matchedShipments.length > 1) {
-      matchedShipments.sort((a, b) => {
+    if (searchType === 'tracking_code' && finalShipments.length > 1) {
+      finalShipments.sort((a, b) => {
         const aExact =
           a.trackingNumber.toUpperCase() === cleanUpper ||
           (a.bookingReference && a.bookingReference.toUpperCase() === cleanUpper) ||
@@ -904,7 +1006,7 @@ export class ShipmentService {
       });
     }
 
-    return { shipments: matchedShipments, searchType };
+    return { shipments: finalShipments, searchType };
   }
 
   /**
